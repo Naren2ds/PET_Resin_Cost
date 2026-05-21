@@ -1,7 +1,9 @@
+from pathlib import Path
 from typing import List, Optional, Union
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from market_research_data_model import (
@@ -14,6 +16,9 @@ from market_research_data_model import (
 )
 from supplier_data_model import build_vendor_breakdowns, supplier_price_for
 
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+FRONTEND_DIST = REPO_ROOT / "apps" / "frontend" / "dist"
 
 app = FastAPI(title="PET Resin API")
 
@@ -188,3 +193,26 @@ def market_research_trends(
             selected_year,
         ),
     }
+
+
+@app.get("/{full_path:path}", include_in_schema=False)
+def serve_frontend(full_path: str):
+    dist_root = FRONTEND_DIST.resolve()
+    requested_path = (dist_root / full_path).resolve()
+
+    try:
+        requested_path.relative_to(dist_root)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Static file not found") from exc
+
+    if full_path and requested_path.is_file():
+        return FileResponse(requested_path)
+
+    index_path = dist_root / "index.html"
+    if index_path.is_file():
+        return FileResponse(index_path)
+
+    raise HTTPException(
+        status_code=404,
+        detail="Frontend build not found. Run `npm run build` before starting the app.",
+    )

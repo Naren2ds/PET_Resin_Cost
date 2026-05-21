@@ -8,6 +8,7 @@ import Trends2Page from "../pages/Trends2Page";
 import SimulationPage from "../pages/SimulationPage";
 import AppHeader from "../components/AppHeader";
 import { ScrollProgressBar } from "../components/ScrollProgressBar";
+import { createApiUrl } from "../lib/api";
 
 const DataLayout: React.FC = () => {
   const [data, setData] = useState<ApiResponse | null>(null);
@@ -15,9 +16,11 @@ const DataLayout: React.FC = () => {
 
   useEffect(() => {
     const paramsString = searchParams.toString();
-    const url = new URL(
-      "http://127.0.0.1:8000/countries" + (paramsString ? `?${paramsString}` : ""),
-    );
+    const url = createApiUrl("/countries");
+    if (paramsString) {
+      const nextParams = new URLSearchParams(paramsString);
+      nextParams.forEach((value, key) => url.searchParams.set(key, value));
+    }
 
     url.searchParams.set("includeVendorBreakdowns", "true");
 

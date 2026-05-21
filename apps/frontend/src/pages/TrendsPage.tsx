@@ -18,6 +18,7 @@ import type {
 import { formatAmount } from "../types";
 import RevealOnScroll from "../components/RevealOnScroll";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { createApiUrl } from "../lib/api";
 
 type TrendsPageProps = {
   data: ApiResponse;
@@ -211,7 +212,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
   }, [data.destination, data.vendorBreakdowns]);
 
   useEffect(() => {
-    const url = new URL("http://127.0.0.1:8000/market-research-trends");
+    const url = createApiUrl("/market-research-trends");
     url.searchParams.set("destination", selectedDestination);
     url.searchParams.set("year", "2026");
 

@@ -9,3 +9,19 @@ build/
 ~$*.xlsx
 ~$*.xls
 .DS_Store
+
+# Local/source data and generated outputs
+artifacts/
+data/raw/
+data/archive/
+data/processed/current/**/*.csv
+data/processed/current/**/*.json
+data/processed/current/indexes/
+pipelines/**/artifacts/
+pipelines/**/Estimation/
+pipelines/market_research/data_exploration/outputs/
+
+# Local documentation/source workbook drafts
+README_legacy.md
+docs/**/*.docx
+docs/**/*.xlsx

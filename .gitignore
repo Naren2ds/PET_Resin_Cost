@@ -1,0 +1,11 @@
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+.env
+dist/
+build/
+*.log
+~$*.xlsx
+~$*.xls
+.DS_Store

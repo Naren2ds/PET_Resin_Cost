@@ -1,0 +1,254 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* —— Contract Intelligence Engine palette (ported from Contract_Intel/frontend/index.html) —— */
+:root {
+  --ci-bg: #0d1117;
+  --ci-bg-card: #161b22;
+  --ci-bg-raised: #1c2330;
+  --ci-border: #30363d;
+  --ci-accent: #e6a817;
+  --ci-accent-dim: #b07d0f;
+  --ci-accent-glow: rgba(230, 168, 23, 0.15);
+  --ci-text: #e6edf3;
+  --ci-text-muted: #8b949e;
+  --ci-text-faint: #484f58;
+  --ci-low: #3fb950;
+  --ci-medium: #e6a817;
+  --ci-high: #f78166;
+  --ci-critical: #da3633;
+  --ci-blue: #58a6ff;
+  --ci-purple: #bc8cff;
+  --ci-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+  --ci-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  --ci-r: 8px;
+  --ci-rl: 14px;
+  --ci-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  --ci-t: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@theme inline {
+  --font-sans: var(--ci-sans);
+  --font-mono: var(--ci-mono);
+  --color-background: var(--ci-bg);
+  --color-foreground: var(--ci-text);
+  --color-card: var(--ci-bg-card);
+  --color-card-foreground: var(--ci-text);
+  --color-popover: var(--ci-bg-card);
+  --color-popover-foreground: var(--ci-text);
+  --color-primary: var(--ci-accent);
+  --color-primary-foreground: #000000;
+  --color-secondary: var(--ci-bg-raised);
+  --color-secondary-foreground: var(--ci-text);
+  --color-muted: var(--ci-bg-raised);
+  --color-muted-foreground: var(--ci-text-muted);
+  --color-accent: var(--ci-bg-raised);
+  --color-accent-foreground: var(--ci-text);
+  --color-destructive: var(--ci-critical);
+  --color-destructive-foreground: var(--ci-text);
+  --color-success: var(--ci-low);
+  --color-warning: var(--ci-high);
+  --color-border: var(--ci-border);
+  --color-input: var(--ci-border);
+  --color-ring: var(--ci-accent);
+  --radius: 8px;
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  .pet-prose a {
+    color: var(--ci-accent);
+    text-decoration: none;
+  }
+
+  .pet-prose a:hover {
+    text-decoration: underline;
+  }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--ci-bg-raised);
+    border: 1px solid var(--ci-border);
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
+    color: #c9d1d9;
+  }
+
+  pre {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: #c9d1d9;
+    background: var(--ci-bg-raised);
+    border: 1px solid var(--ci-border);
+    border-radius: var(--ci-r);
+    padding: 1.25rem 1.5rem;
+    overflow-x: auto;
+  }
+
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: inherit;
+  }
+}
+
+/* Vertical scroll progress (right edge, Contract Intel accent) */
+.pet-pbar {
+  background: linear-gradient(180deg, var(--ci-accent-dim), var(--ci-accent));
+}
+
+/* Brand logo tile — gold field like Contract accent chip */
+.brand-logo {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--ci-r);
+  object-fit: contain;
+  background: var(--ci-accent);
+  padding: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px var(--ci-border), 0 4px 20px var(--ci-accent-glow);
+}
+
+/* App shell header — #brand from Contract Intel */
+.pet-brand-bar {
+  height: 56px;
+  background: rgba(13, 17, 23, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--ci-border);
+}
+
+/* Logo text + gold badge (Contract .logo span) */
+.pet-logo-badge {
+  background: var(--ci-accent);
+  color: #000;
+  padding: 0.15em 0.45em;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* Hero-style gradient text (Contract #hero h1 em) */
+.pet-gradient-heading {
+  background: linear-gradient(135deg, var(--ci-accent), #f5c842);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Section kicker (Contract .slbl / .htag) */
+.pet-section-kicker {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ci-accent);
+}
+
+/* Data tables — Contract Intel table strip */
+.pet-data-table thead th {
+  background: var(--ci-bg-raised);
+  color: var(--ci-text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pet-data-table tbody tr:hover td {
+  background: var(--ci-bg-raised);
+}
+
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--ci-border);
+  border-radius: 3px;
+}
+
+/* ===== Custom animations ===== */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.4s ease-out both;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out both;
+}
+
+.animate-spin-slow {
+  animation: spin 0.8s linear infinite;
+}

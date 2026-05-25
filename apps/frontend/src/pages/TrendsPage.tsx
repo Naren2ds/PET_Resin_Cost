@@ -42,6 +42,11 @@ const MONTHS = [
 const SUPPLIER_ACTUAL_COLOR = "#E6A817";
 const SUPPLIER_FORECAST_COLOR = "#E6A817";
 const SUPPLIER_TLC_LABEL = "total resin price abi virgin formula";
+const SUPPLIER_INDEX_COLOR = "#38BDF8";
+const SUPPLIER_INDEX_FORECAST_COLOR = "#38BDF8";
+const RESIN_INDEX_COMPONENT = "resin index";
+const RESIN_INDEX_MAPPING = "resin index vpet";
+const INDEX_MAPPING = "index";
 const DESTINATION_DISPLAY_ALIASES: Record<string, string> = {
   "El Salvador": "El Salvador and Honduras",
 };
@@ -135,6 +140,41 @@ const getSupplierTlc = (entry: VendorBreakdownEntry) => {
   return parseNumber(row?.amount);
 };
 
+const isSupplierIndexRow = (row: VendorBreakdownEntry["rows"][number]) => {
+  const common = normalize(row.commonComponent);
+  const mapping = normalize(row.mappingColumn);
+  const label = normalize(row.label);
+  return (
+    common === RESIN_INDEX_COMPONENT ||
+    mapping === RESIN_INDEX_MAPPING ||
+    mapping === INDEX_MAPPING ||
+    label === RESIN_INDEX_MAPPING ||
+    label === INDEX_MAPPING
+  );
+};
+
+const supplierIndexPoint = (entry: VendorBreakdownEntry): IndexPoint | null => {
+  const row = entry.rows.find(isSupplierIndexRow);
+  const value = parseNumber(row?.amount);
+  if (!row || value === null) return null;
+  const isForecast = dataTypeIsForecast(entry);
+  const indexType = isForecast
+    ? row.forecastResinIndexType || row.resinIndexType || row.rawLabel || row.label
+    : row.resinIndexType || row.forecastResinIndexType || row.rawLabel || row.label;
+  return {
+    value,
+    isForecast,
+    indexType,
+    rawLabel: row.rawLabel || row.label,
+    formulaReference: row.formulaReference || "",
+    confidenceScore: isForecast ? 72 : 96,
+    confidenceLabel: isForecast ? "Forecast confidence" : "Actual source confidence",
+    estimationNote: isForecast
+      ? "Supplier forecast uses the stated forecast index series from the supplier pipeline; non-index TLC assumptions are carried from the latest actual unless the pipeline provides updated assumptions."
+      : "Supplier actual comes from the standardized supplier workbook row used in the TLC calculation.",
+  };
+};
+
 const entrySupplierName = (entry: VendorBreakdownEntry | undefined) =>
   (entry?.supplierName ?? entry?.supplier ?? entry?.vendor ?? "").trim();
 
@@ -167,6 +207,17 @@ type MarketTrendPoint = {
   isForecast: boolean;
 };
 
+type IndexPoint = {
+  value: number;
+  isForecast: boolean;
+  indexType: string;
+  rawLabel: string;
+  formulaReference: string;
+  confidenceScore: number;
+  confidenceLabel: string;
+  estimationNote: string;
+};
+
 const TrendTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   const rows = payload.filter((item: any) => item.value !== null && item.value !== undefined);
@@ -184,6 +235,66 @@ const TrendTooltip = ({ active, payload, label }: any) => {
             <span className="font-semibold text-slate-100">{formatAmount(item.value)}</span>
           </div>
         ))}
+      </div>
+    </div>
+  );
+};
+
+const confidenceColor = (score: number) => {
+  if (score >= 90) return "#22C55E";
+  if (score >= 70) return "#E6A817";
+  return "#F97316";
+};
+
+const IndexForecastTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  const rows = payload.filter((item: any) => item.value !== null && item.value !== undefined);
+  if (!rows.length) return null;
+
+  return (
+    <div className="max-w-[360px] rounded-xl border border-primary/20 bg-[#020817]/95 px-4 py-3 shadow-2xl">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{label}</p>
+      <div className="space-y-3">
+        {rows.map((item: any) => {
+          const meta = item.payload?.[`${item.dataKey}Meta`] as IndexPoint | undefined;
+          const score = meta?.confidenceScore ?? 0;
+          return (
+            <div key={item.dataKey} className="space-y-1.5 border-t border-white/10 pt-2 first:border-t-0 first:pt-0">
+              <div className="flex items-center justify-between gap-5 text-sm">
+                <span className="font-semibold" style={{ color: item.color }}>
+                  {item.name}
+                </span>
+                <span className="font-bold text-slate-100">${formatAmount(item.value)}/MT</span>
+              </div>
+              <div className="rounded-md bg-white/5 px-2.5 py-2 text-[11px] leading-relaxed text-slate-300">
+                <p>
+                  <span className="font-semibold text-slate-100">Index used:</span>{" "}
+                  {meta?.indexType || "Not specified"}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-100">Source row:</span>{" "}
+                  {meta?.rawLabel || "Resin Index"}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-100">Estimation:</span>{" "}
+                  {meta?.estimationNote || "Source value from standardized model."}
+                </p>
+                <div className="mt-2">
+                  <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider">
+                    <span>{meta?.confidenceLabel || "Confidence"}</span>
+                    <span>{score}%</span>
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${score}%`, backgroundColor: confidenceColor(score) }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -321,6 +432,37 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
     return map;
   }, [marketTrendRowsForDestination]);
 
+  const marketIndexValuesByCountryAndMonth = useMemo(() => {
+    const map = new Map<string, Map<number, IndexPoint>>();
+
+    marketTrendRowsForDestination.forEach((entry) => {
+      const monthIdx = monthIndex(entry.month);
+      const value = parseNumber(entry.resinIndexAmount);
+      if (monthIdx < 0 || value === null) return;
+      const isForecast = dataTypeIsForecast(entry);
+      const sourceMap = map.get(entry.sourceCountry) ?? new Map<number, IndexPoint>();
+      sourceMap.set(monthIdx, {
+        value,
+        isForecast,
+        indexType:
+          (isForecast ? entry.forecastResinIndexType : entry.resinIndexType) ||
+          entry.resinIndexType ||
+          entry.forecastResinIndexType ||
+          "Market Research resin index",
+        rawLabel: entry.indexRawLabel || "PET resin cost (FOB)",
+        formulaReference: entry.formulaReference || "",
+        confidenceScore: isForecast ? 74 : 96,
+        confidenceLabel: isForecast ? "Forecast confidence" : "Actual source confidence",
+        estimationNote: isForecast
+          ? "Market Research forecast uses the stated forecast index series from the MR data model and applies the TLC formula components for the selected country."
+          : "Market Research actual comes from the standardized MR resin index row used in the TLC calculation.",
+      });
+      map.set(entry.sourceCountry, sourceMap);
+    });
+
+    return map;
+  }, [marketTrendRowsForDestination]);
+
   const chartData = useMemo(
     () =>
       MONTHS.map((month, index) => {
@@ -348,6 +490,73 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
       }),
     [marketValuesByCountryAndMonth, selectedMarketCountries, supplierEntriesByMonth]
   );
+
+  const indexChartData = useMemo(
+    () =>
+      MONTHS.map((month, index) => {
+        const entry = supplierEntriesByMonth.get(index);
+        const nextEntry = supplierEntriesByMonth.get(index + 1);
+        const supplierPoint = entry ? supplierIndexPoint(entry) : null;
+        const isForecast = dataTypeIsForecast(entry);
+        const nextIsForecast = dataTypeIsForecast(nextEntry);
+        const row: Record<string, string | number | null | IndexPoint> = {
+          period: `${month.slice(0, 3)} 2026`,
+          supplierIndexActual: supplierPoint && !isForecast ? supplierPoint.value : null,
+          supplierIndexForecast:
+            supplierPoint && (isForecast || nextIsForecast) ? supplierPoint.value : null,
+        };
+
+        if (supplierPoint && !isForecast) row.supplierIndexActualMeta = supplierPoint;
+        if (supplierPoint && (isForecast || nextIsForecast)) {
+          row.supplierIndexForecastMeta = supplierPoint;
+        }
+
+        selectedMarketCountries.forEach((country, countryIndex) => {
+          const point = marketIndexValuesByCountryAndMonth.get(country)?.get(index);
+          const nextPoint = marketIndexValuesByCountryAndMonth.get(country)?.get(index + 1);
+          const actualKey = `marketIndex_${countryIndex}_actual`;
+          const forecastKey = `marketIndex_${countryIndex}_forecast`;
+          row[actualKey] = point && !point.isForecast ? point.value : null;
+          row[forecastKey] = point && (point.isForecast || nextPoint?.isForecast) ? point.value : null;
+          if (point && !point.isForecast) row[`${actualKey}Meta`] = point;
+          if (point && (point.isForecast || nextPoint?.isForecast)) {
+            row[`${forecastKey}Meta`] = point;
+          }
+        });
+
+        return row;
+      }),
+    [marketIndexValuesByCountryAndMonth, selectedMarketCountries, supplierEntriesByMonth]
+  );
+
+  const hasIndexChartData = useMemo(
+    () =>
+      indexChartData.some((row) =>
+        Object.entries(row).some(
+          ([key, value]) => key !== "period" && !key.endsWith("Meta") && value !== null
+        )
+      ),
+    [indexChartData]
+  );
+
+  const supplierIndexNames = useMemo(() => {
+    const names = new Set<string>();
+    supplierEntriesByMonth.forEach((entry) => {
+      const point = supplierIndexPoint(entry);
+      if (point?.indexType) names.add(point.indexType);
+    });
+    return Array.from(names);
+  }, [supplierEntriesByMonth]);
+
+  const marketIndexNames = useMemo(() => {
+    const names = new Set<string>();
+    selectedMarketCountries.forEach((country) => {
+      marketIndexValuesByCountryAndMonth.get(country)?.forEach((point) => {
+        if (point.indexType) names.add(point.indexType);
+      });
+    });
+    return Array.from(names);
+  }, [marketIndexValuesByCountryAndMonth, selectedMarketCountries]);
 
   const latestActual = useMemo(() => {
     const actualRows = MONTHS.map((_, index) => supplierEntriesByMonth.get(index))
@@ -579,6 +788,121 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
+              </div>
+              <div className="mt-4 rounded-xl border border-border bg-card/40 p-3">
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Index Actual and Forecast used for TLC</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Supplier and Market Research resin index values aligned to the TLC chart above.
+                    </p>
+                  </div>
+                  <div className="grid min-w-[280px] gap-2 text-xs md:min-w-[520px] md:grid-cols-2">
+                    <div className="rounded-md border border-border/70 bg-background/35 px-2.5 py-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Supplier index used
+                      </p>
+                      <p className="mt-1 line-clamp-2 font-semibold text-foreground">
+                        {supplierIndexNames.join(", ") || "No supplier index available"}
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-border/70 bg-background/35 px-2.5 py-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        MR index used
+                      </p>
+                      <p className="mt-1 line-clamp-2 font-semibold text-foreground">
+                        {marketIndexNames.join(", ") || "No MR index available"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {hasIndexChartData ? (
+                  <div className="h-[340px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={indexChartData} margin={{ top: 10, right: 18, left: 0, bottom: 8 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                        <XAxis
+                          dataKey="period"
+                          tick={{ fontSize: 11, fill: "#a1a1aa" }}
+                          tickFormatter={shortMonthTick}
+                          interval={0}
+                          minTickGap={8}
+                          tickMargin={8}
+                          padding={{ left: 8, right: 24 }}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          tick={{ fontSize: 12, fill: "#a1a1aa" }}
+                          tickLine={false}
+                          axisLine={false}
+                          width={54}
+                        />
+                        <Tooltip content={<IndexForecastTooltip />} />
+                        <Legend
+                          layout="vertical"
+                          align="right"
+                          verticalAlign="middle"
+                          width={190}
+                          wrapperStyle={{
+                            color: "#cbd5e1",
+                            fontSize: "12px",
+                            lineHeight: "20px",
+                            paddingLeft: "12px",
+                          }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="supplierIndexActual"
+                          name={`${supplierLegendName} Index`}
+                          stroke={SUPPLIER_INDEX_COLOR}
+                          strokeWidth={3}
+                          dot={{ r: 3, fill: SUPPLIER_INDEX_COLOR }}
+                          connectNulls
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="supplierIndexForecast"
+                          name={`Fcst - ${supplierLegendName} Index`}
+                          stroke={SUPPLIER_INDEX_FORECAST_COLOR}
+                          strokeWidth={3}
+                          strokeDasharray="7 5"
+                          dot={{ r: 3, fill: SUPPLIER_INDEX_FORECAST_COLOR }}
+                          connectNulls
+                          legendType="none"
+                        />
+                        {selectedMarketCountries.map((country, index) => (
+                          <React.Fragment key={`${country}-index`}>
+                            <Line
+                              type="monotone"
+                              dataKey={`marketIndex_${index}_actual`}
+                              name={`${shortMarketName(country)} Index`}
+                              stroke={marketSeriesColor(country, index)}
+                              strokeWidth={2.6}
+                              dot={{ r: 2.8, fill: marketSeriesColor(country, index) }}
+                              connectNulls
+                            />
+                            <Line
+                              type="monotone"
+                              dataKey={`marketIndex_${index}_forecast`}
+                              name={`MR Fcst - ${shortMarketName(country)} Index`}
+                              stroke={marketSeriesColor(country, index)}
+                              strokeWidth={2.6}
+                              strokeDasharray="5 5"
+                              dot={{ r: 2.8, fill: marketSeriesColor(country, index) }}
+                              connectNulls
+                              legendType="none"
+                            />
+                          </React.Fragment>
+                        ))}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <div className="flex h-[180px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                    No resin index trend rows available for the current selection.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

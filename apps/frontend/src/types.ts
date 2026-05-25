@@ -31,6 +31,9 @@ export type VendorBreakdownRow = {
   dataType?: string;
   sourceFile?: string;
   location?: string;
+  resinIndexType?: string;
+  forecastResinIndexType?: string;
+  columnRequiredForCalculation?: string;
 };
 
 export type VendorBreakdownEntry = {
@@ -56,6 +59,11 @@ export type MarketResearchTrendEntry = {
   year: string | number;
   dataType?: string;
   amount: number | string | null;
+  resinIndexAmount?: number | string | null;
+  resinIndexType?: string;
+  forecastResinIndexType?: string;
+  indexRawLabel?: string;
+  formulaReference?: string;
   sourceFile?: string;
 };
 

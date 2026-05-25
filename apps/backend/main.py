@@ -90,6 +90,11 @@ class MarketResearchTrendRow(BaseModel):
     year: str
     dataType: str = ""
     amount: Union[float, int, str, None]
+    resinIndexAmount: Union[float, int, str, None] = None
+    resinIndexType: str = ""
+    forecastResinIndexType: str = ""
+    indexRawLabel: str = ""
+    formulaReference: str = ""
     sourceFile: str = ""
 
 

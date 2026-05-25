@@ -44,6 +44,7 @@ DEFAULT_YEAR = "2026"
 
 TOTAL_LANDING_COST = "Total Landing Cost"
 TOTAL_LANDING_COST_LABEL = "Total landed cost (PET resin)"
+RESIN_INDEX_MAPPING_COLUMN = "Resin Index vPET"
 DIFFERENCE_LABEL = "Difference with current vPET resin price charged by preform supplier"
 SUPPLIER_TLC_FRONTEND_LABEL = "Total Resin Price ABI VIRGIN Formula"
 
@@ -71,6 +72,12 @@ def is_total_landing_cost(row: dict[str, Any]) -> bool:
         TOTAL_LANDING_COST
     ) or normalized_key(row.get("Raw Cost Breakdown")) == normalized_key(
         TOTAL_LANDING_COST_LABEL
+    )
+
+
+def is_resin_index(row: dict[str, Any]) -> bool:
+    return normalized_key(row.get("Mapping Columns")) == normalized_key(
+        RESIN_INDEX_MAPPING_COLUMN
     )
 
 
@@ -144,6 +151,14 @@ def group_tlc_amount(rows: list[dict[str, Any]]) -> float | None:
         if is_total_landing_cost(row):
             return as_float(row.get("Value"))
     return None
+
+
+def group_resin_index_row(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
+    candidates = [row for row in rows if is_resin_index(row)]
+    with_values = [row for row in candidates if as_float(row.get("Value")) is not None]
+    if with_values:
+        return with_values[0]
+    return candidates[0] if candidates else None
 
 
 def choose_best_group(groups: Iterable[list[dict[str, Any]]]) -> list[dict[str, Any]]:
@@ -359,6 +374,8 @@ def build_market_research_tlc_trends(
             continue
 
         first_row = rows[0] if rows else {}
+        resin_index_row = group_resin_index_row(rows) or {}
+        resin_index_amount = as_float(resin_index_row.get("Value"))
         trend_rows.append(
             {
                 "destination": destination,
@@ -367,6 +384,15 @@ def build_market_research_tlc_trends(
                 "year": period_year,
                 "dataType": clean_text(first_row.get("Data Type")),
                 "amount": round(tlc, 1),
+                "resinIndexAmount": round(resin_index_amount, 1)
+                if resin_index_amount is not None
+                else None,
+                "resinIndexType": clean_text(resin_index_row.get("Resin Index Type")),
+                "forecastResinIndexType": clean_text(
+                    resin_index_row.get("Forecast Resin Index Type")
+                ),
+                "indexRawLabel": clean_text(resin_index_row.get("Raw Cost Breakdown")),
+                "formulaReference": clean_text(resin_index_row.get("TLC Formula")),
                 "sourceFile": relative_path(clean_text(first_row.get("Source File"))),
             }
         )

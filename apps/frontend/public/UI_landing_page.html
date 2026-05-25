@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Contract-Intel — Risk Analysis Score Cards</title>
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="light">
+<meta name="description" content="Contract-Intel Risk Analysis: Score Cards portal with risk bands, category scores, and actionable renegotiation priorities.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+   ═══════════════════════════════════════════ */
+:root {
+  --bg: #FFFFFF;
+  --bg-soft: #FAFAF5;
+  --ink: #000000;
+  --ink-1: #1A1A1A;
+  --ink-2: #5A5A5A;
+  --ink-3: #B0B0B0;
+  --line: rgba(0, 0, 0, 0.08);
+  --line-2: rgba(0, 0, 0, 0.14);
+  --accent: #F5E003;
+  --accent-deep: #000000;
+  --accent-soft: #FEFAC4;
+  --good: #2ECC71;
+  --warn: #F39C12;
+  --risk: #E74C3C;
+  --sans: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease: cubic-bezier(0.65, 0, 0.35, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; overflow-x: hidden; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--sans);
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ═══════════════════════════════════════════
+   SECTION CONTAINER
+   ═══════════════════════════════════════════ */
+section {
+  min-height: 100vh; min-height: 100dvh;
+  padding: 60px 96px; display: flex; flex-direction: column; justify-content: center;
+  position: relative; overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════
+   TYPOGRAPHY
+   ═══════════════════════════════════════════ */
+.hl-mark {
+  font-style: italic; font-weight: 500; color: var(--ink);
+  background: linear-gradient(transparent 62%, var(--accent) 62%, var(--accent) 94%, transparent 94%);
+  padding: 0 6px; -webkit-box-decoration-break: clone; box-decoration-break: clone;
+}
+
+/* ═══════════════════════════════════════════
+   SUPPLIER DETAIL CARDS
+   ═══════════════════════════════════════════ */
+.supplier-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; width: 100%; }
+.supplier-card {
+  border: 2px solid var(--line-2); border-radius: 10px; padding: 0; background: var(--bg);
+  transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.supplier-card:hover { border-color: var(--accent); box-shadow: 0 8px 32px rgba(0,0,0,0.06); }
+.supplier-card-header {
+  display: flex; align-items: center; gap: 14px; padding: 24px 28px 0;
+}
+.supplier-rank {
+  font-size: clamp(28px,3vw,42px); font-weight: 200; color: var(--ink-3);
+  line-height: 1; letter-spacing: -0.03em; min-width: 32px;
+}
+.supplier-ticker {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 3px 10px; border-radius: 4px;
+  background: var(--bg-soft); border: 1px solid var(--line-2);
+  font-family: var(--mono); font-size: 10px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink-2); font-weight: 500;
+}
+.supplier-name { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; flex: 1; }
+.supplier-category {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 1px; color: var(--ink-2);
+  text-transform: uppercase; padding: 4px 28px 0; margin-left: 46px;
+}
+.supplier-risk-pill {
+  display: inline-block; padding: 4px 14px; border-radius: 20px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.8px;
+  text-transform: uppercase; font-weight: 600;
+}
+.supplier-risk-pill.high { background: #FADBD8; color: #B03A2E; }
+.supplier-risk-pill.med { background: #FDEBD0; color: #B9770E; }
+.supplier-risk-pill.low { background: #D5F5E3; color: #1E8449; }
+.supplier-metrics {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  margin: 16px 28px 0; padding: 0;
+}
+.supplier-metric { padding: 14px 0; }
+.supplier-metric:not(:last-child) { border-right: 1px solid var(--line); padding-right: 14px; }
+.supplier-metric:not(:first-child) { padding-left: 14px; }
+.supplier-metric-label {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px;
+}
+.supplier-metric-val { font-size: 24px; font-weight: 300; letter-spacing: -0.02em; line-height: 1; }
+.supplier-metric-sub { font-size: 11px; color: var(--ink-2); margin-top: 3px; }
+.risk-bar-mini { height: 4px; background: var(--line); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+.risk-bar-mini-fill { height: 100%; border-radius: 2px; }
+.risk-bar-mini-fill.low { background: var(--good); }
+.risk-bar-mini-fill.med { background: var(--warn); }
+.risk-bar-mini-fill.high { background: var(--risk); }
+.supplier-body { padding: 16px 28px; flex: 1; }
+.supplier-narrative { font-size: 14px; line-height: 1.6; color: var(--ink-1); margin-bottom: 14px; }
+.supplier-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.supplier-tag {
+  display: inline-block; padding: 4px 12px; border-radius: 20px;
+  border: 1px solid var(--line-2); background: var(--bg-soft);
+  font-size: 12px; color: var(--ink-2); white-space: nowrap;
+}
+.supplier-insight {
+  padding: 10px 14px; border-left: 3px solid var(--accent);
+  background: var(--bg-soft); font-size: 13px; color: var(--ink-1); line-height: 1.5;
+}
+.supplier-insight.warn { border-left-color: var(--warn); }
+.supplier-insight.risk { border-left-color: var(--risk); }
+.supplier-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px; border-top: 1px solid var(--line);
+}
+.supplier-status { font-size: 12px; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.supplier-status-dot { width: 7px; height: 7px; border-radius: 50%; }
+.supplier-status-dot.loaded { background: var(--good); }
+.supplier-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 18px; border: 1px solid var(--ink);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.8px;
+  text-transform: uppercase; background: var(--bg); color: var(--ink);
+  cursor: pointer; transition: all 0.3s var(--ease-out);
+}
+.supplier-btn:hover { background: var(--accent); border-color: var(--ink); }
+
+/* ═══════════════════════════════════════════
+   PORTAL FRAME — Dashboard Container
+   ═══════════════════════════════════════════ */
+.portal {
+  position: relative; width: 100%; border-radius: 12px; overflow: hidden;
+  border: 1.5px solid var(--line-2);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.03), 0 12px 40px rgba(0,0,0,0.06), 0 40px 80px rgba(0,0,0,0.04);
+  background: var(--bg);
+}
+.portal::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 900px 400px at 85% 0%, rgba(231,76,60,0.03), transparent 60%),
+    radial-gradient(ellipse 600px 300px at 5% 100%, rgba(46,204,113,0.03), transparent 60%);
+}
+.portal-topbar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 28px; border-bottom: 1px solid var(--line-2);
+  background: var(--bg); position: relative; z-index: 2;
+}
+.portal-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--ink-1); font-weight: 500;
+}
+.portal-brand-mark {
+  width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--ink);
+  display: grid; place-items: center; position: relative;
+}
+.portal-brand-mark::after {
+  content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent);
+}
+.portal-brand-sep { width: 1px; height: 16px; background: var(--line-2); margin: 0 4px; }
+.portal-brand small {
+  font-size: 10px; color: var(--ink-3); letter-spacing: 0.16em; font-weight: 400;
+}
+.portal-actions { display: flex; align-items: center; gap: 8px; }
+.portal-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border: 1px solid var(--line-2); border-radius: 100px;
+  font-family: var(--mono); font-size: 10px; color: var(--ink-2);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.portal-pill::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--good); box-shadow: 0 0 6px var(--good);
+}
+.portal-btn {
+  background: transparent; color: var(--ink); border: 1px solid var(--line-2);
+  padding: 6px 12px; border-radius: 4px; font-family: var(--mono);
+  font-size: 11px; cursor: pointer; transition: all 0.2s ease; letter-spacing: 0.02em;
+}
+.portal-btn:hover { background: var(--bg-soft); border-color: var(--ink-3); }
+.portal-btn-primary {
+  background: var(--ink); border-color: var(--ink); color: var(--accent); font-weight: 600;
+}
+.portal-btn-primary:hover { background: #222; }
+.portal-tabs {
+  display: flex; gap: 0; border-bottom: 1px solid var(--line-2);
+  background: var(--bg-soft); position: relative; z-index: 2;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.portal-tab {
+  padding: 12px 22px; font-family: var(--mono); font-size: 11px;
+  letter-spacing: 0.8px; text-transform: uppercase; color: var(--ink-3);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  white-space: nowrap; position: relative;
+}
+.portal-tab:hover { color: var(--ink-2); background: rgba(0,0,0,0.02); }
+.portal-tab.active { color: var(--ink); border-bottom-color: var(--accent); background: var(--bg); font-weight: 600; }
+.portal-tab-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--line); font-size: 10px; color: var(--ink-2);
+  margin-left: 6px; font-weight: 400;
+}
+.portal-tab.active .portal-tab-count { background: var(--accent); color: var(--ink); }
+.portal-body { position: relative; z-index: 1; padding: 32px 36px 24px; }
+.portal-panel { display: none; }
+.portal-panel.active { display: block; }
+.portal-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 28px; border-top: 1px solid var(--line-2);
+  background: var(--bg-soft); position: relative; z-index: 2;
+  font-family: var(--mono); font-size: 10px; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: 0.1em;
+}
+.portal-footer-dot { display: inline-flex; align-items: center; gap: 6px; }
+.portal-footer-dot::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--good);
+}
+
+/* ═══════════════════════════════════════════
+   SCORECARD DEEP-DIVE
+   ═══════════════════════════════════════════ */
+.sc-hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 48px; width: 100%; margin-bottom: 48px; align-items: stretch; }
+.sc-context { display: flex; flex-direction: column; justify-content: space-between; }
+.sc-breadcrumb { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 16px; }
+.sc-breadcrumb span { color: var(--ink-1); }
+.sc-meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border-top: 1px solid var(--line-2); border-bottom: 1px solid var(--line-2); margin-top: 28px; }
+.sc-meta-cell { background: var(--bg); padding: 16px 4px 16px 0; }
+.sc-meta-cell:not(:first-child) { padding-left: 20px; }
+.sc-meta-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); margin-bottom: 6px; }
+.sc-meta-value { font-size: 17px; font-weight: 400; color: var(--ink); }
+.sc-meta-value small { font-family: var(--mono); color: var(--ink-3); font-size: 11px; margin-left: 4px; }
+
+/* Key Indicators */
+.sc-indicators { margin-top: 28px; }
+.sc-indicators-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+.sc-indicators-head h3 { font-size: 20px; font-weight: 400; letter-spacing: -0.01em; }
+.sc-indicators-head h3 em { font-style: italic; font-weight: 300; color: var(--ink-2); }
+.sc-indicators-head .tag { font-family: var(--mono); font-size: 9px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em; }
+.sc-ind-grid { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; }
+.sc-ind-cell { padding: 18px 20px; border-bottom: 1px solid var(--line-2); }
+.sc-ind-cell:nth-child(odd) { border-right: 1px solid var(--line-2); }
+.sc-ind-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); margin-bottom: 8px; }
+.sc-ind-val { font-size: 28px; font-weight: 300; letter-spacing: -0.02em; line-height: 1.1; }
+.sc-ind-val.warn { color: var(--warn); font-style: italic; }
+.sc-ind-val.good { color: var(--good); font-style: italic; }
+.sc-ind-sub { font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 4px; letter-spacing: 0.04em; }
+
+/* Critical Dates */
+.sc-dates { margin-top: 28px; }
+.sc-dates-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
+.sc-dates-head h3 { font-size: 20px; font-weight: 400; letter-spacing: -0.01em; }
+.sc-dates-head h3 em { font-style: italic; font-weight: 300; color: var(--ink-2); }
+.sc-dates-head .tag { font-family: var(--mono); font-size: 9px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em; }
+.sc-date-list { display: flex; position: relative; padding-top: 20px; gap: 0; }
+.sc-date-list::before { content: ''; position: absolute; left: 6px; right: 6px; top: 26px; height: 1px; background: var(--line-2); }
+.sc-date-item { position: relative; flex: 1; padding: 20px 8px 0 0; }
+.sc-date-dot { position: absolute; left: 0; top: 0; width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--ink-3); background: var(--bg); z-index: 1; }
+.sc-date-dot.today { border-color: var(--ink); background: var(--ink); }
+.sc-date-dot.warn { border-color: var(--warn); }
+.sc-date-dot.risk { border-color: var(--risk); }
+.sc-date-when { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-3); margin-bottom: 3px; }
+.sc-date-when.risk { color: var(--risk); }
+.sc-date-title { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 2px; }
+.sc-date-desc { font-size: 11px; color: var(--ink-2); line-height: 1.4; }
+
+/* Score panel */
+.sc-panel { background: var(--bg-soft); border: 1px solid var(--line-2); border-radius: 8px; padding: 32px; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.sc-panel::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 70% 30%, rgba(231,76,60,0.05), transparent 60%); pointer-events: none; }
+.sc-panel-header { display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 1; margin-bottom: 16px; }
+.sc-eyebrow-label { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.sc-eyebrow-label .info-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--ink-3);
+  font-size: 10px; color: var(--ink-3); cursor: help;
+}
+.sc-grade-tag { font-family: var(--mono); font-size: 10px; padding: 4px 8px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.1em; }
+.sc-grade-tag.elevated { background: rgba(231,76,60,0.08); color: var(--risk); border: 1px solid rgba(231,76,60,0.3); }
+.sc-grade-tag.moderate { background: rgba(243,156,18,0.08); color: var(--warn); border: 1px solid rgba(243,156,18,0.3); }
+.sc-grade-tag.managed { background: rgba(46,204,113,0.08); color: var(--good); border: 1px solid rgba(46,204,113,0.3); }
+
+/* Risk status line */
+.sc-status-line {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--line);
+  position: relative; z-index: 1;
+}
+.sc-status-text { font-size: 14px; color: var(--ink-2); font-weight: 500; }
+.sc-status-text em { font-style: normal; color: var(--warn); }
+.sc-trajectory-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--ink-3); text-align: right; }
+.sc-trajectory-sparkline { display: flex; align-items: flex-end; gap: 2px; height: 22px; margin-top: 4px; justify-content: flex-end; }
+.sc-trajectory-sparkline span { width: 6px; border-radius: 1px; background: var(--ink-3); opacity: 0.5; transition: height 0.4s ease; }
+.sc-trajectory-sparkline span.current { background: var(--warn); opacity: 1; }
+
+/* Big score display */
+.sc-score-display { text-align: left; margin-bottom: 16px; position: relative; z-index: 1; }
+.sc-score-num { font-weight: 200; font-size: 72px; line-height: 1; letter-spacing: -0.04em; color: var(--ink); font-feature-settings: "tnum"; }
+.sc-score-num em { font-style: italic; color: var(--risk); font-weight: 400; font-size: 54px; }
+.sc-score-sub { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.06em; margin-top: 4px; }
+.sc-score-sub span { display: inline-block; margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--line-2); }
+
+/* Horizontal risk bar */
+.sc-risk-bar-wrap { position: relative; z-index: 1; margin: 8px 0 20px; padding: 28px 0 0; }
+.sc-risk-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; position: relative; }
+.sc-risk-bar-seg { height: 100%; }
+.sc-risk-bar-seg.low { background: var(--good); flex: 25; }
+.sc-risk-bar-seg.mod { background: var(--accent); flex: 25; }
+.sc-risk-bar-seg.elev { background: var(--warn); flex: 25; }
+.sc-risk-bar-seg.crit { background: var(--risk); flex: 25; }
+.sc-risk-marker {
+  position: absolute; top: -26px;
+  transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center;
+  z-index: 2;
+}
+.sc-risk-marker-label { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+.sc-risk-marker-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--ink); border: 3px solid var(--bg);
+  box-shadow: 0 0 0 1.5px var(--ink), 0 2px 8px rgba(0,0,0,0.15);
+}
+.sc-risk-labels { display: flex; justify-content: space-between; margin-top: 12px; }
+.sc-risk-label-item { text-align: center; }
+.sc-risk-label-item .rl-name { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-2); }
+.sc-risk-label-item .rl-range { font-family: var(--mono); font-size: 9px; color: var(--ink-3); margin-top: 1px; }
+.sc-risk-refs { display: flex; justify-content: center; gap: 28px; margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--line); font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; }
+.sc-risk-refs strong { color: var(--ink-2); font-weight: 600; }
+
+/* Comparison stats row */
+.sc-compare-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 0;
+  border: 1px solid var(--line-2); border-radius: 6px;
+  margin: 28px 0 24px; position: relative; z-index: 1; overflow: hidden;
+  background: var(--bg);
+}
+.sc-compare-cell {
+  padding: 16px; text-align: left;
+  border-right: 1px solid var(--line-2);
+}
+.sc-compare-cell:last-child { border-right: none; }
+.sc-compare-label { font-family: var(--mono); font-size: 9px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); margin-bottom: 8px; }
+.sc-compare-val { font-size: 20px; font-weight: 500; letter-spacing: -0.02em; }
+.sc-compare-val.above { color: var(--risk); }
+.sc-compare-val.below { color: var(--good); }
+.sc-compare-val.neutral { color: var(--ink); }
+.sc-compare-val small { font-size: 12px; color: var(--ink-3); font-weight: 400; margin-left: 2px; }
+
+/* Recommendation callout */
+.sc-callout {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--bg); border: 1px solid var(--line-2); border-left: 3px solid var(--warn);
+  border-radius: 6px; padding: 20px 24px;
+  position: relative; z-index: 1; margin-top: 4px;
+}
+.sc-callout-icon {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--warn); display: grid; place-items: center;
+  color: #fff; font-size: 13px; font-weight: 700; margin-top: 2px;
+}
+.sc-callout-body { display: flex; flex-direction: column; gap: 8px; }
+.sc-callout-title { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-2); font-weight: 500; }
+.sc-callout-text { font-size: 13px; line-height: 1.6; color: var(--ink-2); }
+.sc-callout-text strong { font-weight: 500; color: var(--ink-1); }
+.sc-callout-items { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.sc-callout-item { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border: 1px solid var(--line-2); border-radius: 3px; color: var(--ink-2); letter-spacing: 0.04em; }
+
+/* Data source badge */
+.sc-data-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--good); margin-top: 10px;
+}
+.sc-data-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--good); box-shadow: 0 0 6px var(--good);
+}
+
+/* Section headings */
+.sc-section-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid var(--line); width: 100%; }
+.sc-section-title { font-size: 24px; font-weight: 400; letter-spacing: -0.01em; }
+.sc-section-title em { font-style: italic; font-weight: 300; color: var(--ink-2); }
+.sc-section-meta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); letter-spacing: 0.06em; }
+
+/* Categories */
+.sc-categories { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 56px; width: 100%; margin-bottom: 48px; }
+.sc-cat-row { display: grid; grid-template-columns: 1fr auto; gap: 6px 20px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); cursor: default; transition: padding 0.25s ease; }
+.sc-cat-row:hover { padding-left: 8px; }
+.sc-cat-name { font-size: 17px; }
+.sc-cat-name .num { font-family: var(--mono); font-size: 11px; color: var(--ink-3); margin-right: 10px; }
+.sc-cat-score { font-family: var(--mono); font-size: 13px; color: var(--ink); font-weight: 600; }
+.sc-cat-score small { color: var(--ink-3); font-weight: 400; margin-left: 2px; }
+.sc-cat-bar { grid-column: 1 / -1; height: 4px; background: var(--line); position: relative; overflow: hidden; border-radius: 2px; }
+.sc-cat-bar-fill { height: 100%; border-radius: 2px; animation: scBarFill 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+@keyframes scBarFill { from { width: 0% !important; } }
+.sc-cat-bar-fill.crit { background: var(--risk); }
+.sc-cat-bar-fill.high { background: var(--warn); }
+.sc-cat-bar-fill.med { background: var(--accent); }
+.sc-cat-bar-fill.low { background: var(--good); }
+.sc-cat-tags { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.sc-tag { font-family: var(--mono); font-size: 10px; padding: 3px 7px; border: 1px solid var(--line-2); border-radius: 3px; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.05em; }
+.sc-tag.crit { color: var(--risk); border-color: rgba(231,76,60,0.3); background: rgba(231,76,60,0.06); }
+.sc-tag.high { color: var(--warn); border-color: rgba(243,156,18,0.3); background: rgba(243,156,18,0.06); }
+.sc-tag.low { color: var(--good); border-color: rgba(46,204,113,0.3); background: rgba(46,204,113,0.06); }
+
+/* Clauses table */
+.sc-clauses { border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; width: 100%; margin-bottom: 48px; }
+.sc-clauses-head, .sc-clause-row { display: grid; grid-template-columns: 60px 1.4fr 3fr 100px 80px; gap: 16px; padding: 14px 24px; align-items: center; }
+.sc-clauses-head { background: var(--bg-soft); border-bottom: 1px solid var(--line-2); font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-3); }
+.sc-clause-row { border-bottom: 1px solid var(--line); transition: background 0.2s ease; cursor: pointer; }
+.sc-clause-row:last-child { border-bottom: none; }
+.sc-clause-row:hover { background: var(--bg-soft); }
+.sc-clause-num { font-family: var(--mono); font-size: 11px; color: var(--ink-3); }
+.sc-clause-name { font-size: 15px; color: var(--ink); font-weight: 500; }
+.sc-clause-name small { display: block; font-family: var(--mono); font-size: 10px; color: var(--ink-3); margin-top: 2px; letter-spacing: 0.04em; font-weight: 400; }
+.sc-clause-issue { font-size: 13px; color: var(--ink-2); line-height: 1.4; }
+.sc-clause-issue em { font-style: italic; color: var(--ink); font-weight: 500; }
+.sc-severity { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; }
+.sc-severity::before { content: ''; width: 8px; height: 8px; border-radius: 50%; }
+.sc-severity.crit { color: var(--risk); }
+.sc-severity.crit::before { background: var(--risk); box-shadow: 0 0 8px var(--risk); }
+.sc-severity.high { color: var(--warn); }
+.sc-severity.high::before { background: var(--warn); }
+.sc-severity.med { color: var(--ink-2); }
+.sc-severity.med::before { background: var(--accent); }
+.sc-severity.low { color: var(--good); }
+.sc-severity.low::before { background: var(--good); }
+.sc-clause-action { text-align: right; font-family: var(--mono); font-size: 11px; color: var(--ink-2); cursor: pointer; }
+.sc-clause-action::after { content: ' \2192'; transition: margin 0.2s ease; }
+.sc-clause-row:hover .sc-clause-action::after { margin-left: 4px; }
+
+/* Recommendations */
+.sc-recs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; width: 100%; }
+.sc-rec { background: var(--bg-soft); border: 1px solid var(--line-2); border-left: 3px solid var(--risk); padding: 24px; position: relative; transition: transform 0.25s ease, border-color 0.25s ease; }
+.sc-rec:hover { transform: translateY(-2px); border-left-color: var(--ink); }
+.sc-rec.high { border-left-color: var(--warn); }
+.sc-rec.med { border-left-color: var(--accent); }
+.sc-rec-num { font-style: italic; font-size: 56px; font-weight: 200; line-height: 1; color: var(--ink-3); opacity: 0.15; position: absolute; top: 12px; right: 20px; pointer-events: none; }
+.sc-rec-priority { font-family: var(--mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--risk); margin-bottom: 12px; }
+.sc-rec.high .sc-rec-priority { color: var(--warn); }
+.sc-rec.med .sc-rec-priority { color: var(--ink-2); }
+.sc-rec-title { font-size: 18px; line-height: 1.2; margin-bottom: 10px; letter-spacing: -0.01em; max-width: 85%; font-weight: 500; }
+.sc-rec-desc { font-size: 13px; color: var(--ink-2); line-height: 1.55; margin-bottom: 14px; }
+.sc-rec-meta { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.06em; }
+.sc-rec-meta strong { color: var(--ink); font-weight: 600; }
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════ */
+@media (max-width: 980px) {
+  section { padding: 40px 24px; }
+  .supplier-cards { grid-template-columns: 1fr; }
+  .sc-hero { grid-template-columns: 1fr; }
+  .sc-compare-grid { grid-template-columns: repeat(2, 1fr); }
+  .sc-compare-cell:nth-child(2) { border-right: none; }
+  .sc-status-line { flex-direction: column; gap: 12px; }
+  .sc-categories { grid-template-columns: 1fr; }
+  .sc-recs { grid-template-columns: 1fr; }
+  .sc-clauses-head { display: none; }
+  .sc-clause-row { grid-template-columns: 1fr; gap: 8px; padding: 16px; }
+  .portal { border-radius: 8px; }
+  .portal-topbar { padding: 12px 20px; }
+  .portal-actions { display: none; }
+  .portal-body { padding: 24px 20px; }
+  .portal-tabs { padding: 0 8px; }
+  .portal-footer { padding: 10px 20px; }
+  .sc-ind-val { font-size: 22px; }
+}
+@media (max-width: 600px) {
+  .supplier-card-header { flex-wrap: wrap; gap: 6px; }
+  .supplier-metrics { grid-template-columns: 1fr; }
+  .sc-meta-grid { grid-template-columns: 1fr 1fr; }
+  .sc-panel { padding: 20px; }
+  .sc-score-num { font-size: 52px; }
+  .sc-compare-grid { grid-template-columns: repeat(2, 1fr); }
+  .sc-compare-cell:nth-child(2) { border-right: none; }
+  .sc-risk-labels { font-size: 8px; }
+  .sc-callout { flex-direction: column; gap: 10px; }
+  .sc-ind-grid { grid-template-columns: 1fr; }
+  .sc-ind-cell:nth-child(odd) { border-right: none; }
+  .sc-ind-val { font-size: 20px; }
+  .sc-date-list { flex-direction: column; padding-top: 0; padding-left: 24px; }
+  .sc-date-list::before { left: 6px; right: auto; top: 8px; bottom: 8px; width: 1px; height: auto; }
+  .sc-date-item { padding: 0 0 16px 0; }
+  .sc-date-dot { top: 4px; left: -24px; }
+  .portal { border-radius: 4px; }
+  .portal-topbar { flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; }
+  .portal-brand small { display: none; }
+  .portal-body { padding: 16px 12px; }
+  .portal-tab { padding: 10px 14px; font-size: 10px; }
+  .portal-footer { flex-direction: column; gap: 4px; padding: 10px 14px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<section data-section="scorecards" style="align-items:flex-start;min-height:auto;padding-top:60px;padding-bottom:60px;">
+
+  <div class="portal">
+    <!-- Portal Topbar -->
+    <div class="portal-topbar">
+      <div class="portal-brand">
+        <div class="portal-brand-mark"></div>
+        Contract-Intel
+        <div class="portal-brand-sep"></div>
+        <small>Risk Analysis / Score Cards</small>
+      </div>
+      <div class="portal-actions">
+        <span class="portal-pill">Production Data</span>
+        <button class="portal-btn">Export PDF</button>
+        <button class="portal-btn portal-btn-primary">View Full Report</button>
+      </div>
+    </div>
+    <!-- Portal Tabs -->
+    <nav class="portal-tabs">
+      <div class="portal-tab active" data-panel="overview">Overview</div>
+      <div class="portal-tab" data-panel="suppliers">Contracts<span class="portal-tab-count">4</span></div>
+      <div class="portal-tab" data-panel="flagged">Flagged Issues<span class="portal-tab-count">6</span></div>
+      <div class="portal-tab" data-panel="actions">Actions<span class="portal-tab-count">3</span></div>
+    </nav>
+    <!-- Portal Body -->
+    <div class="portal-body">
+
+      <!-- ══════ PANEL: Overview ══════ -->
+      <div class="portal-panel active" data-panel-id="overview">
+  <div class="sc-hero">
+    <div class="sc-context">
+      <div>
+        <div class="sc-breadcrumb">Portfolio / Active Contracts / <span>4 Scored</span></div>
+        <h2 style="font-size:clamp(28px,3.2vw,44px);font-weight:400;letter-spacing:-0.02em;line-height:1.1;max-width:24ch;margin-bottom:8px;">Contract Risk <em class="hl-mark">Score Cards</em></h2>
+        <p style="font-size:16px;line-height:1.55;color:var(--ink-2);max-width:46ch;">Operationalizing intelligence outputs into risk bands, category scores, and actionable renegotiation priorities for procurement and legal.</p>
+      </div>
+      <div class="sc-meta-grid">
+        <div class="sc-meta-cell"><div class="sc-meta-label">Suppliers</div><div class="sc-meta-value">4<small>scored</small></div></div>
+        <div class="sc-meta-cell"><div class="sc-meta-label">Clauses</div><div class="sc-meta-value">130<small>each</small></div></div>
+        <div class="sc-meta-cell"><div class="sc-meta-label">Risk Rules</div><div class="sc-meta-value">36<small>weighted</small></div></div>
+        <div class="sc-meta-cell"><div class="sc-meta-label">Categories</div><div class="sc-meta-value">4<small>dimensions</small></div></div>
+        <div class="sc-meta-cell"><div class="sc-meta-label">Coverage</div><div class="sc-meta-value">81%<small>avg</small></div></div>
+        <div class="sc-meta-cell"><div class="sc-meta-label">Generated</div><div class="sc-meta-value">Apr 2026</div></div>
+      </div>
+
+      <!-- Key Indicators -->
+      <div class="sc-indicators">
+        <div class="sc-indicators-head">
+          <h3>Key <em>indicators</em></h3>
+          <span class="tag">live signals</span>
+        </div>
+        <div class="sc-ind-grid">
+          <div class="sc-ind-cell">
+            <div class="sc-ind-label">Avg Clause Coverage</div>
+            <div class="sc-ind-val">81%</div>
+            <div class="sc-ind-sub">across 4 contracts</div>
+          </div>
+          <div class="sc-ind-cell">
+            <div class="sc-ind-label">Open Risk Findings</div>
+            <div class="sc-ind-val warn">6 open</div>
+            <div class="sc-ind-sub">2 critical &middot; 4 elevated</div>
+          </div>
+          <div class="sc-ind-cell">
+            <div class="sc-ind-label">Payment Term Gap</div>
+            <div class="sc-ind-val">Net-42</div>
+            <div class="sc-ind-sub">vs. benchmark Net-90</div>
+          </div>
+          <div class="sc-ind-cell">
+            <div class="sc-ind-label">Negotiation Leverage</div>
+            <div class="sc-ind-val good">Strong</div>
+            <div class="sc-ind-sub">2 alt vendors qualified</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Critical Dates -->
+      <div class="sc-dates">
+        <div class="sc-dates-head">
+          <h3><em>Critical</em> dates</h3>
+          <span class="tag">next 24 months</span>
+        </div>
+        <div class="sc-date-list">
+          <div class="sc-date-item">
+            <div class="sc-date-dot today"></div>
+            <div class="sc-date-when">Today &middot; Apr 28, 2026</div>
+            <div class="sc-date-title">Risk review window opens</div>
+            <div class="sc-date-desc">7 days to formal redline submission</div>
+          </div>
+          <div class="sc-date-item">
+            <div class="sc-date-dot warn"></div>
+            <div class="sc-date-when">May 01, 2026</div>
+            <div class="sc-date-title">Effective date</div>
+            <div class="sc-date-desc">First payment milestone &mdash; Coleus &amp; Kioo</div>
+          </div>
+          <div class="sc-date-item">
+            <div class="sc-date-dot"></div>
+            <div class="sc-date-when">Jul 30, 2026</div>
+            <div class="sc-date-title">SOC 2 attestation due</div>
+            <div class="sc-date-desc">Counterparty obligation per governance clauses</div>
+          </div>
+          <div class="sc-date-item">
+            <div class="sc-date-dot risk"></div>
+            <div class="sc-date-when risk">Mar 31, 2029</div>
+            <div class="sc-date-title">Renewal notice deadline</div>
+            <div class="sc-date-desc">Last day to opt out before 24-mo auto-renewal</div>
+          </div>
+          <div class="sc-date-item">
+            <div class="sc-date-dot"></div>
+            <div class="sc-date-when">Apr 30, 2029</div>
+            <div class="sc-date-title">Term expiration</div>
+            <div class="sc-date-desc">36-month initial period ends</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Score Panel — Horizontal Risk Index -->
+    <div class="sc-panel">
+      <div class="sc-panel-header">
+        <div class="sc-eyebrow-label">Aggregate Risk Index <span class="info-icon">i</span></div>
+        <span class="sc-grade-tag elevated">Grade C &middot; Elevated</span>
+      </div>
+
+      <div class="sc-status-line">
+        <div class="sc-status-text">Score sits <em>above approval threshold</em> &mdash; review recommended</div>
+        <div>
+          <div class="sc-trajectory-label">6-Period Trajectory</div>
+          <div class="sc-trajectory-sparkline">
+            <span style="height:40%"></span>
+            <span style="height:55%"></span>
+            <span style="height:45%"></span>
+            <span style="height:65%"></span>
+            <span style="height:72%"></span>
+            <span style="height:50%" class="current"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sc-score-display">
+        <div class="sc-score-num">49<em>.8</em></div>
+        <div class="sc-score-sub">
+          / 100 Index
+          <span>Grade C &middot; 62nd percentile, peer set</span>
+        </div>
+      </div>
+
+      <div class="sc-risk-bar-wrap">
+        <div class="sc-risk-marker" style="left:49.8%;">
+          <div class="sc-risk-marker-label">49.8</div>
+          <div class="sc-risk-marker-dot"></div>
+        </div>
+        <div class="sc-risk-bar">
+          <div class="sc-risk-bar-seg low"></div>
+          <div class="sc-risk-bar-seg mod"></div>
+          <div class="sc-risk-bar-seg elev"></div>
+          <div class="sc-risk-bar-seg crit"></div>
+        </div>
+        <div class="sc-risk-labels">
+          <div class="sc-risk-label-item"><div class="rl-name">Low</div><div class="rl-range">0–25</div></div>
+          <div class="sc-risk-label-item"><div class="rl-name">Moderate</div><div class="rl-range">26–50</div></div>
+          <div class="sc-risk-label-item"><div class="rl-name">Elevated</div><div class="rl-range">51–75</div></div>
+          <div class="sc-risk-label-item"><div class="rl-name">Critical</div><div class="rl-range">76–100</div></div>
+        </div>
+        <div class="sc-risk-refs">
+          <span>Median <strong>42.3</strong></span>
+          <span>Threshold <strong>45.0</strong></span>
+        </div>
+      </div>
+
+      <div class="sc-compare-grid">
+        <div class="sc-compare-cell">
+          <div class="sc-compare-label">Vs. Threshold</div>
+          <div class="sc-compare-val above">+4.8<small>pts</small></div>
+        </div>
+        <div class="sc-compare-cell">
+          <div class="sc-compare-label">Vs. Peer Median</div>
+          <div class="sc-compare-val above">+7.5<small>pts</small></div>
+        </div>
+        <div class="sc-compare-cell">
+          <div class="sc-compare-label">&Delta; Prior Draft</div>
+          <div class="sc-compare-val below">&minus;3.2<small>pts</small></div>
+        </div>
+        <div class="sc-compare-cell">
+          <div class="sc-compare-label">Confidence</div>
+          <div class="sc-compare-val neutral">High<small>&pm;1.8</small></div>
+        </div>
+      </div>
+
+      <div class="sc-callout">
+        <div class="sc-callout-icon">&#8505;</div>
+        <div class="sc-callout-body">
+          <div class="sc-callout-title">Suggested Next Step</div>
+          <div class="sc-callout-text">
+            Consider routing to legal review before final sign-off. Two areas scored above the elevated threshold and may benefit from targeted redline attention.
+          </div>
+          <div class="sc-callout-items">
+            <span class="sc-callout-item">Working Capital &middot; Payment terms</span>
+            <span class="sc-callout-item">Supply Security &middot; Single-source risk</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sc-data-badge">Computed from production contract data </div>
+    </div>
+  </div>
+
+  <!-- ── RISK BY CATEGORY ── -->
+  <div class="sc-section-head">
+    <h3 class="sc-section-title">Risk by <em>category</em></h3>
+    <div class="sc-section-meta">4 dimensions &middot; weighted composite</div>
+  </div>
+  <div class="sc-categories">
+    <div class="sc-cat-row">
+      <div class="sc-cat-name"><span class="num">01</span>Working Capital</div>
+      <div class="sc-cat-score">72<small>/100</small></div>
+      <div class="sc-cat-bar"><div class="sc-cat-bar-fill crit" style="width:72%;"></div></div>
+      <div class="sc-cat-tags"><span class="sc-tag crit">Payment terms below benchmark</span><span class="sc-tag crit">Net-60 gap</span></div>
+    </div>
+    <div class="sc-cat-row">
+      <div class="sc-cat-name"><span class="num">02</span>Supply Security</div>
+      <div class="sc-cat-score">63<small>/100</small></div>
+      <div class="sc-cat-bar"><div class="sc-cat-bar-fill high" style="width:63%;"></div></div>
+      <div class="sc-cat-tags"><span class="sc-tag high">Single-source exposure</span><span class="sc-tag">RAU dependency</span></div>
+    </div>
+    <div class="sc-cat-row">
+      <div class="sc-cat-name"><span class="num">03</span>Flexibility</div>
+      <div class="sc-cat-score">58<small>/100</small></div>
+      <div class="sc-cat-bar"><div class="sc-cat-bar-fill high" style="width:58%;"></div></div>
+      <div class="sc-cat-tags"><span class="sc-tag high">Weak termination</span><span class="sc-tag">Missing MFN clause</span></div>
+    </div>
+    <div class="sc-cat-row">
+      <div class="sc-cat-name"><span class="num">04</span>Governance</div>
+      <div class="sc-cat-score">44<small>/100</small></div>
+      <div class="sc-cat-bar"><div class="sc-cat-bar-fill med" style="width:44%;"></div></div>
+      <div class="sc-cat-tags"><span class="sc-tag low">Compliance aligned</span><span class="sc-tag low">Best-practice structure</span></div>
+    </div>
+  </div>
+      </div><!-- /portal-panel overview -->
+
+      <!-- ══════ PANEL: Contracts ══════ -->
+      <div class="portal-panel" data-panel-id="suppliers">
+  <div class="sc-section-head">
+    <h3 class="sc-section-title">Contract <em>profiles</em></h3>
+    <div class="sc-section-meta">4 contracts &middot; ranked by risk</div>
+  </div>
+
+  <div class="supplier-cards">
+
+    <!-- Card 1: Coleus — Packaging -->
+    <article class="supplier-card">
+      <div class="supplier-card-header">
+        <div class="supplier-rank">1</div>
+        <span class="supplier-ticker">COLE</span>
+        <div class="supplier-name">Coleus</div>
+        <span class="supplier-risk-pill high">High</span>
+      </div>
+      <div class="supplier-category">Packaging</div>
+      <div class="supplier-metrics">
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Contract Clauses</div>
+          <div class="supplier-metric-val">130</div>
+          <div class="supplier-metric-sub">Full schema</div>
+        </div>
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Risk Score</div>
+          <div class="supplier-metric-val">61 <span style="font-size:13px;color:var(--ink-3);">/100</span></div>
+          <div class="risk-bar-mini"><div class="risk-bar-mini-fill high" style="width:61%;"></div></div>
+        </div>
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Coverage</div>
+          <div class="supplier-metric-val">78%</div>
+          <div class="supplier-metric-sub">Clause coverage</div>
+        </div>
+      </div>
+      <div class="supplier-body">
+        <p class="supplier-narrative">Highest risk score among loaded suppliers. Working capital exposure is critical — payment terms are significantly below buyer benchmarks. Missing MFN and benchmarking safeguards create unprotected cost escalation risk.</p>
+        <div class="supplier-tags">
+          <span class="supplier-tag">Working capital exposure</span>
+          <span class="supplier-tag">Missing MFN clause</span>
+          <span class="supplier-tag">Weak termination rights</span>
+        </div>
+        <div class="supplier-insight risk">Priority supplier — Renegotiate payment terms and add commercial safeguards</div>
+      </div>
+      <div class="supplier-footer">
+        <div class="supplier-status"><span class="supplier-status-dot loaded"></span> Full data loaded</div>
+        <button class="supplier-btn">View details &rarr;</button>
+      </div>
+    </article>
+
+    <!-- Card 2: Pride_milling — RAU -->
+    <article class="supplier-card">
+      <div class="supplier-card-header">
+        <div class="supplier-rank">2</div>
+        <span class="supplier-ticker">PRDE</span>
+        <div class="supplier-name">Pride Milling</div>
+        <span class="supplier-risk-pill high">High</span>
+      </div>
+      <div class="supplier-category">Raw Materials (RAU)</div>
+      <div class="supplier-metrics">
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Contract Clauses</div>
+          <div class="supplier-metric-val">130</div>
+          <div class="supplier-metric-sub">Full schema</div>
+        </div>
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Risk Score</div>
+          <div class="supplier-metric-val">56 <span style="font-size:13px;color:var(--ink-3);">/100</span></div>
+          <div class="risk-bar-mini"><div class="risk-bar-mini-fill high" style="width:56%;"></div></div>
+        </div>
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Coverage</div>
+          <div class="supplier-metric-val">75%</div>
+          <div class="supplier-metric-sub">Clause coverage</div>
+        </div>
+      </div>
+      <div class="supplier-body">
+        <p class="supplier-narrative">Elevated supply security risk due to single-source raw material dependency. Flexibility gaps in change-control and termination clauses limit buyer leverage during market disruption scenarios.</p>
+        <div class="supplier-tags">
+          <span class="supplier-tag">Supply security risk</span>
+          <span class="supplier-tag">Single-source dependency</span>
+          <span class="supplier-tag">Change-control gaps</span>
+        </div>
+        <div class="supplier-insight risk">Supply risk — Strengthen change-control and add dual-source provisions</div>
+      </div>
+      <div class="supplier-footer">
+        <div class="supplier-status"><span class="supplier-status-dot loaded"></span> Full data loaded</div>
+        <button class="supplier-btn">View details &rarr;</button>
+      </div>
+    </article>
+
+    <!-- Card 3: Kioo — Packaging -->
+    <article class="supplier-card">
+      <div class="supplier-card-header">
+        <div class="supplier-rank">3</div>
+        <span class="supplier-ticker">KIOO</span>
+        <div class="supplier-name">Kioo</div>
+        <span class="supplier-risk-pill med">Medium</span>
+      </div>
+      <div class="supplier-category">Packaging</div>
+      <div class="supplier-metrics">
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Contract Clauses</div>
+          <div class="supplier-metric-val">130</div>
+          <div class="supplier-metric-sub">Full schema</div>
+        </div>
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Risk Score</div>
+          <div class="supplier-metric-val">48 <span style="font-size:13px;color:var(--ink-3);">/100</span></div>
+          <div class="risk-bar-mini"><div class="risk-bar-mini-fill med" style="width:48%;"></div></div>
+        </div>
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Coverage</div>
+          <div class="supplier-metric-val">83%</div>
+          <div class="supplier-metric-sub">Clause coverage</div>
+        </div>
+      </div>
+      <div class="supplier-body">
+        <p class="supplier-narrative">Moderate overall risk with stronger governance clauses than peers. Key gap is working capital — payment terms trail ABI benchmarks. Cost pass-through mechanisms present but could be tightened.</p>
+        <div class="supplier-tags">
+          <span class="supplier-tag">Payment term gap</span>
+          <span class="supplier-tag">Strong governance</span>
+          <span class="supplier-tag">Cost pass-through</span>
+        </div>
+        <div class="supplier-insight warn">Monitor — Extend payment terms to align with category benchmarks</div>
+      </div>
+      <div class="supplier-footer">
+        <div class="supplier-status"><span class="supplier-status-dot loaded"></span> Full data loaded</div>
+        <button class="supplier-btn">View details &rarr;</button>
+      </div>
+    </article>
+
+    <!-- Card 4: Viking_malt_Finland — RAU -->
+    <article class="supplier-card">
+      <div class="supplier-card-header">
+        <div class="supplier-rank">4</div>
+        <span class="supplier-ticker">VKNG</span>
+        <div class="supplier-name">Viking Malt Finland</div>
+        <span class="supplier-risk-pill low">Low</span>
+      </div>
+      <div class="supplier-category">Raw Materials (RAU)</div>
+      <div class="supplier-metrics">
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Contract Clauses</div>
+          <div class="supplier-metric-val">130</div>
+          <div class="supplier-metric-sub">Full schema</div>
+        </div>
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Risk Score</div>
+          <div class="supplier-metric-val">34 <span style="font-size:13px;color:var(--ink-3);">/100</span></div>
+          <div class="risk-bar-mini"><div class="risk-bar-mini-fill low" style="width:34%;"></div></div>
+        </div>
+        <div class="supplier-metric">
+          <div class="supplier-metric-label">Coverage</div>
+          <div class="supplier-metric-val">88%</div>
+          <div class="supplier-metric-sub">Clause coverage</div>
+        </div>
+      </div>
+      <div class="supplier-body">
+        <p class="supplier-narrative">Lowest risk profile in the scored portfolio. Well-structured contract with strong governance, adequate payment terms, and clear change-control provisions. Sets the benchmark for other supplier agreements.</p>
+        <div class="supplier-tags">
+          <span class="supplier-tag">Best-in-class structure</span>
+          <span class="supplier-tag">Strong governance</span>
+          <span class="supplier-tag">Category benchmark</span>
+          <span class="supplier-tag">Clear change-control</span>
+        </div>
+        <div class="supplier-insight">Strategic supplier — Use as template for renegotiating higher-risk contracts</div>
+      </div>
+      <div class="supplier-footer">
+        <div class="supplier-status"><span class="supplier-status-dot loaded"></span> Full data loaded</div>
+        <button class="supplier-btn">View details &rarr;</button>
+      </div>
+    </article>
+
+  </div>
+      </div><!-- /portal-panel suppliers -->
+
+      <!-- ══════ PANEL: Flagged ══════ -->
+      <div class="portal-panel" data-panel-id="flagged">
+  <div class="sc-section-head" style="margin-top:0;">
+    <h3 class="sc-section-title"><em>Flagged</em> clauses</h3>
+    <div class="sc-section-meta">top issues &middot; sorted by severity</div>
+  </div>
+  <div class="sc-clauses">
+    <div class="sc-clauses-head">
+      <span>#</span><span>Clause</span><span>Issue</span><span>Severity</span><span></span>
+    </div>
+    <div class="sc-clause-row">
+      <div class="sc-clause-num">R-01</div>
+      <div class="sc-clause-name">Payment Terms<small>Coleus &middot; Packaging</small></div>
+      <div class="sc-clause-issue">Payment terms are <em>significantly below buyer benchmarks</em>. Working capital exposure estimated at critical levels with no escalation safeguard.</div>
+      <div class="sc-severity crit">Critical</div>
+      <div class="sc-clause-action">Review</div>
+    </div>
+    <div class="sc-clause-row">
+      <div class="sc-clause-num">R-02</div>
+      <div class="sc-clause-name">Source Dependency<small>Pride Milling &middot; RAU</small></div>
+      <div class="sc-clause-issue"><em>Single-source raw material</em> dependency with no dual-source provision. Supply disruption risk unmitigated in contract terms.</div>
+      <div class="sc-severity crit">Critical</div>
+      <div class="sc-clause-action">Review</div>
+    </div>
+    <div class="sc-clause-row">
+      <div class="sc-clause-num">R-03</div>
+      <div class="sc-clause-name">Commercial Safeguards<small>Coleus &middot; Packaging</small></div>
+      <div class="sc-clause-issue"><em>MFN and benchmarking clauses absent</em>. No protection against cost escalation beyond contractual price adjustment mechanisms.</div>
+      <div class="sc-severity high">High</div>
+      <div class="sc-clause-action">Review</div>
+    </div>
+    <div class="sc-clause-row">
+      <div class="sc-clause-num">R-04</div>
+      <div class="sc-clause-name">Termination Rights<small>Coleus &middot; Packaging</small></div>
+      <div class="sc-clause-issue">Termination-for-convenience clause is <em>weak or absent</em>. Buyer lock-in risk elevated during supplier performance issues.</div>
+      <div class="sc-severity high">High</div>
+      <div class="sc-clause-action">Review</div>
+    </div>
+    <div class="sc-clause-row">
+      <div class="sc-clause-num">R-05</div>
+      <div class="sc-clause-name">Change-Control<small>Pride Milling &middot; RAU</small></div>
+      <div class="sc-clause-issue">Flexibility gaps in <em>change-control provisions</em> limit buyer leverage during market disruption or specification changes.</div>
+      <div class="sc-severity med">Medium</div>
+      <div class="sc-clause-action">Review</div>
+    </div>
+    <div class="sc-clause-row">
+      <div class="sc-clause-num">R-06</div>
+      <div class="sc-clause-name">Payment Alignment<small>Kioo &middot; Packaging</small></div>
+      <div class="sc-clause-issue">Payment terms trail ABI benchmarks. <em>Cost pass-through</em> mechanisms present but could be tightened for stronger buyer position.</div>
+      <div class="sc-severity med">Medium</div>
+      <div class="sc-clause-action">Review</div>
+    </div>
+  </div>
+      </div><!-- /portal-panel flagged -->
+
+      <!-- ══════ PANEL: Actions ══════ -->
+      <div class="portal-panel" data-panel-id="actions">
+  <div class="sc-section-head" style="margin-top:0;">
+    <h3 class="sc-section-title">Recommended <em>actions</em></h3>
+    <div class="sc-section-meta">prioritized &middot; auto-generated from risk rules</div>
+  </div>
+  <div class="sc-recs">
+    <div class="sc-rec">
+      <div class="sc-rec-num">01</div>
+      <div class="sc-rec-priority">Priority &middot; Critical</div>
+      <div class="sc-rec-title">Extend payment terms to buyer benchmark</div>
+      <div class="sc-rec-desc">Renegotiate Coleus and Kioo payment schedules to align with ABI working capital standards. Target Net-90 minimum with early-payment discount structure.</div>
+      <div class="sc-rec-meta">
+        <span>Owner: <strong>Procurement</strong></span>
+        <span>Suppliers: <strong>2</strong></span>
+      </div>
+    </div>
+    <div class="sc-rec high">
+      <div class="sc-rec-num">02</div>
+      <div class="sc-rec-priority">Priority &middot; High</div>
+      <div class="sc-rec-title">Add MFN and benchmarking safeguards</div>
+      <div class="sc-rec-desc">Insert most-favoured-nation pricing clause and annual benchmarking rights into Coleus and Pride Milling agreements to protect against cost escalation.</div>
+      <div class="sc-rec-meta">
+        <span>Owner: <strong>Legal</strong></span>
+        <span>Suppliers: <strong>2</strong></span>
+      </div>
+    </div>
+    <div class="sc-rec med">
+      <div class="sc-rec-num">03</div>
+      <div class="sc-rec-priority">Priority &middot; Medium</div>
+      <div class="sc-rec-title">Establish dual-source provisions for RAU</div>
+      <div class="sc-rec-desc">Add contractual dual-source requirements for Pride Milling to mitigate single-source supply chain risk. Use Viking Malt as the benchmark template.</div>
+      <div class="sc-rec-meta">
+        <span>Owner: <strong>Supply Chain</strong></span>
+        <span>Suppliers: <strong>1</strong></span>
+      </div>
+    </div>
+  </div>
+      </div><!-- /portal-panel actions -->
+
+    </div><!-- /portal-body -->
+
+    <!-- Portal Footer -->
+    <div class="portal-footer">
+      <span class="portal-footer-dot">Live &mdash; Production Data</span>
+      <span>Scored from actual supplier contracts &middot; Apr 28, 2026</span>
+      <span>Contract-Intel &middot; Risk Analysis</span>
+    </div>
+  </div><!-- /portal -->
+</section>
+
+<script>
+(function() {
+  'use strict';
+
+  /* ── Portal tab switching + auto-rotate ── */
+  document.querySelectorAll('.portal-tabs').forEach(nav => {
+    const portal = nav.closest('.portal');
+    const tabs = Array.from(nav.querySelectorAll('.portal-tab'));
+    const panels = Array.from(portal.querySelectorAll('.portal-panel'));
+    let autoTimer = null;
+    let hovered = false;
+    let clickPauseTimer = null;
+
+    function activateTab(idx) {
+      tabs.forEach((t, i) => t.classList.toggle('active', i === idx));
+      panels.forEach((p, i) => p.classList.toggle('active', i === idx));
+    }
+
+    function nextTab() {
+      const cur = tabs.findIndex(t => t.classList.contains('active'));
+      activateTab((cur + 1) % tabs.length);
+    }
+
+    function startAuto() {
+      stopAuto();
+      autoTimer = setInterval(nextTab, 5000);
+    }
+    function stopAuto() {
+      if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+    }
+
+    nav.addEventListener('click', e => {
+      const tab = e.target.closest('.portal-tab');
+      if (!tab) return;
+      stopAuto();
+      if (clickPauseTimer) clearTimeout(clickPauseTimer);
+      activateTab(tabs.indexOf(tab));
+      clickPauseTimer = setTimeout(() => {
+        clickPauseTimer = null;
+        if (!hovered) startAuto();
+      }, 15000);
+    });
+
+    portal.addEventListener('mouseenter', () => {
+      hovered = true;
+      stopAuto();
+    });
+    portal.addEventListener('mouseleave', () => {
+      hovered = false;
+      if (!clickPauseTimer) startAuto();
+    });
+
+    startAuto();
+  });
+})();
+</script>
+</body>
+</html>

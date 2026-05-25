@@ -57,14 +57,6 @@ MARKET_RESEARCH_COMMON_COST_MAPPING = {
     "Total Landing Cost": "Total Landed Cost (PET Resin)",
 }
 
-REQUESTED_DESTINATION_TO_MODEL_DESTINATION = {
-    "El Salvador and Honduras": "El Salvador",
-}
-
-
-def model_destination_for_request(destination: str) -> str:
-    return REQUESTED_DESTINATION_TO_MODEL_DESTINATION.get(destination, destination)
-
 
 @lru_cache(maxsize=1)
 def read_market_research_rows() -> list[dict[str, Any]]:
@@ -171,7 +163,7 @@ def build_market_research_countries(
     month: str,
     year: str | int,
 ) -> list[dict[str, Any]]:
-    selected_destination = model_destination_for_request(destination)
+    selected_destination = destination
     selected_year = clean_text(year)
 
     grouped: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
@@ -323,7 +315,7 @@ def build_market_research_tlc_trends(
     destination: str,
     year: str | int = DEFAULT_YEAR,
 ) -> list[dict[str, Any]]:
-    selected_destination = model_destination_for_request(destination)
+    selected_destination = destination
     selected_year = clean_text(year)
     grouped: dict[tuple[str, str, str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
 
@@ -395,12 +387,11 @@ def available_destinations() -> list[str]:
         for row in read_market_research_rows()
         if clean_text(row.get("Destination Country"))
     }
-    destinations.update(REQUESTED_DESTINATION_TO_MODEL_DESTINATION.keys())
     return sorted(destinations)
 
 
 def available_periods_for_destination(destination: str) -> list[tuple[str, str]]:
-    selected_destination = model_destination_for_request(destination)
+    selected_destination = destination
     periods = {
         period
         for row in read_market_research_rows()

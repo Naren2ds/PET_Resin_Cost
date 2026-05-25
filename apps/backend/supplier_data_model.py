@@ -58,16 +58,6 @@ DEFAULT_SUPPLIER_COMMON_COST_MAPPING = {
 TOTAL_LANDING_COST = "Total Landing Cost"
 SUPPLIER_TLC_FRONTEND_LABEL = "Total Resin Price ABI VIRGIN Formula"
 
-DESTINATION_ALIASES = {
-    "El Salvador": ["El Salvador and Honduras"],
-}
-
-REQUESTED_DESTINATION_TO_MODEL_DESTINATION = {
-    alias: destination
-    for destination, aliases in DESTINATION_ALIASES.items()
-    for alias in aliases
-}
-
 
 def clean_text(value: Any) -> str:
     if value is None:
@@ -164,6 +154,14 @@ def read_csv_rows(path: Path) -> list[dict[str, Any]]:
 
 
 def read_data_model_rows() -> list[dict[str, Any]]:
+    if DATA_MODEL_CSV.exists() and (
+        not DATA_MODEL_XLSX.exists()
+        or DATA_MODEL_CSV.stat().st_mtime > DATA_MODEL_XLSX.stat().st_mtime
+    ):
+        rows = read_csv_rows(DATA_MODEL_CSV)
+        if rows:
+            return rows
+
     rows = read_xlsx_rows(DATA_MODEL_XLSX, DATA_MODEL_SHEET)
     if rows:
         return rows
@@ -205,13 +203,7 @@ def month_year_from_row(row: dict[str, Any]) -> tuple[str, str] | None:
 
 
 def model_destinations_for_response(destination: str) -> list[str]:
-    return [destination, *DESTINATION_ALIASES.get(destination, [])]
-
-
-def normalize_requested_destination(destination: str | None) -> str | None:
-    if not destination:
-        return None
-    return REQUESTED_DESTINATION_TO_MODEL_DESTINATION.get(destination, destination)
+    return [destination]
 
 
 def supplier_display_name(supplier: str, location: str, destination: str) -> str:

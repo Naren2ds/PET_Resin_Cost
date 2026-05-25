@@ -9,16 +9,16 @@ Pipeline script: `supplier_pipelines/04. Valgroup/scripts/run_valgroup_pipeline.
 This pipeline keeps the legacy Valgroup extraction for traceability and adds the full supplier model used for forecasting:
 
 - Historical sheets: `JAN.26`, `FEV.26`, `MAR.26`, `ABR.26`
-- Products: `VRJ1`, `VPE1`, `VMG11`
+- Product used for PET TLC: `VRJ1`
 - Actual months: January 2026 through April 2026
-- Forecast months: May 2026 through December 2026
+- Forecast months: generated only where the `ICIS Asia SE Low` reference is available for the prior month
 
 ## Calculation Logic
 
 Resin with assumptions:
 
 ```text
-IF(Low > Mid, Mid, IF(Mid - Low > 75, Mid - 75, Low))
+ICIS Asia SE Low (n-1)
 ```
 
 Total landing cost in USD:
@@ -35,19 +35,15 @@ Total V-PET USD/ton * PTAX
 
 ## Index Usage
 
-Primary index:
+Selected resin index:
 
 - `ICIS Asia SE Low`
-
-Mid guardrail index:
-
-- `ICIS China Mid`
 
 Reference table:
 
 - `Index Fprecast/icis_resin_index_reference_table.csv`
 
-Validation note: the historical workbook's `ICIS Asia 5R MID (n-1)` values do not match the current `ICIS China Mid` reference values. The Low index matches exactly. Forecast rows use the Mid reference where available, and fall back to Low when future Mid values are missing.
+Validation note: Valgroup now uses only the workbook's `ICIS Asia SE Low (n-1)` row for resin assumptions and does not use `ICIS Asia 5R MID (n-1)`. Forecast rows are emitted only for months where the `ICIS Asia SE Low` reference is available.
 
 ## Outputs
 

@@ -52,11 +52,11 @@ VALIDATION_SUMMARY_FILE = VALIDATION_DIR / "validation_summary.json"
 
 SUPPLIER = "Valgroup"
 DESTINATION_COUNTRY = "Brazil"
-PRIMARY_INDEX_TYPE = "ICIS Asia SE Low"
-MID_INDEX_TYPE = "ICIS China Mid"
+TARGET_PRODUCT = "VRJ1"
+LOW_INDEX_TYPE = "ICIS Asia SE Low"
 SOURCE_LOW_LABEL = "ICIS Asia SE Low (n-1)"
-SOURCE_MID_LABEL = "ICIS Asia 5R MID (n-1)"
-SOURCE_RESIN_INDEX_TYPE = "ICIS Asia SE Low (n-1) with Mid guardrail"
+IGNORED_SOURCE_MID_LABEL = "ICIS Asia 5R MID (n-1)"
+SOURCE_RESIN_INDEX_TYPE = SOURCE_LOW_LABEL
 
 TLC_USD_METRIC = "Total V-PET USD/ton"
 TLC_BRL_METRIC = "Total V-PET BRL/ton"
@@ -65,7 +65,7 @@ TLC_FORMULA = (
     "* (1 + Importation + Import Tax)) + Surcharge + Indorama Discount"
 )
 RESIN_ASSUMPTION_FORMULA = (
-    "Resin with assumptions = IF(Low > Mid, Mid, IF(Mid - Low > 75, Mid - 75, Low))"
+    "Resin with assumptions = ICIS Asia SE Low (n-1)"
 )
 
 METRIC_ROWS = range(3, 13)
@@ -108,7 +108,7 @@ MONTHS = {
 
 TRANSLATIONS = {
     "Icis Asia SE Low (n-1)": SOURCE_LOW_LABEL,
-    "Icis Asia 5R MID (n-1)": SOURCE_MID_LABEL,
+    "Icis Asia 5R MID (n-1)": IGNORED_SOURCE_MID_LABEL,
     "Resina c/ premissas": "Resin with assumptions",
     "Desconto": "Discount",
     "Drewry (t-1) com desconto": "Drewry (t-1) with discount",
@@ -315,15 +315,40 @@ def product_block(worksheet: Any) -> tuple[int, list[int], int]:
     if label_col is None:
         raise ValueError(f"Cannot find RESINA VIRGEM label in sheet {worksheet.title}")
 
-    product_cols: list[int] = []
+    all_product_cols: list[int] = []
     for col_idx in range(label_col + 1, worksheet.max_column + 1):
         product = clean_text(worksheet.cell(2, col_idx).value)
         if product in (None, ""):
             break
-        product_cols.append(col_idx)
-    if not product_cols:
+        all_product_cols.append(col_idx)
+    if not all_product_cols:
         raise ValueError(f"Cannot find Valgroup product columns in sheet {worksheet.title}")
-    return label_col, product_cols, product_cols[-1]
+
+    product_cols = [
+        col_idx
+        for col_idx in all_product_cols
+        if normalize_key(worksheet.cell(2, col_idx).value) == normalize_key(TARGET_PRODUCT)
+    ]
+    if not product_cols:
+        products = [
+            clean_text(worksheet.cell(2, col_idx).value)
+            for col_idx in all_product_cols
+        ]
+        raise ValueError(
+            f"Cannot find target Valgroup product {TARGET_PRODUCT!r} "
+            f"in sheet {worksheet.title}. Found: {products}"
+        )
+
+    return label_col, product_cols, all_product_cols[-1]
+
+
+def metric_row_lookup(worksheet: Any, label_col: int) -> dict[str, int]:
+    lookup: dict[str, int] = {}
+    for row_idx in range(3, TLC_BRL_ROW + 1):
+        metric = translate(clean_text(worksheet.cell(row_idx, label_col).value))
+        if metric:
+            lookup[normalize_key(metric)] = row_idx
+    return lookup
 
 
 def extract_full_rows() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -340,6 +365,7 @@ def extract_full_rows() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
             value_ws = values_wb[sheet_name]
             formula_ws = formulas_wb[sheet_name]
             label_col, product_cols, ptax_col = product_block(value_ws)
+            metric_rows = metric_row_lookup(value_ws, label_col)
             source_range = (
                 f"{get_column_letter(label_col)}2:{get_column_letter(product_cols[-1])}{TLC_BRL_ROW}"
             )
@@ -357,11 +383,45 @@ def extract_full_rows() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
             for product_col in product_cols:
                 product = clean_text(value_ws.cell(2, product_col).value)
                 ptax = maybe_float(value_ws.cell(1, ptax_col).value)
+                low_row = metric_rows.get(normalize_key(SOURCE_LOW_LABEL))
+                discount_row = metric_rows.get(normalize_key("Discount"))
+                freight_row = metric_rows.get(normalize_key("Drewry (t-1) with discount"))
+                importation_row = metric_rows.get(normalize_key("Importation"))
+                import_tax_row = metric_rows.get(normalize_key("Import Tax"))
+                surcharge_row = metric_rows.get(normalize_key("Surcharge"))
+                indorama_discount_row = metric_rows.get(normalize_key("Indorama Discount"))
+
+                low_value = numeric(value_ws.cell(low_row, product_col).value if low_row else None)
+                resin_value = resin_with_assumptions(low_value)
+                tlc_usd_value = calculate_tlc_usd(
+                    resin_value,
+                    numeric(value_ws.cell(discount_row, product_col).value if discount_row else None),
+                    numeric(value_ws.cell(freight_row, product_col).value if freight_row else None),
+                    numeric(value_ws.cell(importation_row, product_col).value if importation_row else None),
+                    numeric(value_ws.cell(import_tax_row, product_col).value if import_tax_row else None),
+                    numeric(value_ws.cell(surcharge_row, product_col).value if surcharge_row else None),
+                    numeric(value_ws.cell(indorama_discount_row, product_col).value if indorama_discount_row else None),
+                )
+                tlc_brl_value = tlc_usd_value * (ptax or 0.0)
+
                 for row_idx in METRIC_ROWS:
                     metric_original = clean_text(value_ws.cell(row_idx, label_col).value)
                     metric_english = translate(metric_original)
+                    if metric_english == IGNORED_SOURCE_MID_LABEL:
+                        continue
                     mapping_values = mapping.get(normalize_key(metric_english), {})
                     col_letter = get_column_letter(product_col)
+                    value = value_ws.cell(row_idx, product_col).value
+                    formula = formula_ws.cell(row_idx, product_col).value
+                    if metric_english == "Resin with assumptions":
+                        value = resin_value
+                        formula = RESIN_ASSUMPTION_FORMULA
+                    elif metric_english == TLC_USD_METRIC:
+                        value = tlc_usd_value
+                        formula = TLC_FORMULA
+                    elif metric_english == TLC_BRL_METRIC:
+                        value = tlc_brl_value
+                        formula = f"{TLC_FORMULA}; {TLC_BRL_METRIC} = {TLC_USD_METRIC} * PTAX"
                     row = {
                         "source_file": str(SOURCE_FILE),
                         "source_sheet": sheet_name,
@@ -376,8 +436,8 @@ def extract_full_rows() -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
                         "metric_label_english": metric_english,
                         "Mapping Columns": mapping_values.get("Mapping Columns"),
                         "Column Required for Calculation": mapping_values.get("Column Required for Calculation"),
-                        "value": value_ws.cell(row_idx, product_col).value,
-                        "formula": formula_ws.cell(row_idx, product_col).value,
+                        "value": value,
+                        "formula": formula,
                     }
                     final_rows.append(row)
         return raw_rows, final_rows
@@ -413,11 +473,7 @@ def value_for(rows: list[dict[str, Any]], metric_name: str) -> float:
     return numeric(row.get("value") if row else None)
 
 
-def resin_with_assumptions(low: float, mid: float) -> float:
-    if low > mid:
-        return mid
-    if mid - low > 75:
-        return mid - 75
+def resin_with_assumptions(low: float) -> float:
     return low
 
 
@@ -470,7 +526,6 @@ def validation_rows(final_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         period = date(year, month, 1)
         source_index_period = add_months(period, -1)
         low = value_for(rows, SOURCE_LOW_LABEL)
-        mid = value_for(rows, SOURCE_MID_LABEL)
         resin_source = value_for(rows, "Resin with assumptions")
         discount = value_for(rows, "Discount")
         freight = value_for(rows, "Drewry (t-1) with discount")
@@ -479,9 +534,11 @@ def validation_rows(final_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         surcharge = value_for(rows, "Surcharge")
         indorama_discount = value_for(rows, "Indorama Discount")
         tlc_source = value_for(rows, TLC_USD_METRIC)
+        tlc_brl_row = row_for_metric(rows, TLC_BRL_METRIC) or {}
+        tlc_brl_source = maybe_float(tlc_brl_row.get("value")) if tlc_brl_row else None
         ptax = maybe_float(rows[0].get("ptax")) or 0.0
 
-        resin_calc = resin_with_assumptions(low, mid)
+        resin_calc = resin_with_assumptions(low)
         tlc_calc = calculate_tlc_usd(
             resin_calc,
             discount,
@@ -491,32 +548,11 @@ def validation_rows(final_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             surcharge,
             indorama_discount,
         )
-        tlc_brl_source = None
-        tlc_brl_formula = None
-        values_wb = None
-        formulas_wb = None
-        try:
-            values_wb = load_workbook(SOURCE_FILE, data_only=True, read_only=False)
-            formulas_wb = load_workbook(SOURCE_FILE, data_only=False, read_only=False)
-            sheet = rows[0]["source_sheet"]
-            col_letter = re.match(r"([A-Z]+)", str(rows[0]["source_cell"])).group(1)
-            value_ws = values_wb[sheet]
-            formula_ws = formulas_wb[sheet]
-            tlc_brl_source = maybe_float(value_ws[f"{col_letter}{TLC_BRL_ROW}"].value)
-            tlc_brl_formula = formula_ws[f"{col_letter}{TLC_BRL_ROW}"].value
-        finally:
-            if values_wb:
-                values_wb.close()
-            if formulas_wb:
-                formulas_wb.close()
-
         tlc_brl_calc = tlc_calc * ptax
         tlc_row = row_for_metric(rows, TLC_USD_METRIC) or {}
         resin_row = row_for_metric(rows, "Resin with assumptions") or {}
-        low_ref, low_ref_row = reference_value(reference, source_index_period, PRIMARY_INDEX_TYPE)
-        mid_ref, mid_ref_row = reference_value(reference, source_index_period, MID_INDEX_TYPE)
+        low_ref, low_ref_row = reference_value(reference, source_index_period, LOW_INDEX_TYPE)
         low_ref_diff = low - low_ref if low_ref is not None else None
-        mid_ref_diff = mid - mid_ref if mid_ref is not None else None
         max_formula_diff = max(abs(resin_calc - resin_source), abs(tlc_calc - tlc_source))
         if tlc_brl_source is not None:
             max_formula_diff = max(max_formula_diff, abs(tlc_brl_calc - tlc_brl_source))
@@ -532,10 +568,6 @@ def validation_rows(final_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "low_index_reference": low_ref,
                 "low_reference_difference": low_ref_diff,
                 "low_reference_status": "match" if low_ref_diff is not None and abs(low_ref_diff) <= 0.000001 else "check",
-                "mid_index_source": mid,
-                "mid_index_reference": mid_ref,
-                "mid_reference_difference": mid_ref_diff,
-                "mid_reference_status": "match" if mid_ref_diff is not None and abs(mid_ref_diff) <= 0.000001 else "check",
                 "resin_with_assumptions_source": resin_source,
                 "resin_with_assumptions_calculated": resin_calc,
                 "resin_difference": resin_calc - resin_source,
@@ -556,11 +588,10 @@ def validation_rows(final_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "formula_validation_status": "match" if max_formula_diff <= 0.000001 else "check",
                 "source_resin_formula": resin_row.get("formula"),
                 "source_tlc_usd_formula": tlc_row.get("formula"),
-                "source_tlc_brl_formula": tlc_brl_formula,
+                "source_tlc_brl_formula": tlc_brl_row.get("formula"),
                 "resin_formula_used": RESIN_ASSUMPTION_FORMULA,
                 "tlc_formula_used": TLC_FORMULA,
                 "low_reference_source_cell": low_ref_row.get("source_cell") if low_ref_row else None,
-                "mid_reference_source_cell": mid_ref_row.get("source_cell") if mid_ref_row else None,
             }
         )
     return validations
@@ -570,10 +601,10 @@ def build_standardized_rows(final_rows: list[dict[str, Any]]) -> list[dict[str, 
     rows: list[dict[str, Any]] = []
     for row in final_rows:
         metric = clean_text(row.get("metric_label_english"))
+        if metric == IGNORED_SOURCE_MID_LABEL:
+            continue
         if metric == SOURCE_LOW_LABEL:
-            resin_index_type = PRIMARY_INDEX_TYPE
-        elif metric == SOURCE_MID_LABEL:
-            resin_index_type = MID_INDEX_TYPE
+            resin_index_type = LOW_INDEX_TYPE
         else:
             resin_index_type = SOURCE_RESIN_INDEX_TYPE
         rows.append(
@@ -641,10 +672,9 @@ def build_forecast_inputs(validation: list[dict[str, Any]]) -> list[dict[str, An
     for product, latest in sorted(latest_by_product.items()):
         for target_period in future_periods:
             source_index_period = add_months(target_period, -1)
-            low_value, low_ref = reference_value(reference, source_index_period, PRIMARY_INDEX_TYPE)
-            mid_value, mid_ref = reference_value(reference, source_index_period, MID_INDEX_TYPE)
-            fallback_mid = mid_value is None
-            effective_mid = mid_value if mid_value is not None else low_value
+            low_value, low_ref = reference_value(reference, source_index_period, LOW_INDEX_TYPE)
+            if low_value is None:
+                continue
             rows.append(
                 {
                     "time_period": period_label(target_period),
@@ -652,14 +682,9 @@ def build_forecast_inputs(validation: list[dict[str, Any]]) -> list[dict[str, An
                     "time_period_month": target_period.month,
                     "product": product,
                     "source_index_period": period_label(source_index_period),
-                    "low_index_type": PRIMARY_INDEX_TYPE,
+                    "low_index_type": LOW_INDEX_TYPE,
                     "low_index": low_value,
                     "low_index_source_cell": low_ref.get("source_cell") if low_ref else None,
-                    "mid_index_type": MID_INDEX_TYPE,
-                    "mid_index": mid_value,
-                    "mid_index_source_cell": mid_ref.get("source_cell") if mid_ref else None,
-                    "mid_missing_fallback_to_low": "Yes" if fallback_mid else "No",
-                    "effective_mid_index": effective_mid,
                     "discount": latest["discount"],
                     "freight": latest["freight"],
                     "importation": latest["importation"],
@@ -678,8 +703,7 @@ def build_forecast_estimates(forecast_inputs: list[dict[str, Any]]) -> tuple[lis
     estimates: list[dict[str, Any]] = []
     front_end_rows: list[dict[str, Any]] = []
     component_specs = [
-        ("low_index", SOURCE_LOW_LABEL, "Index", "No", PRIMARY_INDEX_TYPE),
-        ("effective_mid_index", SOURCE_MID_LABEL, "Index", "No", MID_INDEX_TYPE),
+        ("low_index", SOURCE_LOW_LABEL, "Index", "No", LOW_INDEX_TYPE),
         ("resin_with_assumptions", "Resin with assumptions", "Resin Index vPET", "Yes", SOURCE_RESIN_INDEX_TYPE),
         ("discount", "Discount", "Discount", "Yes", SOURCE_RESIN_INDEX_TYPE),
         ("freight", "Drewry (t-1) with discount", "Freight", "Yes", SOURCE_RESIN_INDEX_TYPE),
@@ -692,8 +716,7 @@ def build_forecast_estimates(forecast_inputs: list[dict[str, Any]]) -> tuple[lis
     ]
     for row in forecast_inputs:
         low = numeric(row.get("low_index"))
-        effective_mid = numeric(row.get("effective_mid_index"))
-        resin = resin_with_assumptions(low, effective_mid)
+        resin = resin_with_assumptions(low)
         tlc_usd = calculate_tlc_usd(
             resin,
             numeric(row["discount"]),
@@ -726,7 +749,7 @@ def build_forecast_estimates(forecast_inputs: list[dict[str, Any]]) -> tuple[lis
                     "Location": row["product"],
                     "Raw Cost Breakdown": raw_cost,
                     "Resin Index Type": resin_index_type,
-                    "Forecast Resin Index Type": f"{PRIMARY_INDEX_TYPE}; {MID_INDEX_TYPE}",
+                    "Forecast Resin Index Type": LOW_INDEX_TYPE,
                     "Mapping Columns": mapping_column,
                     "Column Required for Calculation": required,
                     "Value ": estimate[value_key],
@@ -822,12 +845,7 @@ def formula_catalog_rows() -> list[dict[str, Any]]:
         {
             "component": SOURCE_LOW_LABEL,
             "classification": "variable_index_input",
-            "formula_or_source": f"{INDEX_REFERENCE_CSV.name} / {PRIMARY_INDEX_TYPE}, target month - 1",
-        },
-        {
-            "component": SOURCE_MID_LABEL,
-            "classification": "variable_index_input",
-            "formula_or_source": f"{INDEX_REFERENCE_CSV.name} / {MID_INDEX_TYPE}, target month - 1; fallback to Low when missing",
+            "formula_or_source": f"{INDEX_REFERENCE_CSV.name} / {LOW_INDEX_TYPE}, target month - 1",
         },
         {
             "component": "Resin with assumptions",
@@ -837,7 +855,7 @@ def formula_catalog_rows() -> list[dict[str, Any]]:
         {
             "component": "Discount",
             "classification": "product_assumption",
-            "formula_or_source": "Latest actual by product: VRJ1 2.5%, VPE1 4%, VMG11 1%",
+            "formula_or_source": "Latest actual for VRJ1",
         },
         {
             "component": "Drewry (t-1) with discount",
@@ -876,11 +894,6 @@ def write_forecast_template(
         "low_index_type",
         "low_index",
         "low_index_source_cell",
-        "mid_index_type",
-        "mid_index",
-        "mid_index_source_cell",
-        "mid_missing_fallback_to_low",
-        "effective_mid_index",
         "discount",
         "freight",
         "importation",
@@ -904,19 +917,15 @@ def write_forecast_template(
     input_fill = PatternFill(fill_type="solid", fgColor="FFF2CC")
     formula_fill = PatternFill(fill_type="solid", fgColor="E2F0D9")
     for row_idx in range(2, worksheet.max_row + 1):
-        worksheet[f"M{row_idx}"] = f'=IF(ISBLANK(J{row_idx}),G{row_idx},J{row_idx})'
-        worksheet[f"U{row_idx}"] = (
-            f'=IF(G{row_idx}>M{row_idx},M{row_idx},'
-            f'IF((M{row_idx}-G{row_idx})>75,M{row_idx}-75,G{row_idx}))'
+        worksheet[f"P{row_idx}"] = f"=G{row_idx}"
+        worksheet[f"Q{row_idx}"] = (
+            f'=(((P{row_idx}*(1-I{row_idx}))+J{row_idx})*'
+            f'(1+(K{row_idx}+L{row_idx})))+M{row_idx}+N{row_idx}'
         )
-        worksheet[f"V{row_idx}"] = (
-            f'=(((U{row_idx}*(1-N{row_idx}))+O{row_idx})*'
-            f'(1+(P{row_idx}+Q{row_idx})))+R{row_idx}+S{row_idx}'
-        )
-        worksheet[f"W{row_idx}"] = f"=V{row_idx}*T{row_idx}"
-        for col_idx in [7, 10, 14, 15, 16, 17, 18, 19, 20]:
+        worksheet[f"R{row_idx}"] = f"=Q{row_idx}*O{row_idx}"
+        for col_idx in [7, 9, 10, 11, 12, 13, 14, 15]:
             worksheet.cell(row_idx, col_idx).fill = input_fill
-        for col_idx in [13, 21, 22, 23]:
+        for col_idx in [16, 17, 18]:
             worksheet.cell(row_idx, col_idx).fill = formula_fill
     style_sheet(worksheet)
     write_sheet(
@@ -955,10 +964,10 @@ def write_outputs(
         "supplier": SUPPLIER,
         "destination_country": DESTINATION_COUNTRY,
         "source_resin_index_type": SOURCE_RESIN_INDEX_TYPE,
-        "forecast_resin_index_types": f"{PRIMARY_INDEX_TYPE}; {MID_INDEX_TYPE}",
+        "forecast_resin_index_types": LOW_INDEX_TYPE,
         "tlc_formula": TLC_FORMULA,
         "resin_formula": RESIN_ASSUMPTION_FORMULA,
-        "note": "Full pipeline extracts VRJ1, VPE1, and VMG11 product columns; legacy extraction remains available for the old U2:V12 scope.",
+        "note": "Pipeline extracts only VRJ1 and calculates resin with assumptions directly from ICIS Asia SE Low (n-1).",
         "raw_rows": len(raw_rows),
         "final_rows": len(final_rows),
         "validation_rows": len(validation),
@@ -977,10 +986,6 @@ def write_outputs(
         "low_index_reference",
         "low_reference_difference",
         "low_reference_status",
-        "mid_index_source",
-        "mid_index_reference",
-        "mid_reference_difference",
-        "mid_reference_status",
         "resin_with_assumptions_source",
         "resin_with_assumptions_calculated",
         "resin_difference",
@@ -1005,7 +1010,6 @@ def write_outputs(
         "resin_formula_used",
         "tlc_formula_used",
         "low_reference_source_cell",
-        "mid_reference_source_cell",
     ]
     forecast_headers = [
         "time_period",
@@ -1016,11 +1020,6 @@ def write_outputs(
         "low_index_type",
         "low_index",
         "low_index_source_cell",
-        "mid_index_type",
-        "mid_index",
-        "mid_index_source_cell",
-        "mid_missing_fallback_to_low",
-        "effective_mid_index",
         "discount",
         "freight",
         "importation",
@@ -1083,7 +1082,6 @@ def write_outputs(
         **metadata,
         "formula_validation_statuses": sorted({row["formula_validation_status"] for row in validation}),
         "low_reference_statuses": sorted({row["low_reference_status"] for row in validation}),
-        "mid_reference_statuses": sorted({row["mid_reference_status"] for row in validation}),
         "max_abs_formula_difference": max((row["max_abs_formula_difference"] for row in validation), default=0),
         "max_abs_low_reference_difference": max(
             (
@@ -1093,19 +1091,10 @@ def write_outputs(
             ),
             default=0,
         ),
-        "max_abs_mid_reference_difference": max(
-            (
-                abs(row["mid_reference_difference"])
-                for row in validation
-                if row["mid_reference_difference"] is not None
-            ),
-            default=0,
-        ),
         "forecast_months": sorted({row["time_period"] for row in forecast_estimates}, key=lambda p: (
             next(row["time_period_year"] for row in forecast_estimates if row["time_period"] == p),
             next(row["time_period_month"] for row in forecast_estimates if row["time_period"] == p),
         )),
-        "mid_fallback_rows": sum(1 for row in forecast_inputs if row["mid_missing_fallback_to_low"] == "Yes"),
         "front_end_actual_forecast_csv": str(FRONT_END_ACTUAL_FORECAST_CSV),
     }
     VALIDATION_SUMMARY_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -1161,7 +1150,6 @@ def main() -> None:
     print(f"validation_rows={len(validation)}")
     print(f"forecast_input_rows={len(forecast_inputs)}")
     print(f"forecast_estimate_rows={len(forecast_estimates)}")
-    print(f"mid_fallback_rows={sum(1 for row in forecast_inputs if row['mid_missing_fallback_to_low'] == 'Yes')}")
     print(f"extracted_file={EXTRACTED_FILE}")
     print(f"tlc_validation_file={TLC_VALIDATION_FILE}")
     print(f"forecast_template={FORECAST_TEMPLATE_FILE}")

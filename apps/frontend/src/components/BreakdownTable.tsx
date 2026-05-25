@@ -136,6 +136,11 @@ const formatMetricTon = (value: string | number | null | undefined) =>
 const formatDifference = (value: number) =>
   `${value > 0 ? "+" : ""}$${formatAmount(value)}`;
 
+const costSharePercent = (value: number, total: number) => {
+  if (!Number.isFinite(value) || !Number.isFinite(total) || total === 0) return null;
+  return Math.round((value / total) * 100);
+};
+
 const differenceClass = (value: number) => {
   if (value < 0) return "text-destructive";
   if (value > 0) return "text-success";
@@ -178,6 +183,23 @@ const componentSortIndex = (component: string) => {
 
 const detailDisplayLabel = (item: { rawLabel?: string; label: string }) =>
   item.rawLabel?.trim() || item.label;
+
+const AmountWithShare = ({
+  value,
+  share,
+}: {
+  value: string | number | null | undefined;
+  share: number | null;
+}) => (
+  <span className="inline-flex items-baseline justify-end gap-1.5 whitespace-nowrap">
+    <span>{formatMetricTon(value)}</span>
+    {share !== null ? (
+      <span className="text-[11px] font-medium text-muted-foreground/75">
+        ({share}%)
+      </span>
+    ) : null}
+  </span>
+);
 
 const detailCellRows = (rows: DetailCellRow[], emptyText: string) => {
   if (!rows.length) {
@@ -254,12 +276,21 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       supplierSums.set(mapped, (supplierSums.get(mapped) ?? 0) + (toNumber(item.amount) ?? 0));
     });
 
-    return COMMON_COMPONENT_ORDER.map((component) => ({
-      component,
-      marketValue: marketSums.get(component) ?? 0,
-      supplierValue: supplierSums.get(component) ?? 0,
-      differenceValue: (supplierSums.get(component) ?? 0) - (marketSums.get(component) ?? 0),
-    }));
+    const marketTotal = marketSums.get("Total Landed Cost (PET Resin)") ?? 0;
+    const supplierTotal = supplierSums.get("Total Landed Cost (PET Resin)") ?? 0;
+
+    return COMMON_COMPONENT_ORDER.map((component) => {
+      const marketValue = marketSums.get(component) ?? 0;
+      const supplierValue = supplierSums.get(component) ?? 0;
+      return {
+        component,
+        marketValue,
+        supplierValue,
+        marketShare: costSharePercent(marketValue, marketTotal),
+        supplierShare: costSharePercent(supplierValue, supplierTotal),
+        differenceValue: supplierValue - marketValue,
+      };
+    });
   }, [breakdown, compactVendorBreakdown]);
 
   const combinedDetailRows = useMemo<CombinedDetailRow[]>(() => {
@@ -390,10 +421,10 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
                   </TableCell>
                   <TableCell className="font-medium">{row.component}</TableCell>
                   <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {formatMetricTon(row.marketValue)}
+                    <AmountWithShare value={row.marketValue} share={row.marketShare} />
                   </TableCell>
                   <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {formatMetricTon(row.supplierValue)}
+                    <AmountWithShare value={row.supplierValue} share={row.supplierShare} />
                   </TableCell>
                   <TableCell className={`text-right tabular-nums font-semibold ${differenceClass(row.differenceValue)}`}>
                     {formatDifference(row.differenceValue)}

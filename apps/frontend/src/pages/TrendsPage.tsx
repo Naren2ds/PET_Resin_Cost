@@ -140,6 +140,9 @@ const getSupplierTlc = (entry: VendorBreakdownEntry) => {
   return parseNumber(row?.amount);
 };
 
+const getSupplierTlcRow = (entry: VendorBreakdownEntry) =>
+  entry.rows.find((item) => normalize(item.label) === SUPPLIER_TLC_LABEL);
+
 const isSupplierIndexRow = (row: VendorBreakdownEntry["rows"][number]) => {
   const common = normalize(row.commonComponent);
   const mapping = normalize(row.mappingColumn);
@@ -151,6 +154,27 @@ const isSupplierIndexRow = (row: VendorBreakdownEntry["rows"][number]) => {
     label === RESIN_INDEX_MAPPING ||
     label === INDEX_MAPPING
   );
+};
+
+const supplierTlcPoint = (entry: VendorBreakdownEntry): TlcPoint | null => {
+  const row = getSupplierTlcRow(entry);
+  const value = parseNumber(row?.amount);
+  if (!row || value === null) return null;
+  const indexPoint = supplierIndexPoint(entry);
+  const isForecast = dataTypeIsForecast(entry);
+  return {
+    value,
+    isForecast,
+    formulaReference: row.formulaReference || "",
+    indexType:
+      indexPoint?.indexType ||
+      row.forecastResinIndexType ||
+      row.resinIndexType ||
+      "Supplier resin index",
+    estimationNote: isForecast
+      ? "Supplier TLC forecast is calculated from the forecast resin index plus the supplier pipeline assumptions. Non-index components are carried from the latest actual unless a pipeline-specific forecast input is available."
+      : "Supplier TLC actual comes from the standardized supplier row selected for the current supplier, destination, and month.",
+  };
 };
 
 const supplierIndexPoint = (entry: VendorBreakdownEntry): IndexPoint | null => {
@@ -167,11 +191,14 @@ const supplierIndexPoint = (entry: VendorBreakdownEntry): IndexPoint | null => {
     indexType,
     rawLabel: row.rawLabel || row.label,
     formulaReference: row.formulaReference || "",
+    formulaText: isForecast
+      ? `Forecast index = ${indexType} value from the supplier pipeline for the forecast period. TLC freight, tax, duty, discount, and other components are not included in this index value.`
+      : `Actual index = ${row.rawLabel || row.label} value from the standardized supplier workbook row used by the TLC model.`,
     confidenceScore: isForecast ? 72 : 96,
     confidenceLabel: isForecast ? "Forecast confidence" : "Actual source confidence",
     estimationNote: isForecast
-      ? "Supplier forecast uses the stated forecast index series from the supplier pipeline; non-index TLC assumptions are carried from the latest actual unless the pipeline provides updated assumptions."
-      : "Supplier actual comes from the standardized supplier workbook row used in the TLC calculation.",
+      ? "Index-only estimate sourced from the supplier forecast index series."
+      : "Direct source index row from the standardized supplier data model.",
   };
 };
 
@@ -205,6 +232,17 @@ const supplierEntryScore = (entry: VendorBreakdownEntry, requestedSupplier: stri
 type MarketTrendPoint = {
   value: number;
   isForecast: boolean;
+  formulaReference: string;
+  indexType: string;
+  estimationNote: string;
+};
+
+type TlcPoint = {
+  value: number;
+  isForecast: boolean;
+  formulaReference: string;
+  indexType: string;
+  estimationNote: string;
 };
 
 type IndexPoint = {
@@ -213,6 +251,7 @@ type IndexPoint = {
   indexType: string;
   rawLabel: string;
   formulaReference: string;
+  formulaText: string;
   confidenceScore: number;
   confidenceLabel: string;
   estimationNote: string;
@@ -224,18 +263,41 @@ const TrendTooltip = ({ active, payload, label }: any) => {
   if (!rows.length) return null;
 
   return (
-    <div className="rounded-xl border border-primary/20 bg-[#020817]/95 px-4 py-3 shadow-2xl">
+    <div className="max-w-[380px] rounded-xl border border-primary/20 bg-[#020817]/95 px-4 py-3 shadow-2xl">
       <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{label}</p>
-      <div className="space-y-1.5">
-        {rows.map((item: any) => (
-          <div key={item.dataKey} className="flex items-center justify-between gap-6 text-sm">
-            <span className="font-medium" style={{ color: item.color }}>
-              {item.name}
-            </span>
-            <span className="font-semibold text-slate-100">{formatAmount(item.value)}</span>
+      <div className="space-y-3">
+        {rows.map((item: any) => {
+          const meta = item.payload?.[`${item.dataKey}Meta`] as TlcPoint | undefined;
+          return (
+            <div key={item.dataKey} className="space-y-1.5 border-t border-white/10 pt-2 first:border-t-0 first:pt-0">
+              <div className="flex items-center justify-between gap-5 text-sm">
+                <span className="font-semibold" style={{ color: item.color }}>
+                  {item.name}
+                </span>
+                <span className="font-bold text-slate-100">${formatAmount(item.value)}/MT</span>
+              </div>
+              {meta ? (
+                <div className="rounded-md bg-white/5 px-2.5 py-2 text-[11px] leading-relaxed text-slate-300">
+                  <p>
+                    <span className="font-semibold text-slate-100">Index used:</span>{" "}
+                    {meta.indexType || "Not specified"}
+                  </p>
+                  <p>
+                    <span className="font-semibold text-slate-100">Estimation:</span>{" "}
+                    {meta.estimationNote}
+                  </p>
+                  {meta.formulaReference ? (
+                    <p>
+                      <span className="font-semibold text-slate-100">TLC formula:</span>{" "}
+                      {meta.formulaReference}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
           </div>
-        ))}
-      </div>
     </div>
   );
 };
@@ -276,7 +338,11 @@ const IndexForecastTooltip = ({ active, payload, label }: any) => {
                   {meta?.rawLabel || "Resin Index"}
                 </p>
                 <p>
-                  <span className="font-semibold text-slate-100">Estimation:</span>{" "}
+                  <span className="font-semibold text-slate-100">Formula:</span>{" "}
+                  {meta?.formulaText || "Index value from the standardized model."}
+                </p>
+                <p>
+                  <span className="font-semibold text-slate-100">Basis:</span>{" "}
                   {meta?.estimationNote || "Source value from standardized model."}
                 </p>
                 <div className="mt-2">
@@ -420,9 +486,19 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
       const value = parseNumber(entry.amount);
       if (monthIdx < 0 || value === null) return;
       const sourceMap = map.get(entry.sourceCountry) ?? new Map<number, MarketTrendPoint>();
+      const isForecast = dataTypeIsForecast(entry);
       sourceMap.set(monthIdx, {
         value,
-        isForecast: dataTypeIsForecast(entry),
+        isForecast,
+        formulaReference: entry.formulaReference || "",
+        indexType:
+          (isForecast ? entry.forecastResinIndexType : entry.resinIndexType) ||
+          entry.resinIndexType ||
+          entry.forecastResinIndexType ||
+          "Market Research resin index",
+        estimationNote: isForecast
+          ? "Market Research TLC forecast is calculated from the forecast resin index and the required freight, insurance, duty/import tax, and fee components in the MR TLC formula."
+          : "Market Research TLC actual comes from the standardized MR total landed cost row for the selected country and month.",
       });
       map.set(entry.sourceCountry, sourceMap);
     };
@@ -441,21 +517,25 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
       if (monthIdx < 0 || value === null) return;
       const isForecast = dataTypeIsForecast(entry);
       const sourceMap = map.get(entry.sourceCountry) ?? new Map<number, IndexPoint>();
+      const indexType =
+        (isForecast ? entry.forecastResinIndexType : entry.resinIndexType) ||
+        entry.resinIndexType ||
+        entry.forecastResinIndexType ||
+        "Market Research resin index";
       sourceMap.set(monthIdx, {
         value,
         isForecast,
-        indexType:
-          (isForecast ? entry.forecastResinIndexType : entry.resinIndexType) ||
-          entry.resinIndexType ||
-          entry.forecastResinIndexType ||
-          "Market Research resin index",
+        indexType,
         rawLabel: entry.indexRawLabel || "PET resin cost (FOB)",
         formulaReference: entry.formulaReference || "",
+        formulaText: isForecast
+          ? `Forecast index = ${indexType} value from the MR data model for the selected market country and month. The chart shows only the resin index; freight, insurance, taxes, and local fees are excluded.`
+          : `Actual index = ${entry.indexRawLabel || "PET resin cost (FOB)"} value from the standardized MR row for the selected market country and month.`,
         confidenceScore: isForecast ? 74 : 96,
         confidenceLabel: isForecast ? "Forecast confidence" : "Actual source confidence",
         estimationNote: isForecast
-          ? "Market Research forecast uses the stated forecast index series from the MR data model and applies the TLC formula components for the selected country."
-          : "Market Research actual comes from the standardized MR resin index row used in the TLC calculation.",
+          ? "Index-only estimate sourced from the MR forecast index series."
+          : "Direct source index row from the standardized MR data model.",
       });
       map.set(entry.sourceCountry, sourceMap);
     });
@@ -468,22 +548,32 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
       MONTHS.map((month, index) => {
         const entry = supplierEntriesByMonth.get(index);
         const nextEntry = supplierEntriesByMonth.get(index + 1);
-        const supplierValue = entry ? getSupplierTlc(entry) : null;
+        const supplierPoint = entry ? supplierTlcPoint(entry) : null;
         const isForecast = dataTypeIsForecast(entry);
         const nextIsForecast = dataTypeIsForecast(nextEntry);
-        const row: Record<string, string | number | null> = {
+        const row: Record<string, string | number | null | TlcPoint> = {
           period: `${month.slice(0, 3)} 2026`,
-          supplierActual: !isForecast ? supplierValue : null,
-          supplierForecast: isForecast || nextIsForecast ? supplierValue : null,
+          supplierActual: supplierPoint && !isForecast ? supplierPoint.value : null,
+          supplierForecast:
+            supplierPoint && (isForecast || nextIsForecast) ? supplierPoint.value : null,
         };
+
+        if (supplierPoint && !isForecast) row.supplierActualMeta = supplierPoint;
+        if (supplierPoint && (isForecast || nextIsForecast)) {
+          row.supplierForecastMeta = supplierPoint;
+        }
 
         selectedMarketCountries.forEach((country, countryIndex) => {
           const point = marketValuesByCountryAndMonth.get(country)?.get(index);
           const nextPoint = marketValuesByCountryAndMonth.get(country)?.get(index + 1);
-          row[`market_${countryIndex}_actual`] =
-            point && !point.isForecast ? point.value : null;
-          row[`market_${countryIndex}_forecast`] =
-            point && (point.isForecast || nextPoint?.isForecast) ? point.value : null;
+          const actualKey = `market_${countryIndex}_actual`;
+          const forecastKey = `market_${countryIndex}_forecast`;
+          row[actualKey] = point && !point.isForecast ? point.value : null;
+          row[forecastKey] = point && (point.isForecast || nextPoint?.isForecast) ? point.value : null;
+          if (point && !point.isForecast) row[`${actualKey}Meta`] = point;
+          if (point && (point.isForecast || nextPoint?.isForecast)) {
+            row[`${forecastKey}Meta`] = point;
+          }
         });
 
         return row;
@@ -815,6 +905,17 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                       </p>
                     </div>
                   </div>
+                </div>
+                <div className="mb-3 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
+                    Forecast accuracy method
+                  </p>
+                  <p className="mt-1">
+                    Accuracy is a traceability score, not a statistical back-test: direct actual
+                    source rows score highest; forecast rows are reduced based on whether the
+                    selected forecast index is explicitly named, whether the source row is present,
+                    and whether the calculation formula is available for audit.
+                  </p>
                 </div>
                 {hasIndexChartData ? (
                   <div className="h-[340px] w-full">

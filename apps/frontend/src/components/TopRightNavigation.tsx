@@ -9,7 +9,6 @@ const ITEMS = [
   { label: "View TLCs", path: "/overview" },
   { label: "Deep Dive", path: "/deep-dive" },
   { label: "Trends", path: "/trends" },
-  { label: "Trends 2", path: "/trends-2" },
   { label: "Simulation", path: "/simulation" },
 ];
 

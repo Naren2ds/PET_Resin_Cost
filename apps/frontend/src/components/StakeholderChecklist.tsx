@@ -36,14 +36,6 @@ const INITIAL_DATA: SectionQuestions[] = [
     ],
   },
   {
-    section: "Trends 2",
-    questions: [
-      { id: "t2a", text: "Enable multi select by countries?", priority: "none" },
-      { id: "t2b", text: "Should there be a year / month filter here?", priority: "none" },
-      { id: "t2c", text: "Is the component break up needed here?", priority: "none" },
-    ],
-  },
-  {
     section: "Simulation",
     questions: [
       { id: "s1", text: "Can we keep it simple like this to start with?", priority: "none" },

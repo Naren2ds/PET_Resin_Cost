@@ -306,7 +306,7 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1">
                   Selected Source
                 </p>
-                <h2 className="text-xl font-extrabold pet-gradient-heading bg-clip-text text-transparent">
+                <h2 className="text-xl font-extrabold pet-gradient-heading pet-deep-dive-heading bg-clip-text text-transparent">
                   {activeCountry?.country ?? "—"}
                 </h2>
                 {selectedSupplierName ? (
@@ -388,7 +388,7 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                 Selected Destination
               </p>
-              <h3 className="text-xl font-extrabold pet-gradient-heading bg-clip-text text-transparent">
+              <h3 className="text-xl font-extrabold pet-gradient-heading pet-deep-dive-heading bg-clip-text text-transparent">
                 {selectedDestination}
               </h3>
               <p className="mt-3 text-sm text-muted-foreground">

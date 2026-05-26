@@ -184,6 +184,11 @@
   box-decoration-break: clone;
 }
 
+.pet-deep-dive-heading {
+  background: linear-gradient(transparent 74%, var(--ci-accent) 74%, var(--ci-accent) 92%, transparent 92%);
+  padding-bottom: 0.15rem;
+}
+
 /* Section kicker (Contract .slbl / .htag) */
 .pet-section-kicker {
   font-size: 0.72rem;

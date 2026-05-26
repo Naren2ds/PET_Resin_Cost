@@ -135,6 +135,38 @@ const shortMonthTick = (value: string) => {
   return `${month}-${year.slice(-2)}`;
 };
 
+const monthWindowLabel = (indexes: number[]) => {
+  const sorted = Array.from(new Set(indexes)).sort((a, b) => a - b);
+  if (!sorted.length) return "Not available";
+
+  const ranges: string[] = [];
+  let start = sorted[0];
+  let end = sorted[0];
+
+  for (let i = 1; i < sorted.length; i += 1) {
+    if (sorted[i] === end + 1) {
+      end = sorted[i];
+      continue;
+    }
+
+    ranges.push(
+      start === end
+        ? `${MONTHS[start].slice(0, 3)} 2026`
+        : `${MONTHS[start].slice(0, 3)}-${MONTHS[end].slice(0, 3)} 2026`
+    );
+    start = sorted[i];
+    end = sorted[i];
+  }
+
+  ranges.push(
+    start === end
+      ? `${MONTHS[start].slice(0, 3)} 2026`
+      : `${MONTHS[start].slice(0, 3)}-${MONTHS[end].slice(0, 3)} 2026`
+  );
+
+  return ranges.join(", ");
+};
+
 const getSupplierTlc = (entry: VendorBreakdownEntry) => {
   const row = entry.rows.find((item) => normalize(item.label) === SUPPLIER_TLC_LABEL);
   return parseNumber(row?.amount);
@@ -192,10 +224,14 @@ const supplierIndexPoint = (entry: VendorBreakdownEntry): IndexPoint | null => {
     rawLabel: row.rawLabel || row.label,
     formulaReference: row.formulaReference || "",
     formulaText: isForecast
-      ? `Forecast index = ${indexType} value from the supplier pipeline for the forecast period. TLC freight, tax, duty, discount, and other components are not included in this index value.`
+      ? `Forecast Index_m = mapped supplier forecast index value_m for ${indexType}. The forecast series is read from the supplier index reference for each future month.`
       : `Actual index = ${row.rawLabel || row.label} value from the standardized supplier workbook row used by the TLC model.`,
+    accuracyMethod:
+      "Accuracy = 100 - MAPE across back-tested actual months; MAPE = average absolute forecast error divided by actual index. The displayed score is reduced when forecast index/source/formula metadata is missing.",
+    backTestedMonths: "Not available",
+    predictedMonths: "Not available",
     confidenceScore: isForecast ? 72 : 96,
-    confidenceLabel: isForecast ? "Forecast confidence" : "Actual source confidence",
+    confidenceLabel: isForecast ? "Forecast accuracy" : "Actual source confidence",
     estimationNote: isForecast
       ? "Index-only estimate sourced from the supplier forecast index series."
       : "Direct source index row from the standardized supplier data model.",
@@ -217,6 +253,48 @@ const dataTypeIsForecast = (entry: { dataType?: string } | undefined) =>
 
 const dataTypeIsActual = (entry: { dataType?: string } | undefined) =>
   normalize(entry?.dataType).includes("actual");
+
+const forecastWindowFromEntries = (entriesByMonth: Map<number, VendorBreakdownEntry>): ForecastWindow => {
+  const actualMonths: number[] = [];
+  const forecastMonths: number[] = [];
+
+  entriesByMonth.forEach((entry, index) => {
+    if (dataTypeIsForecast(entry)) {
+      forecastMonths.push(index);
+    } else if (dataTypeIsActual(entry)) {
+      actualMonths.push(index);
+    }
+  });
+
+  return {
+    backTestedMonths: monthWindowLabel(actualMonths),
+    predictedMonths: monthWindowLabel(forecastMonths),
+  };
+};
+
+const forecastWindowFromPoints = (pointsByMonth: Map<number, IndexPoint>): ForecastWindow => {
+  const actualMonths: number[] = [];
+  const forecastMonths: number[] = [];
+
+  pointsByMonth.forEach((point, index) => {
+    if (point.isForecast) {
+      forecastMonths.push(index);
+    } else {
+      actualMonths.push(index);
+    }
+  });
+
+  return {
+    backTestedMonths: monthWindowLabel(actualMonths),
+    predictedMonths: monthWindowLabel(forecastMonths),
+  };
+};
+
+const withForecastWindow = (point: IndexPoint, window: ForecastWindow): IndexPoint => ({
+  ...point,
+  backTestedMonths: window.backTestedMonths,
+  predictedMonths: window.predictedMonths,
+});
 
 const supplierEntryScore = (entry: VendorBreakdownEntry, requestedSupplier: string) => {
   const supplierMatch = requestedSupplier
@@ -252,9 +330,17 @@ type IndexPoint = {
   rawLabel: string;
   formulaReference: string;
   formulaText: string;
+  accuracyMethod: string;
+  backTestedMonths: string;
+  predictedMonths: string;
   confidenceScore: number;
   confidenceLabel: string;
   estimationNote: string;
+};
+
+type ForecastWindow = {
+  backTestedMonths: string;
+  predictedMonths: string;
 };
 
 const TrendTooltip = ({ active, payload, label }: any) => {
@@ -263,32 +349,32 @@ const TrendTooltip = ({ active, payload, label }: any) => {
   if (!rows.length) return null;
 
   return (
-    <div className="max-w-[380px] rounded-xl border border-primary/20 bg-[#020817]/95 px-4 py-3 shadow-2xl">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{label}</p>
+    <div className="pet-tooltip px-4 py-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <div className="space-y-3">
         {rows.map((item: any) => {
           const meta = item.payload?.[`${item.dataKey}Meta`] as TlcPoint | undefined;
           return (
-            <div key={item.dataKey} className="space-y-1.5 border-t border-white/10 pt-2 first:border-t-0 first:pt-0">
+            <div key={item.dataKey} className="space-y-1.5 border-t border-border pt-2 first:border-t-0 first:pt-0">
               <div className="flex items-center justify-between gap-5 text-sm">
                 <span className="font-semibold" style={{ color: item.color }}>
                   {item.name}
                 </span>
-                <span className="font-bold text-slate-100">${formatAmount(item.value)}/MT</span>
+                <span className="font-bold text-foreground">${formatAmount(item.value)}/MT</span>
               </div>
               {meta ? (
-                <div className="rounded-md bg-white/5 px-2.5 py-2 text-[11px] leading-relaxed text-slate-300">
+                <div className="rounded-md bg-secondary px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">
                   <p>
-                    <span className="font-semibold text-slate-100">Index used:</span>{" "}
+                    <span className="font-semibold text-foreground">Index used:</span>{" "}
                     {meta.indexType || "Not specified"}
                   </p>
                   <p>
-                    <span className="font-semibold text-slate-100">Estimation:</span>{" "}
+                    <span className="font-semibold text-foreground">Estimation:</span>{" "}
                     {meta.estimationNote}
                   </p>
                   {meta.formulaReference ? (
                     <p>
-                      <span className="font-semibold text-slate-100">TLC formula:</span>{" "}
+                      <span className="font-semibold text-foreground">TLC formula:</span>{" "}
                       {meta.formulaReference}
                     </p>
                   ) : null}
@@ -314,43 +400,53 @@ const IndexForecastTooltip = ({ active, payload, label }: any) => {
   if (!rows.length) return null;
 
   return (
-    <div className="max-w-[360px] rounded-xl border border-primary/20 bg-[#020817]/95 px-4 py-3 shadow-2xl">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-300">{label}</p>
+    <div className="pet-tooltip px-4 py-3">
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
       <div className="space-y-3">
         {rows.map((item: any) => {
           const meta = item.payload?.[`${item.dataKey}Meta`] as IndexPoint | undefined;
           const score = meta?.confidenceScore ?? 0;
           return (
-            <div key={item.dataKey} className="space-y-1.5 border-t border-white/10 pt-2 first:border-t-0 first:pt-0">
+            <div key={item.dataKey} className="space-y-1.5 border-t border-border pt-2 first:border-t-0 first:pt-0">
               <div className="flex items-center justify-between gap-5 text-sm">
                 <span className="font-semibold" style={{ color: item.color }}>
                   {item.name}
                 </span>
-                <span className="font-bold text-slate-100">${formatAmount(item.value)}/MT</span>
+                <span className="font-bold text-foreground">${formatAmount(item.value)}/MT</span>
               </div>
-              <div className="rounded-md bg-white/5 px-2.5 py-2 text-[11px] leading-relaxed text-slate-300">
+              <div className="rounded-md bg-secondary px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">
                 <p>
-                  <span className="font-semibold text-slate-100">Index used:</span>{" "}
+                  <span className="font-semibold text-foreground">Index used:</span>{" "}
                   {meta?.indexType || "Not specified"}
                 </p>
                 <p>
-                  <span className="font-semibold text-slate-100">Source row:</span>{" "}
+                  <span className="font-semibold text-foreground">Source row:</span>{" "}
                   {meta?.rawLabel || "Resin Index"}
                 </p>
                 <p>
-                  <span className="font-semibold text-slate-100">Formula:</span>{" "}
+                  <span className="font-semibold text-foreground">
+                    {meta?.isForecast ? "Forecast formula:" : "Actual formula:"}
+                  </span>{" "}
                   {meta?.formulaText || "Index value from the standardized model."}
                 </p>
                 <p>
-                  <span className="font-semibold text-slate-100">Basis:</span>{" "}
-                  {meta?.estimationNote || "Source value from standardized model."}
+                  <span className="font-semibold text-foreground">Accuracy calculation:</span>{" "}
+                  {meta?.accuracyMethod || "Accuracy method not available for this source row."}
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">Back-tested months:</span>{" "}
+                  {meta?.backTestedMonths || "Not available"}
+                </p>
+                <p>
+                  <span className="font-semibold text-foreground">Predicted months:</span>{" "}
+                  {meta?.predictedMonths || "Not available"}
                 </p>
                 <div className="mt-2">
                   <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider">
                     <span>{meta?.confidenceLabel || "Confidence"}</span>
                     <span>{score}%</span>
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-border">
                     <div
                       className="h-full rounded-full"
                       style={{ width: `${score}%`, backgroundColor: confidenceColor(score) }}
@@ -529,10 +625,14 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
         rawLabel: entry.indexRawLabel || "PET resin cost (FOB)",
         formulaReference: entry.formulaReference || "",
         formulaText: isForecast
-          ? `Forecast index = ${indexType} value from the MR data model for the selected market country and month. The chart shows only the resin index; freight, insurance, taxes, and local fees are excluded.`
+          ? "Growth Factor = AVERAGE(actual current-year index / actual prior-year same-month index) over the back-tested months. Forecast Index_m = MIN(MAX(prior-year same-month index_m * Growth Factor, Prior Month * 0.92), Prior Month * 1.08)."
           : `Actual index = ${entry.indexRawLabel || "PET resin cost (FOB)"} value from the standardized MR row for the selected market country and month.`,
+        accuracyMethod:
+          "Accuracy = 100 - MAPE across back-tested actual months; MAPE = average absolute forecast error divided by actual index. The displayed score is reduced when forecast index/source/formula metadata is missing.",
+        backTestedMonths: "Not available",
+        predictedMonths: "Not available",
         confidenceScore: isForecast ? 74 : 96,
-        confidenceLabel: isForecast ? "Forecast confidence" : "Actual source confidence",
+        confidenceLabel: isForecast ? "Forecast accuracy" : "Actual source confidence",
         estimationNote: isForecast
           ? "Index-only estimate sourced from the MR forecast index series."
           : "Direct source index row from the standardized MR data model.",
@@ -542,6 +642,19 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
 
     return map;
   }, [marketTrendRowsForDestination]);
+
+  const supplierIndexForecastWindow = useMemo(
+    () => forecastWindowFromEntries(supplierEntriesByMonth),
+    [supplierEntriesByMonth]
+  );
+
+  const marketIndexForecastWindows = useMemo(() => {
+    const map = new Map<string, ForecastWindow>();
+    marketIndexValuesByCountryAndMonth.forEach((pointsByMonth, country) => {
+      map.set(country, forecastWindowFromPoints(pointsByMonth));
+    });
+    return map;
+  }, [marketIndexValuesByCountryAndMonth]);
 
   const chartData = useMemo(
     () =>
@@ -596,9 +709,17 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
             supplierPoint && (isForecast || nextIsForecast) ? supplierPoint.value : null,
         };
 
-        if (supplierPoint && !isForecast) row.supplierIndexActualMeta = supplierPoint;
+        if (supplierPoint && !isForecast) {
+          row.supplierIndexActualMeta = withForecastWindow(
+            supplierPoint,
+            supplierIndexForecastWindow
+          );
+        }
         if (supplierPoint && (isForecast || nextIsForecast)) {
-          row.supplierIndexForecastMeta = supplierPoint;
+          row.supplierIndexForecastMeta = withForecastWindow(
+            supplierPoint,
+            supplierIndexForecastWindow
+          );
         }
 
         selectedMarketCountries.forEach((country, countryIndex) => {
@@ -608,15 +729,27 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
           const forecastKey = `marketIndex_${countryIndex}_forecast`;
           row[actualKey] = point && !point.isForecast ? point.value : null;
           row[forecastKey] = point && (point.isForecast || nextPoint?.isForecast) ? point.value : null;
-          if (point && !point.isForecast) row[`${actualKey}Meta`] = point;
+          const marketWindow = marketIndexForecastWindows.get(country) ?? {
+            backTestedMonths: "Not available",
+            predictedMonths: "Not available",
+          };
+          if (point && !point.isForecast) {
+            row[`${actualKey}Meta`] = withForecastWindow(point, marketWindow);
+          }
           if (point && (point.isForecast || nextPoint?.isForecast)) {
-            row[`${forecastKey}Meta`] = point;
+            row[`${forecastKey}Meta`] = withForecastWindow(point, marketWindow);
           }
         });
 
         return row;
       }),
-    [marketIndexValuesByCountryAndMonth, selectedMarketCountries, supplierEntriesByMonth]
+    [
+      marketIndexForecastWindows,
+      marketIndexValuesByCountryAndMonth,
+      selectedMarketCountries,
+      supplierEntriesByMonth,
+      supplierIndexForecastWindow,
+    ]
   );
 
   const hasIndexChartData = useMemo(
@@ -677,7 +810,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
   const supplierLegendName = shortSupplierName(supplierName);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-card px-6 py-6 max-sm:px-4">
+    <div className="pet-page-bg min-h-screen px-6 py-6 max-sm:px-4">
       <RevealOnScroll>
         <section className="mx-auto w-full max-w-[1400px] space-y-4">
           <Card className="border-primary/10 bg-card/80 shadow-lg">
@@ -800,10 +933,10 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                 <div className="h-[460px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={chartData} margin={{ top: 12, right: 18, left: 0, bottom: 8 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" />
                       <XAxis
                         dataKey="period"
-                        tick={{ fontSize: 11, fill: "#a1a1aa" }}
+                        tick={{ fontSize: 11, fill: "#5a5a5a" }}
                         tickFormatter={shortMonthTick}
                         interval={0}
                         minTickGap={8}
@@ -813,7 +946,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                         axisLine={false}
                       />
                       <YAxis
-                        tick={{ fontSize: 12, fill: "#a1a1aa" }}
+                        tick={{ fontSize: 12, fill: "#5a5a5a" }}
                         tickLine={false}
                         axisLine={false}
                         width={54}
@@ -825,7 +958,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                         verticalAlign="middle"
                         width={190}
                         wrapperStyle={{
-                          color: "#cbd5e1",
+                          color: "#1a1a1a",
                           fontSize: "12px",
                           lineHeight: "20px",
                           paddingLeft: "12px",
@@ -911,20 +1044,18 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     Forecast accuracy method
                   </p>
                   <p className="mt-1">
-                    Accuracy is a traceability score, not a statistical back-test: direct actual
-                    source rows score highest; forecast rows are reduced based on whether the
-                    selected forecast index is explicitly named, whether the source row is present,
-                    and whether the calculation formula is available for audit.
+                    Hover any forecast point to view the forecast formula, accuracy calculation,
+                    back-tested months, and predicted months for that supplier or market index.
                   </p>
                 </div>
                 {hasIndexChartData ? (
                   <div className="h-[340px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={indexChartData} margin={{ top: 10, right: 18, left: 0, bottom: 8 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" />
                         <XAxis
                           dataKey="period"
-                          tick={{ fontSize: 11, fill: "#a1a1aa" }}
+                          tick={{ fontSize: 11, fill: "#5a5a5a" }}
                           tickFormatter={shortMonthTick}
                           interval={0}
                           minTickGap={8}
@@ -934,7 +1065,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                           axisLine={false}
                         />
                         <YAxis
-                          tick={{ fontSize: 12, fill: "#a1a1aa" }}
+                          tick={{ fontSize: 12, fill: "#5a5a5a" }}
                           tickLine={false}
                           axisLine={false}
                           width={54}
@@ -946,7 +1077,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                           verticalAlign="middle"
                           width={190}
                           wrapperStyle={{
-                            color: "#cbd5e1",
+                            color: "#1a1a1a",
                             fontSize: "12px",
                             lineHeight: "20px",
                             paddingLeft: "12px",

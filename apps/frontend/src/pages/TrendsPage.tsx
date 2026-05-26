@@ -216,8 +216,7 @@ const supplierIndexPoint = (entry: VendorBreakdownEntry): IndexPoint | null => {
     formulaText: isForecast
       ? `Forecast Index_m = mapped supplier forecast index value_m for ${indexType}. The forecast series is read from the supplier index reference for each future month.`
       : `Actual index = ${row.rawLabel || row.label} value from the standardized supplier workbook row used by the TLC model.`,
-    accuracyMethod:
-      "Accuracy = 100 - MAPE across back-tested actual months; MAPE = average absolute forecast error divided by actual index. The displayed score is reduced when forecast index/source/formula metadata is missing.",
+    forecastTrainingMonths: "Not available",
     backTestedMonths: "Not available",
     predictedMonths: "Not available",
     confidenceScore: isForecast ? 72 : 96,
@@ -250,6 +249,7 @@ const forecastWindowFromEntries = (entriesByMonth: Map<number, VendorBreakdownEn
   });
 
   return {
+    forecastTrainingMonths: monthWindowLabel(actualMonths),
     backTestedMonths: monthWindowLabel(actualMonths),
     predictedMonths: monthWindowLabel(forecastMonths),
   };
@@ -268,6 +268,7 @@ const forecastWindowFromPoints = (pointsByMonth: Map<number, IndexPoint>): Forec
   });
 
   return {
+    forecastTrainingMonths: monthWindowLabel(actualMonths),
     backTestedMonths: monthWindowLabel(actualMonths),
     predictedMonths: monthWindowLabel(forecastMonths),
   };
@@ -275,6 +276,7 @@ const forecastWindowFromPoints = (pointsByMonth: Map<number, IndexPoint>): Forec
 
 const withForecastWindow = (point: IndexPoint, window: ForecastWindow): IndexPoint => ({
   ...point,
+  forecastTrainingMonths: window.forecastTrainingMonths,
   backTestedMonths: window.backTestedMonths,
   predictedMonths: window.predictedMonths,
 });
@@ -313,7 +315,7 @@ type IndexPoint = {
   rawLabel: string;
   formulaReference: string;
   formulaText: string;
-  accuracyMethod: string;
+  forecastTrainingMonths: string;
   backTestedMonths: string;
   predictedMonths: string;
   confidenceScore: number;
@@ -322,6 +324,7 @@ type IndexPoint = {
 };
 
 type ForecastWindow = {
+  forecastTrainingMonths: string;
   backTestedMonths: string;
   predictedMonths: string;
 };
@@ -412,18 +415,22 @@ const IndexForecastTooltip = ({ active, payload, label }: any) => {
                   </span>{" "}
                   {meta?.formulaText || "Index value from the standardized model."}
                 </p>
-                <p>
-                  <span className="font-semibold text-foreground">Accuracy calculation:</span>{" "}
-                  {meta?.accuracyMethod || "Accuracy method not available for this source row."}
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">Back-tested months:</span>{" "}
-                  {meta?.backTestedMonths || "Not available"}
-                </p>
-                <p>
-                  <span className="font-semibold text-foreground">Predicted months:</span>{" "}
-                  {meta?.predictedMonths || "Not available"}
-                </p>
+                {meta?.isForecast ? (
+                  <>
+                    <p>
+                      <span className="font-semibold text-foreground">Forecast training months:</span>{" "}
+                      {meta?.forecastTrainingMonths || "Not available"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-foreground">Back-tested months:</span>{" "}
+                      {meta?.backTestedMonths || "Not available"}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-foreground">Predicted months:</span>{" "}
+                      {meta?.predictedMonths || "Not available"}
+                    </p>
+                  </>
+                ) : null}
                 <div className="mt-2">
                   <div className="mb-1 flex items-center justify-between text-[10px] uppercase tracking-wider">
                     <span>{meta?.confidenceLabel || "Confidence"}</span>
@@ -652,10 +659,9 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
         rawLabel: entry.indexRawLabel || "PET resin cost (FOB)",
         formulaReference: entry.formulaReference || "",
         formulaText: isForecast
-          ? "Growth Factor = AVERAGE(actual current-year index / actual prior-year same-month index) over the back-tested months. Forecast Index_m = MIN(MAX(prior-year same-month index_m * Growth Factor, Prior Month * 0.92), Prior Month * 1.08)."
+          ? "Growth Factor = AVERAGE(actual current-year index / actual prior-year same-month index) over the forecast training months. Forecast Index_m = MIN(MAX(prior-year same-month index_m * Growth Factor, Prior Month * 0.92), Prior Month * 1.08)."
           : `Actual index = ${entry.indexRawLabel || "PET resin cost (FOB)"} value from the standardized MR row for the selected market country and month.`,
-        accuracyMethod:
-          "Accuracy = 100 - MAPE across back-tested actual months; MAPE = average absolute forecast error divided by actual index. The displayed score is reduced when forecast index/source/formula metadata is missing.",
+        forecastTrainingMonths: "Not available",
         backTestedMonths: "Not available",
         predictedMonths: "Not available",
         confidenceScore: isForecast ? 74 : 96,
@@ -757,6 +763,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
           row[actualKey] = point && !point.isForecast ? point.value : null;
           row[forecastKey] = point && (point.isForecast || nextPoint?.isForecast) ? point.value : null;
           const marketWindow = marketIndexForecastWindows.get(country) ?? {
+            forecastTrainingMonths: "Not available",
             backTestedMonths: "Not available",
             predictedMonths: "Not available",
           };
@@ -1095,11 +1102,11 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                 </div>
                 <div className="mb-3 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
-                    Forecast accuracy method
+                    Forecast details
                   </p>
                   <p className="mt-1">
-                    Hover any forecast point to view the forecast formula, accuracy calculation,
-                    back-tested months, and predicted months for that supplier or market index.
+                    Hover any forecast index point to view the forecast formula, forecast training
+                    months, back-tested months, and predicted months for that supplier or market index.
                   </p>
                 </div>
                 {hasIndexChartData ? (

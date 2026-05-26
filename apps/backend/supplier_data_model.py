@@ -221,6 +221,11 @@ def is_total_landing_cost(row: dict[str, Any]) -> bool:
     return normalized_key(row.get("Mapping Columns")) == normalized_key(TOTAL_LANDING_COST)
 
 
+def is_preferred_total_landing_cost(row: dict[str, Any]) -> bool:
+    raw_label = clean_text(row.get("Raw Cost Breakdown"))
+    return "$" in raw_label or "usd" in normalized_key(raw_label)
+
+
 def choose_total_landing_cost_row(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
     candidates = [row for row in rows if is_total_landing_cost(row)]
     if not candidates:
@@ -229,8 +234,7 @@ def choose_total_landing_cost_row(rows: list[dict[str, Any]]) -> dict[str, Any] 
     preferred = [
         row
         for row in candidates
-        if "$" in clean_text(row.get("Raw Cost Breakdown"))
-        or "usd" in normalized_key(row.get("Raw Cost Breakdown"))
+        if is_preferred_total_landing_cost(row)
     ]
     if preferred:
         return preferred[0]
@@ -253,10 +257,15 @@ def rows_for_selected_scenario(rows: list[dict[str, Any]]) -> list[dict[str, Any
         return []
 
     total_index = required_rows.index(total_row)
+    total_uses_preferred_currency = is_preferred_total_landing_cost(total_row)
     previous_total_indexes = [
         index
         for index, row in enumerate(required_rows[:total_index])
         if is_total_landing_cost(row)
+        and (
+            not total_uses_preferred_currency
+            or is_preferred_total_landing_cost(row)
+        )
     ]
     start_index = previous_total_indexes[-1] + 1 if previous_total_indexes else 0
 

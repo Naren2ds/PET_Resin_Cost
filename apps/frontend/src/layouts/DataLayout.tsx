@@ -4,6 +4,7 @@ import type { ApiResponse } from "../types";
 import HomePage from "../pages/HomePage";
 import CurrentLayoutPage from "../pages/CurrentLayoutPage";
 import TrendsPage from "../pages/TrendsPage";
+import CostComponentsPage from "../pages/CostComponentsPage";
 import SimulationPage from "../pages/SimulationPage";
 import AppHeader from "../components/AppHeader";
 import { ScrollProgressBar } from "../components/ScrollProgressBar";
@@ -61,6 +62,7 @@ const DataLayout: React.FC = () => {
         />
         <Route path="/deep-dive" element={<CurrentLayoutPage data={data} />} />
         <Route path="/trends" element={<TrendsPage data={data} />} />
+        <Route path="/cost-components" element={<CostComponentsPage data={data} />} />
         <Route path="/simulation" element={<SimulationPage data={data} />} />
         <Route path="*" element={<Navigate to={viewTlcsRoute} replace />} />
       </Routes>

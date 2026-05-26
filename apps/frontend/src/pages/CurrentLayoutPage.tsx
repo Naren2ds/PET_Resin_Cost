@@ -302,8 +302,8 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
       : formatDeltaVersusMarketForCompany(supplierVersusMarketDelta);
 
   return (
-    <div className="min-h-screen">
-      <main className="flex flex-col gap-5 bg-gradient-to-b from-background to-card p-7 max-sm:p-4">
+    <div className="pet-page-bg min-h-screen">
+      <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 p-7 max-sm:p-4">
 
         <RevealOnScroll>
           <section className="grid grid-cols-[minmax(0,1fr)_320px] items-stretch gap-4 max-md:grid-cols-1">

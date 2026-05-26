@@ -2,81 +2,98 @@ import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { ScrollProgressBar } from "../components/ScrollProgressBar";
 import { cn } from "@/lib/utils";
+import { ROUTE_TABS, VIEW_TLCS_PATH } from "../lib/navigation";
 
-const SHELL =
-  "rounded-[14px] border border-border bg-card shadow-[0_4px_24px_rgba(0,0,0,0.5)] transition-[border-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-primary/50";
-
-const btnPrimary =
-  "inline-flex items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground no-underline transition hover:opacity-90";
-
-const btnSecondary =
-  "inline-flex items-center justify-center rounded-md border border-border bg-secondary px-4 py-2.5 text-sm font-semibold text-foreground no-underline transition hover:border-primary/40 hover:bg-secondary/80";
+const SHELL = "pet-app-surface p-6 sm:p-8";
 
 const LandingPage: React.FC = () => {
   return (
     <>
       <ScrollProgressBar />
       <AppHeader />
-      <div className="min-h-screen bg-gradient-to-b from-background to-card">
-        <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-5 p-7 max-sm:p-4">
-          <section
-            id="top"
-            className={cn(SHELL, "relative overflow-hidden border-2 border-border/80 p-6 sm:p-8")}
-          >
-            <div
-              className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-primary/10 blur-2xl"
-              aria-hidden
-            />
-            <p className="pet-section-kicker relative z-[1]">
-              PET Resin Sourcing Intelligence • Market-driven • Monthly refresh
-            </p>
-            <h1 className="relative z-[1] mt-3 max-w-4xl text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-              <span className="pet-gradient-heading bg-clip-text text-transparent">
-                From supplier-led pricing to market-led sourcing decisions.
-              </span>
-            </h1>
-            <p className="relative z-[1] mt-4 max-w-3xl text-sm text-muted-foreground sm:text-base">
-              A transparent procurement cockpit that digitizes the Total Landed Cost model,
-              reconciles supplier prices against market-implied cost, and equips the business to
-              negotiate, challenge, and plan sourcing with confidence.
-            </p>
-
-            <div className="relative z-[1] mt-6 flex flex-wrap gap-3">
-              <a className={btnPrimary} href="#solution">
-                Explore the solution
-              </a>
-              <a className={btnSecondary} href="#flow">
-                See how it works
-              </a>
-              <Link className={btnPrimary} to="/overview">
-                View TLCs
-              </Link>
+      <div className="pet-page-bg min-h-screen">
+        <main className="mx-auto flex w-full max-w-[1480px] flex-col gap-5 p-7 max-sm:p-4">
+          <section id="top" className="pet-portal">
+            <div className="pet-portal-topbar max-md:flex-col max-md:items-start">
+              <div className="pet-portal-brand">
+                <span className="pet-portal-brand-mark" aria-hidden />
+                PET Resin Sourcing Intelligence
+                <span className="h-4 w-px bg-border" aria-hidden />
+                <small className="text-[10px] font-normal tracking-[0.16em] text-muted-foreground">
+                  Market-driven / Monthly refresh
+                </small>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Link className="pet-button-secondary" to="/trends">
+                  Trends
+                </Link>
+                <Link className="pet-button-primary" to={VIEW_TLCS_PATH}>
+                  View TLCs
+                </Link>
+              </div>
             </div>
 
-            <div className="relative z-[1] mt-8 grid gap-4 lg:grid-cols-[1.35fr_0.95fr]">
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                  { label: "Total PET Spend", value: "$312M", delta: "+4.1% YoY" },
-                  { label: "Market TLC Gap", value: "-$18.4/MT", delta: "vs supplier price" },
-                  { label: "Savings Opportunity", value: "$6.8M", delta: "annualized" },
-                  { label: "Watchlist Suppliers", value: "7", delta: "above market" },
-                ].map((kpi) => (
-                  <div
-                    key={kpi.label}
-                    className="rounded-xl border border-border bg-secondary/60 p-4"
-                  >
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      {kpi.label}
-                    </p>
-                    <p className="mt-1 text-2xl font-extrabold tracking-tight text-foreground">
-                      {kpi.value}
-                    </p>
-                    <p className="mt-1 text-xs text-muted-foreground">{kpi.delta}</p>
+            <nav className="pet-portal-tabs" aria-label="Landing navigation">
+              {ROUTE_TABS.map((item, index) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`pet-portal-tab ${index === 0 ? "active" : ""}`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+
+            <div className="pet-portal-body">
+              <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-start">
+                <div>
+                  <p className="pet-section-kicker">
+                    PET Resin Sourcing Intelligence / Market-driven / Monthly refresh
+                  </p>
+                  <h1 className="mt-3 max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.02em] sm:text-4xl lg:text-5xl">
+                    From supplier-led pricing to market-led sourcing decisions.
+                  </h1>
+                  <p className="mt-4 max-w-3xl text-sm text-muted-foreground sm:text-base">
+                    A transparent procurement cockpit that digitizes the Total Landed Cost model,
+                    reconciles supplier prices against market-implied cost, and equips the business to
+                    negotiate, challenge, and plan sourcing with confidence.
+                  </p>
+
+                  <div className="mt-6 flex flex-wrap gap-3">
+                    <a className="pet-button-secondary" href="#solution">
+                      Explore the solution
+                    </a>
+                    <a className="pet-button-secondary" href="#flow">
+                      See how it works
+                    </a>
+                    <Link className="pet-button-primary" to={VIEW_TLCS_PATH}>
+                      View TLCs
+                    </Link>
                   </div>
-                ))}
+                </div>
+
+                <div className="grid gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-2">
+                  {[
+                    { label: "Total PET Spend", value: "$312M", delta: "+4.1% YoY" },
+                    { label: "Market TLC Gap", value: "-$18.4/MT", delta: "vs supplier price" },
+                    { label: "Savings Opportunity", value: "$6.8M", delta: "annualized" },
+                    { label: "Watchlist Suppliers", value: "7", delta: "above market" },
+                  ].map((kpi) => (
+                    <div key={kpi.label} className="bg-card p-5">
+                      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                        {kpi.label}
+                      </p>
+                      <p className="mt-2 text-3xl font-light tracking-[-0.03em] text-foreground">
+                        {kpi.value}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{kpi.delta}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="flex flex-col gap-2 rounded-xl border border-border bg-secondary/40 p-3">
+              <div className="mt-8 grid gap-3 md:grid-cols-3">
                 {[
                   {
                     step: "1",
@@ -94,16 +111,15 @@ const LandingPage: React.FC = () => {
                     desc: "Compare supplier price against market-implied cost",
                   },
                 ].map((item) => (
-                  <div
-                    key={item.step}
-                    className="flex gap-3 rounded-lg border border-border/80 bg-card/80 p-3"
-                  >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-                      {item.step}
-                    </span>
-                    <div>
-                      <h4 className="text-sm font-semibold text-foreground">{item.title}</h4>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{item.desc}</p>
+                  <div key={item.step} className="pet-metric-card p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-foreground bg-foreground font-mono text-xs font-bold text-primary-foreground">
+                        {item.step}
+                      </span>
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">{item.title}</h4>
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.desc}</p>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -111,8 +127,8 @@ const LandingPage: React.FC = () => {
             </div>
           </section>
 
-          <section id="solution" className={cn(SHELL, "border-2 border-border/80 p-6 sm:p-8")}>
-            <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">
+          <section id="solution" className={cn(SHELL)}>
+            <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground sm:text-2xl">
               What the platform delivers
             </h2>
             <p className="mt-2 max-w-3xl text-sm text-muted-foreground sm:text-base">
@@ -122,41 +138,35 @@ const LandingPage: React.FC = () => {
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               {[
                 {
-                  icon: "📈",
                   title: "Monthly market visibility",
                   desc: "Track how resin, freight, and taxes move over time and see their direct effect on Total Landed Cost.",
                 },
                 {
-                  icon: "⚖️",
                   title: "Supplier challenge & negotiation",
                   desc: "Compare supplier quotes to market-implied landed cost and isolate where the gaps create leverage.",
                 },
                 {
-                  icon: "🎯",
                   title: "Strategic sourcing support",
                   desc: "Run controlled scenarios to support annual sourcing decisions without forcing monthly supplier switching.",
                 },
-              ].map((card) => (
-                <div
-                  key={card.title}
-                  className="rounded-xl border border-border bg-secondary/30 p-5 transition hover:border-primary/40"
-                >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-lg">
-                    {card.icon}
+              ].map((card, index) => (
+                <div key={card.title} className="pet-metric-card p-5">
+                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                    {String(index + 1).padStart(2, "0")}
                   </span>
                   <h3 className="mt-3 text-base font-semibold text-foreground">{card.title}</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">{card.desc}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{card.desc}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          <section id="flow" className={cn(SHELL, "border-2 border-border/80 p-6 sm:p-8")}>
-            <h2 className="text-xl font-extrabold text-foreground sm:text-2xl">How it works</h2>
+          <section id="flow" className={cn(SHELL)}>
+            <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground sm:text-2xl">How it works</h2>
             <p className="mt-2 text-sm text-muted-foreground sm:text-base">
               A simple flow from raw inputs to business action.
             </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="mt-6 grid gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-2 lg:grid-cols-5">
               {[
                 { n: "1", title: "Ingest market data", desc: "Resin indices, freight, tariffs and duties", active: false },
                 {
@@ -169,56 +179,40 @@ const LandingPage: React.FC = () => {
                 { n: "4", title: "Reconcile the gap", desc: "Show supplier price vs market cost and highlight variances", active: false },
                 { n: "5", title: "Support action", desc: "Generate scenario, negotiation and sourcing strategy views", active: false },
               ].map((step) => (
-                <div
-                  key={step.n}
-                  className={cn(
-                    "rounded-xl border p-4 min-h-[120px]",
-                    step.active
-                      ? "border-primary/50 bg-primary/10"
-                      : "border-border bg-secondary/30",
-                  )}
-                >
-                  <div className="mb-2 flex items-center gap-2">
+                <div key={step.n} className={cn("min-h-[128px] bg-card p-4", step.active ? "shadow-[inset_0_3px_0_var(--ci-accent)]" : "")}>
+                  <div className="mb-3 flex items-center gap-2">
                     <span
                       className={cn(
-                        "flex h-8 w-8 items-center justify-center rounded-lg text-sm font-extrabold",
+                        "flex h-8 w-8 items-center justify-center rounded font-mono text-sm font-bold",
                         step.active
-                          ? "bg-primary text-primary-foreground"
-                          : "border border-border bg-card text-foreground",
+                          ? "bg-foreground text-primary-foreground"
+                          : "border border-border bg-secondary text-foreground",
                       )}
                     >
                       {step.n}
                     </span>
                     <h4 className="text-sm font-semibold text-foreground">{step.title}</h4>
                   </div>
-                  <p className="text-xs text-muted-foreground">{step.desc}</p>
+                  <p className="text-xs leading-relaxed text-muted-foreground">{step.desc}</p>
                 </div>
               ))}
             </div>
           </section>
 
           <div className="grid gap-5 lg:grid-cols-2">
-            <section className={cn(SHELL, "border-2 border-border/80 p-6 sm:p-8")}>
-              <h2 className="text-xl font-extrabold text-foreground">Market and supplier view</h2>
+            <section className={cn(SHELL)}>
+              <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground">Market and supplier view</h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 A clean comparison layer to see where the market sits versus supplier pricing.
               </p>
-              <div className="mt-4 overflow-hidden rounded-xl border border-border">
+              <div className="mt-4 overflow-hidden rounded-[10px] border border-border">
                 <table className="pet-data-table w-full border-collapse text-sm">
                   <thead>
-                    <tr className="bg-secondary/80">
-                      <th className="border-b border-border px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Lane
-                      </th>
-                      <th className="border-b border-border px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        FOB
-                      </th>
-                      <th className="border-b border-border px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        Freight
-                      </th>
-                      <th className="border-b border-border px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                        TLC delta
-                      </th>
+                    <tr>
+                      <th className="border-b border-border px-3 py-2.5 text-left">Lane</th>
+                      <th className="border-b border-border px-3 py-2.5 text-left">FOB</th>
+                      <th className="border-b border-border px-3 py-2.5 text-left">Freight</th>
+                      <th className="border-b border-border px-3 py-2.5 text-left">TLC delta</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -228,7 +222,7 @@ const LandingPage: React.FC = () => {
                       ["Colombia", "$815", "$47", "-$139"],
                       ["Peru", "$875", "$49", "-$149"],
                     ].map(([lane, fob, freight, delta]) => (
-                      <tr key={lane} className="border-b border-border/60 hover:bg-secondary/25">
+                      <tr key={lane} className="border-b border-border/60">
                         <td className="px-3 py-2.5 text-foreground">{lane}</td>
                         <td className="px-3 py-2.5 text-foreground">{fob}</td>
                         <td className="px-3 py-2.5 text-foreground">{freight}</td>
@@ -244,25 +238,25 @@ const LandingPage: React.FC = () => {
               </p>
             </section>
 
-            <section className={cn(SHELL, "border-2 border-border/80 p-6 sm:p-8")}>
-              <h2 className="text-xl font-extrabold text-foreground">Alerts &amp; recommendations</h2>
+            <section className={cn(SHELL)}>
+              <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground">Alerts &amp; recommendations</h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 A quick view of what needs attention right now.
               </p>
               <div className="mt-4 flex flex-col gap-3">
-                <div className="rounded-xl border border-primary/40 bg-[rgba(230,168,23,0.1)] p-4">
-                  <p className="text-sm font-semibold text-primary">3 suppliers above market</p>
+                <div className="border-l-4 border-primary bg-secondary p-4">
+                  <p className="text-sm font-semibold text-foreground">3 suppliers above market</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Estimated negotiation upside: $2.3M
                   </p>
                 </div>
-                <div className="rounded-xl border border-success/40 bg-success/10 p-4">
+                <div className="border-l-4 border-success bg-secondary p-4">
                   <p className="text-sm font-semibold text-success">Brazil route most protected</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Duty and tax stack materially impacts landed cost.
                   </p>
                 </div>
-                <div className="rounded-xl border border-border bg-secondary/50 p-4">
+                <div className="border-l-4 border-border bg-secondary p-4">
                   <p className="text-sm font-semibold text-foreground">Annual strategy ready</p>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Run scenario comparisons before sourcing review or RFQ.
@@ -272,44 +266,34 @@ const LandingPage: React.FC = () => {
             </section>
           </div>
 
-          <section className={cn(SHELL, "border-2 border-border/80 p-6 sm:p-8")}>
-            <h2 className="text-xl font-extrabold text-foreground">Business impact</h2>
+          <section className={cn(SHELL)}>
+            <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground">Business impact</h2>
             <p className="mt-2 text-sm text-muted-foreground sm:text-base">
               The platform is built to improve control, transparency and decision quality across PET
               resin sourcing.
             </p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-6 grid gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
               {[
                 "Trusted market reference",
                 "Negotiation leverage",
                 "Scenario-backed sourcing",
                 "Monthly monitoring",
               ].map((label, i) => (
-                <div
-                  key={label}
-                  className="rounded-xl border border-border bg-secondary/30 p-4 text-center"
-                >
-                  <p className="text-3xl font-extrabold text-primary">{i + 1}</p>
+                <div key={label} className="bg-card p-5 text-center">
+                  <p className="font-mono text-3xl font-light tracking-[-0.03em] text-foreground">{i + 1}</p>
                   <p className="mt-2 text-xs font-medium text-muted-foreground">{label}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          <section
-            className={cn(
-              SHELL,
-              "flex flex-col items-start justify-between gap-6 border-2 border-primary/30 bg-gradient-to-br from-card to-secondary/40 p-6 sm:flex-row sm:items-center sm:p-8",
-            )}
-          >
+          <section className={cn(SHELL, "flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center")}>
             <div>
-              <h2 className="text-xl font-extrabold sm:text-2xl">
-                <span className="pet-gradient-heading bg-clip-text text-transparent">
-                  Bring transparency into PET resin sourcing.
-                </span>
+              <h2 className="text-xl font-semibold tracking-[-0.01em] sm:text-2xl">
+                Bring transparency into PET resin sourcing.
               </h2>
               <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
-                A market-anchored landing page for a market-anchored procurement capability —
+                A market-anchored landing page for a market-anchored procurement capability &mdash;
                 designed to support Joao&apos;s monthly monitoring, negotiation, and annual sourcing
                 decisions.
               </p>
@@ -318,7 +302,7 @@ const LandingPage: React.FC = () => {
                   (tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"
+                      className="rounded-full border border-border bg-secondary px-2.5 py-1 text-[11px] font-semibold text-muted-foreground"
                     >
                       {tag}
                     </span>
@@ -327,10 +311,10 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
-              <a className={btnSecondary} href="#top">
+              <a className="pet-button-secondary" href="#top">
                 View above the fold
               </a>
-              <Link className={btnPrimary} to="/overview">
+              <Link className="pet-button-primary" to={VIEW_TLCS_PATH}>
                 View TLCs
               </Link>
             </div>

@@ -8,6 +8,7 @@ import SimulationPage from "../pages/SimulationPage";
 import AppHeader from "../components/AppHeader";
 import { ScrollProgressBar } from "../components/ScrollProgressBar";
 import { createApiUrl } from "../lib/api";
+import { LEGACY_OVERVIEW_PATH, VIEW_TLCS_PATH } from "../lib/navigation";
 
 const DataLayout: React.FC = () => {
   const [data, setData] = useState<ApiResponse | null>(null);
@@ -42,16 +43,26 @@ const DataLayout: React.FC = () => {
     );
   }
 
+  const routeSearch = searchParams.toString();
+  const viewTlcsRoute = {
+    pathname: VIEW_TLCS_PATH,
+    search: routeSearch ? `?${routeSearch}` : "",
+  };
+
   return (
     <>
       <ScrollProgressBar />
       <AppHeader />
       <Routes>
-        <Route path="/overview" element={<HomePage data={data} />} />
+        <Route path={VIEW_TLCS_PATH} element={<HomePage data={data} />} />
+        <Route
+          path={LEGACY_OVERVIEW_PATH}
+          element={<Navigate to={viewTlcsRoute} replace />}
+        />
         <Route path="/deep-dive" element={<CurrentLayoutPage data={data} />} />
         <Route path="/trends" element={<TrendsPage data={data} />} />
         <Route path="/simulation" element={<SimulationPage data={data} />} />
-        <Route path="*" element={<Navigate to="/overview" replace />} />
+        <Route path="*" element={<Navigate to={viewTlcsRoute} replace />} />
       </Routes>
     </>
   );

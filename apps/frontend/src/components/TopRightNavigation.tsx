@@ -1,47 +1,32 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { LEGACY_OVERVIEW_PATH, ROUTE_TABS, VIEW_TLCS_PATH } from "../lib/navigation";
 
 type TopRightNavigationProps = {
   search: string;
 };
 
-const ITEMS = [
-  { label: "View TLCs", path: "/overview" },
-  { label: "Deep Dive", path: "/deep-dive" },
-  { label: "Trends", path: "/trends" },
-  { label: "Simulation", path: "/simulation" },
-];
-
 const TopRightNavigation: React.FC<TopRightNavigationProps> = ({ search }) => {
   const location = useLocation();
-  const activePath = location.pathname;
+  const activePath =
+    location.pathname === LEGACY_OVERVIEW_PATH ? VIEW_TLCS_PATH : location.pathname;
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-3">
+    <div className="min-w-0">
       <nav
         aria-label="Universal navigation"
-        className="flex flex-wrap items-center gap-6 text-[0.85rem] text-muted-foreground"
+        className="pet-portal-tabs pet-app-tabs"
       >
-        {ITEMS.map((item, index) => {
+        {ROUTE_TABS.map((item) => {
           const isActive = item.path === activePath;
           return (
-            <React.Fragment key={item.path}>
-              <Link
-                to={{ pathname: item.path, search }}
-                className={
-                  isActive
-                    ? "font-semibold text-foreground no-underline"
-                    : "transition-colors duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:text-foreground no-underline hover:no-underline"
-                }
-              >
-                {item.label}
-              </Link>
-              {index < ITEMS.length - 1 ? (
-                <span className="hidden text-muted-foreground/40 sm:inline" aria-hidden>
-                  /
-                </span>
-              ) : null}
-            </React.Fragment>
+            <Link
+              key={item.path}
+              to={{ pathname: item.path, search }}
+              className={`pet-portal-tab ${isActive ? "active" : ""}`}
+            >
+              {item.label}
+            </Link>
           );
         })}
       </nav>

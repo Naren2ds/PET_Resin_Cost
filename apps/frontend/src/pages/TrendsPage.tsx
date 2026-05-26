@@ -19,6 +19,10 @@ import { formatAmount } from "../types";
 import RevealOnScroll from "../components/RevealOnScroll";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createApiUrl } from "../lib/api";
+import {
+  supplierDisplayNameForEntry,
+  supplierNameMatchesEntry,
+} from "../lib/supplierDisplay";
 
 type TrendsPageProps = {
   data: ApiResponse;
@@ -103,20 +107,6 @@ const shortMarketName = (country: string) => MARKET_SHORT_NAMES[country] ?? coun
 
 const marketSeriesColor = (country: string, index: number) =>
   MARKET_COUNTRY_COLORS[country] ?? MARKET_FALLBACK_COLORS[index % MARKET_FALLBACK_COLORS.length];
-
-const shortSupplierName = (name: string) => {
-  const trimmed = name.trim();
-  if (!trimmed) return "Supplier";
-  const bracket = trimmed.match(/\(([^)]+)\)/);
-  if (bracket?.[1]) return bracket[1].trim();
-  const withoutLocation = trimmed.split(" - ")[0]?.trim() || trimmed;
-  if (withoutLocation.length <= 14) return withoutLocation;
-  return withoutLocation
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .join(" ");
-};
 
 const parseNumber = (value: number | string | null | undefined) => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -239,14 +229,7 @@ const supplierIndexPoint = (entry: VendorBreakdownEntry): IndexPoint | null => {
 };
 
 const entrySupplierName = (entry: VendorBreakdownEntry | undefined) =>
-  (entry?.supplierName ?? entry?.supplier ?? entry?.vendor ?? "").trim();
-
-const namesMatch = (entryName: string, requestedName: string) => {
-  const entry = normalize(entryName);
-  const requested = normalize(requestedName);
-  if (!entry || !requested) return false;
-  return entry === requested || entry.includes(requested) || requested.includes(entry);
-};
+  supplierDisplayNameForEntry(entry);
 
 const dataTypeIsForecast = (entry: { dataType?: string } | undefined) =>
   normalize(entry?.dataType).includes("forecast");
@@ -298,7 +281,7 @@ const withForecastWindow = (point: IndexPoint, window: ForecastWindow): IndexPoi
 
 const supplierEntryScore = (entry: VendorBreakdownEntry, requestedSupplier: string) => {
   const supplierMatch = requestedSupplier
-    ? namesMatch(entrySupplierName(entry), requestedSupplier)
+    ? supplierNameMatchesEntry(entry, requestedSupplier)
       ? 2
       : 0
     : 1;
@@ -470,6 +453,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
   const selectedSourceCountry =
     searchParams.get("source") || data.countries[0]?.country || "";
   const requestedSupplier = searchParams.get("supplier") ?? "";
+  const isBrazilDestination = normalize(selectedDestination) === "brazil";
   const [selectedMarketCountries, setSelectedMarketCountries] = useState<string[]>([]);
   const [marketResearchTrendRows, setMarketResearchTrendRows] = useState<
     MarketResearchTrendEntry[]
@@ -547,10 +531,28 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
     [data.vendorBreakdowns, selectedDestination, selectedSourceCountry]
   );
 
+  const supplierOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    supplierEntriesForSource.forEach((entry) => {
+      const name = entrySupplierName(entry);
+      if (!name) return;
+      options.set(normalize(name), name);
+    });
+
+    return Array.from(options.values()).sort((a, b) => {
+      const aAmcor = normalize(a).startsWith("amcor") ? 0 : 1;
+      const bAmcor = normalize(b).startsWith("amcor") ? 0 : 1;
+      if (aAmcor !== bAmcor) return aAmcor - bAmcor;
+      return a.localeCompare(b);
+    });
+  }, [supplierEntriesForSource]);
+
+  const supplierOptionsKey = supplierOptions.join("|");
+
   const supplierName = useMemo(() => {
     if (requestedSupplier) {
       const requestedEntry = supplierEntriesForSource.find((entry) =>
-        namesMatch(entrySupplierName(entry), requestedSupplier)
+        supplierNameMatchesEntry(entry, requestedSupplier)
       );
       if (requestedEntry) return entrySupplierName(requestedEntry);
     }
@@ -560,6 +562,31 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
       )[0]
     );
   }, [requestedSupplier, supplierEntriesForSource]);
+
+  useEffect(() => {
+    if (!isBrazilDestination || !supplierOptions.length) return;
+
+    const requestedIsValid =
+      requestedSupplier &&
+      supplierEntriesForSource.some((entry) =>
+        supplierNameMatchesEntry(entry, requestedSupplier)
+      );
+    const nextSupplier = requestedIsValid ? supplierName : supplierOptions[0];
+    if (!nextSupplier || requestedSupplier === nextSupplier) return;
+
+    const next = new URLSearchParams(searchParams);
+    next.set("supplier", nextSupplier);
+    setSearchParams(next, { replace: true });
+  }, [
+    isBrazilDestination,
+    requestedSupplier,
+    searchParams,
+    setSearchParams,
+    supplierEntriesForSource,
+    supplierName,
+    supplierOptions,
+    supplierOptionsKey,
+  ]);
 
   const supplierEntriesByMonth = useMemo(() => {
     const monthMap = new Map<number, VendorBreakdownEntry>();
@@ -807,7 +834,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
   const allMarketsSelected =
     marketCountryOptions.length > 0 &&
     marketCountryOptions.every((country) => selectedMarketCountries.includes(country));
-  const supplierLegendName = shortSupplierName(supplierName);
+  const supplierLegendName = supplierName || "Supplier";
 
   return (
     <div className="pet-page-bg min-h-screen px-6 py-6 max-sm:px-4">
@@ -819,28 +846,55 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                 <div>
                   <CardTitle className="text-xl">Supplier Actual and Forecast vs Market Research TLC</CardTitle>
                   <CardDescription className="mt-1">
-                    {selectedDestination || "Destination"} supplier TLC for {selectedSourceCountry || "selected source"} across 2026.
+                    {selectedDestination || "Destination"} {supplierName || "supplier"} TLC for {selectedSourceCountry || "selected source"} across 2026.
                   </CardDescription>
                 </div>
-                <div className="min-w-[220px]">
-                  <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Destination
-                  </label>
-                  <select
-                    value={selectedDestination}
-                    onChange={(event) => {
-                      const next = new URLSearchParams(searchParams);
-                      next.set("destination", event.target.value);
-                      setSearchParams(next);
-                    }}
-                    className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-                  >
-                    {destinationOptions.map((destination) => (
-                      <option key={destination} value={destination}>
-                        {destination}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex flex-wrap gap-3">
+                  <div className="min-w-[220px]">
+                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Destination
+                    </label>
+                    <select
+                      value={selectedDestination}
+                      onChange={(event) => {
+                        const next = new URLSearchParams(searchParams);
+                        next.set("destination", event.target.value);
+                        if (normalize(event.target.value) !== "brazil") {
+                          next.delete("supplier");
+                        }
+                        setSearchParams(next);
+                      }}
+                      className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {destinationOptions.map((destination) => (
+                        <option key={destination} value={destination}>
+                          {destination}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {isBrazilDestination && supplierOptions.length > 1 ? (
+                    <div className="min-w-[220px]">
+                      <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        Supplier / Location
+                      </label>
+                      <select
+                        value={supplierName}
+                        onChange={(event) => {
+                          const next = new URLSearchParams(searchParams);
+                          next.set("supplier", event.target.value);
+                          setSearchParams(next);
+                        }}
+                        className="h-10 w-full rounded-md border border-border bg-card px-3 text-sm font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
+                      >
+                        {supplierOptions.map((supplier) => (
+                          <option key={supplier} value={supplier}>
+                            {supplier}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

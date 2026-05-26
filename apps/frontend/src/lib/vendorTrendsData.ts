@@ -1,4 +1,5 @@
 import type { CountryCost, VendorBreakdownEntry } from "../types";
+import { supplierNameMatchesEntry } from "./supplierDisplay";
 
 export const SUPPLIER_TLC_ROW_LABEL = "total resin price abi virgin formula";
 
@@ -103,11 +104,15 @@ export function buildDestinationSourceMonthly(args: {
   vendorBreakdowns: VendorBreakdownEntry[];
   destination: string;
   sourceCountry: string;
+  supplierName?: string;
   countries?: CountryCost[];
 }): DestinationSourceMonthlyRow[] {
-  const { periods, vendorBreakdowns, destination, sourceCountry, countries } = args;
+  const { periods, vendorBreakdowns, destination, sourceCountry, supplierName, countries } = args;
   const entriesForSource = vendorBreakdowns.filter(
-    (e) => e.destination === destination && e.sourceCountry === sourceCountry
+    (e) =>
+      e.destination === destination &&
+      e.sourceCountry === sourceCountry &&
+      (!supplierName || supplierNameMatchesEntry(e, supplierName))
   );
   const supplierByPeriod = supplierTlcByPeriodFromEntries(entriesForSource);
   const marketSnapshot = marketResearchTlcForCountry(countries, sourceCountry);

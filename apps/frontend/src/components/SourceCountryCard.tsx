@@ -20,6 +20,7 @@ import {
   isPeruApril2026View,
   vendorYearMatches,
 } from "../lib/colombiaVendorTlc";
+import { supplierDisplayNameForEntry } from "../lib/supplierDisplay";
 
 type SourceCountryCardProps = {
   country: CountryCost;
@@ -165,16 +166,7 @@ const SourceCountryCard: React.FC<SourceCountryCardProps> = ({
           (r) => r.label.trim().toLowerCase() === SUPPLIER_TLC_LABEL
         );
         const tlcAmount = row?.amount ?? null;
-        const extra = item as VendorBreakdownEntry & {
-          supplierName?: string;
-          supplier?: string;
-          vendor?: string;
-        };
-        const name =
-          extra.supplierName?.trim() ||
-          extra.supplier?.trim() ||
-          extra.vendor?.trim() ||
-          `Supplier ${index + 1}`;
+        const name = supplierDisplayNameForEntry(item) || `Supplier ${index + 1}`;
         return { name, tlcAmount };
       })
       .filter((item) => item.tlcAmount !== null && item.tlcAmount !== "");
@@ -279,7 +271,7 @@ const SourceCountryCard: React.FC<SourceCountryCardProps> = ({
                   </p>
                 ) : null}
                 {isBrazilApril2026View(destination, month, year) &&
-                primarySupplier?.name.trim().toLowerCase() === "amcor" ? (
+                primarySupplier?.name.trim().toLowerCase().startsWith("amcor") ? (
                   <p className="mt-1 text-[10px] text-muted-foreground">
                     Resin index (Excel): {BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}
                   </p>

@@ -11,7 +11,6 @@ import {
   ARGENTINA_APRIL_2026_RESIN_VENDOR_LABEL,
   BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL,
   getArgentinaApril2026SharedSupplierTlc,
-  getBrazilApril2026AmcorSupplierTlc,
   getColombiaMarch2026SharedSupplierTlc,
   getDominicanRepublicApril2026SharedSupplierTlc,
   getEcuadorMarch2026SharedSupplierTlc,
@@ -26,6 +25,12 @@ import {
   isPeruApril2026View,
   vendorYearMatches,
 } from "../lib/colombiaVendorTlc";
+import {
+  isBrazilAmcorLocationEntry,
+  supplierBaseNameForEntry,
+  supplierDisplayNameForEntry,
+  supplierNameMatchesEntry,
+} from "../lib/supplierDisplay";
 
 type CurrentLayoutPageProps = {
   data: ApiResponse;
@@ -79,18 +84,11 @@ function formatTlc(value: number | string | null | undefined) {
 }
 
 function entrySupplierSlot(item: VendorBreakdownEntry): string {
-  return (item.supplierName ?? item.supplier ?? item.vendor ?? "").trim().toLowerCase();
+  return supplierBaseNameForEntry(item).trim().toLowerCase();
 }
 
 function entrySupplierDisplay(item: VendorBreakdownEntry | undefined): string {
-  return (item?.supplierName ?? item?.supplier ?? item?.vendor ?? "").trim();
-}
-
-function supplierNamesMatch(entryName: string, requestedName: string): boolean {
-  const entry = entryName.trim().toLowerCase();
-  const requested = requestedName.trim().toLowerCase();
-  if (!entry || !requested) return false;
-  return entry === requested || entry.includes(requested) || requested.includes(entry);
+  return supplierDisplayNameForEntry(item);
 }
 
 function fallbackSupplierNameForDestination(destination: string): string {
@@ -214,17 +212,16 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
     if (!pool.length) return undefined;
 
     if (paramSupplier) {
-      const requested = pool.find((item) =>
-        supplierNamesMatch(entrySupplierDisplay(item), paramSupplier)
-      );
+      const requested = pool.find((item) => supplierNameMatchesEntry(item, paramSupplier));
       if (requested) return requested;
     }
 
-    if (
-      isBrazilApril2026View(selectedDestination, selectedMonth, selectedYear) &&
-      pool.length > 1
-    ) {
-      const amcor = pool.find((item) => entrySupplierSlot(item) === "amcor");
+    if (selectedDestination === "Brazil" && pool.length > 1) {
+      const amcor =
+        [...pool]
+          .filter(isBrazilAmcorLocationEntry)
+          .sort((a, b) => entrySupplierDisplay(a).localeCompare(entrySupplierDisplay(b)))[0] ??
+        pool.find((item) => entrySupplierSlot(item) === "amcor");
       return amcor ?? pool[0];
     }
     return pool[0];
@@ -271,10 +268,6 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
     }
     if (isArgentinaApril2026View(selectedDestination, selectedMonth, selectedYear)) {
       const shared = getArgentinaApril2026SharedSupplierTlc(data.vendorBreakdowns);
-      if (shared !== null) return shared;
-    }
-    if (isBrazilApril2026View(selectedDestination, selectedMonth, selectedYear)) {
-      const shared = getBrazilApril2026AmcorSupplierTlc(data.vendorBreakdowns);
       if (shared !== null) return shared;
     }
     return getSupplierTlc(vendorBreakdown);
@@ -379,7 +372,7 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
                     selectedDestination,
                     selectedMonth,
                     selectedYear
-                  ) ? (
+                  ) && selectedVendorEntry && entrySupplierSlot(selectedVendorEntry) === "amcor" ? (
                     <p className="mt-1 text-[11px] text-muted-foreground">
                       Amcor resin index (Excel): {BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}
                     </p>

@@ -65,6 +65,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
 
   const selectedDestination = searchParams.get("destination") ?? "";
   const selectedSourceCountry = searchParams.get("source") ?? "";
+  const selectedSupplierName = searchParams.get("supplier") ?? "";
 
   const effectiveSourceCountry = useMemo(
     () =>
@@ -83,9 +84,16 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
         vendorBreakdowns: data.vendorBreakdowns,
         destination: selectedDestination || "Colombia",
         sourceCountry: effectiveSourceCountry,
+        supplierName: selectedSupplierName,
         countries: data.countries,
       }),
-    [data.vendorBreakdowns, data.countries, selectedDestination, effectiveSourceCountry]
+    [
+      data.vendorBreakdowns,
+      data.countries,
+      selectedDestination,
+      effectiveSourceCountry,
+      selectedSupplierName,
+    ]
   );
 
   const destinationSourceMonthlySimulated = useMemo(() => {
@@ -133,15 +141,15 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
   const SimulationTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-      <div className="rounded-xl border border-primary/20 bg-[#020817]/95 px-4 py-3 shadow-2xl">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-slate-300">{label}</p>
+      <div className="pet-tooltip px-4 py-3">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
         <div className="space-y-1.5">
           {payload.map((item: any) => (
             <div key={item.dataKey} className="flex items-center justify-between gap-6 text-sm">
               <span className="font-medium" style={{ color: item.color }}>
                 {item.name}
               </span>
-              <span className="font-semibold text-slate-100">
+              <span className="font-semibold text-foreground">
                 {formatAmount(item.value as number | string | null | undefined)}
               </span>
             </div>
@@ -152,7 +160,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-card px-6 py-6 max-sm:px-4">
+    <div className="pet-page-bg min-h-screen px-6 py-6 max-sm:px-4">
       <section className="mx-auto w-full max-w-[1400px] space-y-4">
         <RevealOnScroll>
         <Card className="border-primary/10 bg-card/80 shadow-lg backdrop-blur">
@@ -217,7 +225,8 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
           <CardHeader>
             <CardTitle className="text-xl">Monthly Market Research TLC vs Supplier TLC</CardTitle>
             <CardDescription>
-              {(selectedDestination || "Colombia")} vs {effectiveSourceCountry} from Jan 2026 to Mar 2026.
+              {(selectedDestination || "Colombia")} vs {effectiveSourceCountry}
+              {selectedSupplierName ? ` / ${selectedSupplierName}` : ""} from Jan 2026 to Mar 2026.
             </CardDescription>
             <div className="mt-1 inline-flex w-fit items-center gap-2 rounded-md border border-primary/35 bg-[rgba(230,168,23,0.1)] px-2.5 py-1 text-[11px] font-semibold text-primary">
               <span aria-hidden>⚠</span>
@@ -232,10 +241,10 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
               <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={combinedMonthlyTlcData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" />
                     <XAxis
                       dataKey="period"
-                      tick={{ fontSize: 11, fill: "#a1a1aa" }}
+                      tick={{ fontSize: 11, fill: "#5a5a5a" }}
                       tickFormatter={shortMonthTick}
                       interval={0}
                       minTickGap={10}
@@ -244,9 +253,9 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                       tickLine={false}
                       axisLine={false}
                     />
-                    <YAxis tick={{ fontSize: 12, fill: "#a1a1aa" }} tickLine={false} axisLine={false} width={48} />
+                    <YAxis tick={{ fontSize: 12, fill: "#5a5a5a" }} tickLine={false} axisLine={false} width={48} />
                     <Tooltip content={<SimulationTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: "12px", color: "#cbd5e1" }} />
+                    <Legend wrapperStyle={{ fontSize: "12px", color: "#1a1a1a" }} />
                     <Line
                       type="monotone"
                       dataKey="marketResearchValue"
@@ -259,7 +268,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                     <Line
                       type="monotone"
                       dataKey="originalSupplierTlcValue"
-                      name="Original Supplier TLC"
+                      name={`Original ${selectedSupplierName || "Supplier"} TLC`}
                       stroke={ABI_PRIMARY_BLUE}
                       strokeWidth={2.2}
                       strokeDasharray="6 4"
@@ -269,7 +278,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                     <Line
                       type="monotone"
                       dataKey="simulatedSupplierTlcValue"
-                      name="Simulated Supplier TLC"
+                      name={`Simulated ${selectedSupplierName || "Supplier"} TLC`}
                       stroke={ABI_LIGHT_BLUE}
                       strokeWidth={2.6}
                       dot={false}

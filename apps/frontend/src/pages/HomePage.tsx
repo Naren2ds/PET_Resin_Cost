@@ -10,7 +10,6 @@ import {
   BRAZIL_APRIL_2026_ENGEPACK_VENDOR_LABEL,
   BRAZIL_APRIL_2026_VALGROUP_VENDOR_LABEL,
   getArgentinaApril2026SharedSupplierTlc,
-  getBrazilApril2026AmcorSupplierTlc,
   getColombiaMarch2026SharedSupplierTlc,
   getDominicanRepublicApril2026SharedSupplierTlc,
   getEcuadorMarch2026SharedSupplierTlc,
@@ -26,6 +25,11 @@ import {
   parseVendorTlcAmount,
   vendorYearMatches,
 } from "../lib/colombiaVendorTlc";
+import {
+  isBrazilAmcorLocationEntry,
+  supplierDisplayNameForEntry,
+  supplierNameMatchesEntry,
+} from "../lib/supplierDisplay";
 import { formatAmount, formatDeltaVersusMarketForCompany } from "../types";
 
 type HomePageProps = {
@@ -51,6 +55,10 @@ const DIFFERENCE_KEY = "difference";
 type SortKey = "tlc" | "supplierTlc" | "delta";
 type SortOrder = "desc" | "asc";
 const SUPPLIER_TLC_LABEL = "total resin price abi virgin formula";
+type SupplierDeviation = {
+  marketCountry: string;
+  delta: number;
+};
 /** When Brazil is the destination market, every source country row shows these four suppliers. */
 const BRAZIL_DESTINATION = "Brazil";
 const BRAZIL_DESTINATION_SUPPLIERS = [
@@ -105,29 +113,37 @@ function getDestinationFixedSuppliers(destination: string): readonly string[] | 
   return null;
 }
 
-function extractEntrySupplierName(item: VendorBreakdownEntry): string {
-  const extra = item as VendorBreakdownEntry & {
-    supplierName?: string;
-    supplier?: string;
-    vendor?: string;
-  };
-  return (
-    extra.supplierName?.trim() ||
-    extra.supplier?.trim() ||
-    extra.vendor?.trim() ||
-    ""
-  );
+function pickHighestDeviation(deviations: SupplierDeviation[]): SupplierDeviation | null {
+  return deviations.reduce<SupplierDeviation | null>((highest, current) => {
+    if (!highest) return current;
+    return Math.abs(current.delta) > Math.abs(highest.delta) ? current : highest;
+  }, null);
 }
 
 function actualSupplierNames(matches: VendorBreakdownEntry[]): string[] {
-  return Array.from(new Set(matches.map(extractEntrySupplierName).filter(Boolean)));
+  return Array.from(
+    new Set(matches.map(supplierDisplayNameForEntry).filter(Boolean))
+  );
 }
 
-function namesMatchSupplier(entryName: string, supplierName: string): boolean {
-  const a = entryName.trim().toLowerCase();
-  const b = supplierName.trim().toLowerCase();
-  if (!a || !b) return false;
-  return a === b || a.includes(b) || b.includes(a);
+function brazilSupplierNames(matches: VendorBreakdownEntry[]): string[] {
+  const actualNames = actualSupplierNames(matches);
+  const amcorLocationNames = actualNames
+    .filter((name) =>
+      matches.some(
+        (entry) =>
+          isBrazilAmcorLocationEntry(entry) &&
+          supplierDisplayNameForEntry(entry) === name
+      )
+    )
+    .sort((a, b) => a.localeCompare(b));
+  const otherSuppliers = BRAZIL_DESTINATION_SUPPLIERS.filter(
+    (name) => name.trim().toLowerCase() !== "amcor"
+  );
+
+  return amcorLocationNames.length
+    ? [...amcorLocationNames, ...otherSuppliers]
+    : [...BRAZIL_DESTINATION_SUPPLIERS];
 }
 
 function findTlcForSupplierName(
@@ -136,8 +152,7 @@ function findTlcForSupplierName(
   parseNum: (v: number | string | null | undefined) => number | null
 ): number | null {
   for (const item of matches) {
-    const entryName = extractEntrySupplierName(item);
-    if (!namesMatchSupplier(entryName, supplierName)) continue;
+    if (!supplierNameMatchesEntry(item, supplierName)) continue;
     const row = item.rows.find(
       (r) => r.label.trim().toLowerCase() === SUPPLIER_TLC_LABEL
     );
@@ -147,7 +162,7 @@ function findTlcForSupplierName(
   return null;
 }
 const VIEW_SHELL_CLASS =
-  "rounded-[14px] border border-border bg-card shadow-[0_4px_24px_rgba(0,0,0,0.5)] transition-[border-color,box-shadow] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] hover:border-primary/50 hover:shadow-[0_0_0_1px_rgba(230,168,23,0.2),0_4px_24px_rgba(0,0,0,0.5)]";
+  "rounded-[10px] border border-border bg-card shadow-[0_2px_4px_rgba(0,0,0,0.03),0_12px_40px_rgba(0,0,0,0.06),0_40px_80px_rgba(0,0,0,0.04)] transition-[border-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-primary/40";
 
 const HomePage: React.FC<HomePageProps> = ({ data }) => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -280,14 +295,6 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
       )
         ? getArgentinaApril2026SharedSupplierTlc(data.vendorBreakdowns)
         : null;
-      const brazilShared = isBrazilApril2026View(
-        selectedDestination,
-        selectedMonth,
-        selectedYear
-      )
-        ? getBrazilApril2026AmcorSupplierTlc(data.vendorBreakdowns)
-        : null;
-
       return [...baseCountries].sort((a, b) => {
         const getSupplierTlcValue = (country: ApiResponse["countries"][number]) => {
           if (colombiaShared !== null) return colombiaShared;
@@ -296,7 +303,6 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
           if (peruShared !== null) return peruShared;
           if (dominicanShared !== null) return dominicanShared;
           if (argentinaShared !== null) return argentinaShared;
-          if (brazilShared !== null) return brazilShared;
           const match = data.vendorBreakdowns.find(
             (item) =>
               item.destination === selectedDestination &&
@@ -498,7 +504,9 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
 
       const fixedSuppliers = getDestinationFixedSuppliers(selectedDestination);
       const supplierNames =
-        fixedSuppliers !== null
+        selectedDestination === BRAZIL_DESTINATION
+          ? brazilSupplierNames(matches)
+          : fixedSuppliers !== null
           ? [...fixedSuppliers]
           : actualSupplierNames(matches);
       const suppliers = supplierNames.map((name) => {
@@ -564,7 +572,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
         name: string;
         supplierTlc: number | null;
         marketCount: number;
-        deltas: number[];
+        deviations: SupplierDeviation[];
       }
     >();
 
@@ -577,28 +585,28 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
             name: supplier.name,
             supplierTlc: supplier.supplierTlc,
             marketCount: 0,
-            deltas: [],
+            deviations: [],
           };
         current.marketCount += 1;
-        if (supplier.delta !== null) current.deltas.push(supplier.delta);
+        if (supplier.delta !== null) {
+          current.deviations.push({
+            marketCountry: row.marketCountry,
+            delta: supplier.delta,
+          });
+        }
         map.set(key, current);
       });
     });
 
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(map.values())
+      .map((supplier) => ({
+        ...supplier,
+        highestDeviation: pickHighestDeviation(supplier.deviations),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   }, [tableRows]);
 
   const consolidatedSupplier = supplierBenchmarks.length === 1 ? supplierBenchmarks[0] : null;
-
-  const averageDelta =
-    consolidatedSupplier && consolidatedSupplier.deltas.length
-      ? Number(
-          (
-            consolidatedSupplier.deltas.reduce((sum, value) => sum + value, 0) /
-            consolidatedSupplier.deltas.length
-          ).toFixed(1)
-        )
-      : null;
 
   const formatTlcDisplay = (value: number | null) =>
     `$${formatAmount(value ?? 0)}/MT`;
@@ -612,7 +620,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
     delta === null ? "$0/MT" : formatDeltaVersusMarketForCompany(delta);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-card">
+    <div className="pet-page-bg min-h-screen">
       <main className="mx-auto flex max-w-[1400px] flex-col gap-5 p-7 max-sm:p-4">
         <RevealOnScroll>
           <section className="space-y-4">
@@ -742,44 +750,55 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                   </div>
                   <div className="rounded-lg border border-border bg-background/30 px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Average Delta
+                      Highest Deviation
                     </p>
-                    <p className={`mt-1 text-lg font-extrabold ${deltaClass(averageDelta)}`}>
-                      {formatDeltaDisplay(averageDelta)}
+                    <p
+                      className={`mt-1 text-lg font-extrabold ${deltaClass(
+                        consolidatedSupplier.highestDeviation?.delta ?? null
+                      )}`}
+                    >
+                      {formatDeltaDisplay(consolidatedSupplier.highestDeviation?.delta ?? null)}
+                      {consolidatedSupplier.highestDeviation ? (
+                        <span className="ml-1 text-[11px] font-semibold text-muted-foreground">
+                          ({consolidatedSupplier.highestDeviation.marketCountry})
+                        </span>
+                      ) : null}
                     </p>
                   </div>
                 </div>
               ) : supplierBenchmarks.length > 1 ? (
                 <div className="grid gap-3 border-b-2 border-border/80 bg-card/35 p-4 md:grid-cols-2 xl:grid-cols-4">
-                  {supplierBenchmarks.map((supplier) => {
-                    const avg =
-                      supplier.deltas.length
-                        ? Number(
-                            (
-                              supplier.deltas.reduce((sum, value) => sum + value, 0) /
-                              supplier.deltas.length
-                            ).toFixed(1)
-                          )
-                        : null;
-                    return (
-                      <div
-                        key={`${supplier.name}-${supplier.supplierTlc ?? 0}`}
-                        className="rounded-lg border border-border bg-background/30 px-3 py-2"
-                      >
-                        <p className="truncate text-sm font-bold text-foreground">{supplier.name}</p>
-                        <div className="mt-2 flex items-end justify-between gap-3">
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">TLC</p>
-                            <p className="font-extrabold text-primary">{formatTlcDisplay(supplier.supplierTlc)}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg delta</p>
-                            <p className={`font-bold ${deltaClass(avg)}`}>{formatDeltaDisplay(avg)}</p>
-                          </div>
+                  {supplierBenchmarks.map((supplier) => (
+                    <div
+                      key={`${supplier.name}-${supplier.supplierTlc ?? 0}`}
+                      className="rounded-lg border border-border bg-background/30 px-3 py-2"
+                    >
+                      <p className="truncate text-sm font-bold text-foreground">{supplier.name}</p>
+                      <div className="mt-2 flex items-end justify-between gap-3">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">TLC</p>
+                          <p className="font-extrabold text-primary">{formatTlcDisplay(supplier.supplierTlc)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                            Highest deviation
+                          </p>
+                          <p
+                            className={`font-bold ${deltaClass(
+                              supplier.highestDeviation?.delta ?? null
+                            )}`}
+                          >
+                            {formatDeltaDisplay(supplier.highestDeviation?.delta ?? null)}
+                            {supplier.highestDeviation ? (
+                              <span className="ml-1 text-[10px] font-semibold text-muted-foreground">
+                                ({supplier.highestDeviation.marketCountry})
+                              </span>
+                            ) : null}
+                          </p>
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               ) : null}
               <div className="overflow-x-auto">
@@ -988,7 +1007,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                                     selectedMonth,
                                     selectedYear
                                   ) &&
-                                  supplier.name.trim().toLowerCase() === "amcor" ? (
+                                  supplier.name.trim().toLowerCase().startsWith("amcor") ? (
                                     <span className="text-[10px] text-muted-foreground">
                                       {BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}
                                     </span>

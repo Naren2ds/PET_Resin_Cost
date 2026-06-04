@@ -33,7 +33,7 @@ const MONTH_ORDER = [
 const RANGE_START_YEAR = 2026;
 const RANGE_START_MONTH_INDEX = 0; // January
 const RANGE_END_YEAR = 2026;
-const RANGE_END_MONTH_INDEX = 2; // March
+const RANGE_END_MONTH_INDEX = 11; // December
 
 const buildMonthlyPeriods = () => {
   const periods: { year: number; monthIndex: number; month: string; period: string }[] = [];
@@ -126,25 +126,53 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
     });
   }, [destinationSourceMonthly, simulationMetric, simulationPercent]);
 
-  const combinedMonthlyTlcData = useMemo(
-    () =>
-      destinationSourceMonthly.map((row, idx) => ({
+  const chartData = useMemo(() => {
+    // Find the last actual index (where supplier data exists and is not forecast)
+    let lastActualIdx = -1;
+    for (let i = 0; i < destinationSourceMonthly.length; i++) {
+      if (!destinationSourceMonthly[i].isForecast && destinationSourceMonthly[i].supplierTlcValue != null) {
+        lastActualIdx = i;
+      }
+    }
+
+    return destinationSourceMonthly.map((row, idx) => {
+      const simulated = destinationSourceMonthlySimulated[idx];
+      const isForecast = row.isForecast;
+      const isLastActual = idx === lastActualIdx;
+
+      return {
         period: row.period,
-        marketResearchValue: row.marketResearchValue,
-        originalSupplierTlcValue: row.supplierTlcValue,
-        simulatedSupplierTlcValue:
-          destinationSourceMonthlySimulated[idx]?.supplierTlcValue ?? row.supplierTlcValue,
-      })),
-    [destinationSourceMonthly, destinationSourceMonthlySimulated]
-  );
+        // Actual values (solid lines) - only for non-forecast months
+        marketResearchActual: !isForecast ? row.marketResearchValue : null,
+        originalSupplierActual: !isForecast ? row.supplierTlcValue : null,
+        simulatedSupplierActual: !isForecast ? (simulated?.supplierTlcValue ?? row.supplierTlcValue) : null,
+        // Forecast values (dotted lines) - for forecast months
+        marketResearchForecast: isForecast ? row.marketResearchValue : (isLastActual ? row.marketResearchValue : null),
+        originalSupplierForecast: isForecast ? row.supplierTlcValue : (isLastActual ? row.supplierTlcValue : null),
+        simulatedSupplierForecast: isForecast
+          ? (simulated?.supplierTlcValue ?? row.supplierTlcValue)
+          : (isLastActual ? (simulated?.supplierTlcValue ?? row.supplierTlcValue) : null),
+      };
+    });
+  }, [destinationSourceMonthly, destinationSourceMonthlySimulated]);
 
   const SimulationTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
+    // Deduplicate by name - show only one entry per series (prefer non-null value)
+    const seen = new Map<string, any>();
+    for (const item of payload) {
+      if (item.value == null) continue;
+      if (!seen.has(item.name)) {
+        seen.set(item.name, item);
+      }
+    }
+    const items = Array.from(seen.values());
+    if (!items.length) return null;
     return (
       <div className="pet-tooltip px-4 py-3">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
         <div className="space-y-1.5">
-          {payload.map((item: any) => (
+          {items.map((item: any) => (
             <div key={item.dataKey} className="flex items-center justify-between gap-6 text-sm">
               <span className="font-medium" style={{ color: item.color }}>
                 {item.name}
@@ -200,8 +228,8 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                 </div>
                 <input
                   type="range"
-                  min={-5}
-                  max={5}
+                  min={-30}
+                  max={30}
                   step={1}
                   value={simulationPercent}
                   onChange={(e) => setSimulationPercent(Number(e.target.value))}
@@ -226,7 +254,8 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
             <CardTitle className="text-xl">Monthly Market Research TLC vs Supplier TLC</CardTitle>
             <CardDescription>
               {(selectedDestination || "Colombia")} vs {effectiveSourceCountry}
-              {selectedSupplierName ? ` / ${selectedSupplierName}` : ""} from Jan 2026 to Mar 2026.
+              {selectedSupplierName ? ` / ${selectedSupplierName}` : ""} from Jan 2026 to Dec 2026.
+              <span className="ml-1 text-muted-foreground/70">(Dotted lines = forecast)</span>
             </CardDescription>
             <div className="mt-1 inline-flex w-fit items-center gap-2 rounded-md border border-primary/35 bg-[rgba(230,168,23,0.1)] px-2.5 py-1 text-[11px] font-semibold text-primary">
               <span aria-hidden>⚠</span>
@@ -240,7 +269,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
             <div className="rounded-xl border border-border bg-card/40 p-3">
               <div className="h-[320px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={combinedMonthlyTlcData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
+                  <LineChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 8 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.08)" />
                     <XAxis
                       dataKey="period"
@@ -256,34 +285,75 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                     <YAxis tick={{ fontSize: 12, fill: "#5a5a5a" }} tickLine={false} axisLine={false} width={48} />
                     <Tooltip content={<SimulationTooltip />} />
                     <Legend wrapperStyle={{ fontSize: "12px", color: "#1a1a1a" }} />
+                    {/* Market Research - Actual (solid) */}
                     <Line
                       type="monotone"
-                      dataKey="marketResearchValue"
+                      dataKey="marketResearchActual"
                       name="Market Research TLC"
                       stroke={ABI_GOLD}
                       strokeWidth={2.5}
                       dot={false}
-                      connectNulls
+                      connectNulls={false}
                     />
+                    {/* Market Research - Forecast (dotted, hidden from legend) */}
                     <Line
                       type="monotone"
-                      dataKey="originalSupplierTlcValue"
-                      name={`Original ${selectedSupplierName || "Supplier"} TLC`}
+                      dataKey="marketResearchForecast"
+                      name="Market Research TLC"
+                      stroke={ABI_GOLD}
+                      strokeWidth={2.5}
+                      strokeDasharray="6 4"
+                      dot={false}
+                      connectNulls={false}
+                      legendType="none"
+                    />
+                    {/* Supplier - Actual (solid) */}
+                    <Line
+                      type="monotone"
+                      dataKey="originalSupplierActual"
+                      name={`${selectedSupplierName || "Supplier"} TLC`}
+                      stroke={ABI_PRIMARY_BLUE}
+                      strokeWidth={2.2}
+                      dot={false}
+                      connectNulls={false}
+                    />
+                    {/* Supplier - Forecast (dotted, hidden from legend) */}
+                    <Line
+                      type="monotone"
+                      dataKey="originalSupplierForecast"
+                      name={`${selectedSupplierName || "Supplier"} TLC`}
                       stroke={ABI_PRIMARY_BLUE}
                       strokeWidth={2.2}
                       strokeDasharray="6 4"
                       dot={false}
-                      connectNulls
+                      connectNulls={false}
+                      legendType="none"
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="simulatedSupplierTlcValue"
-                      name={`Simulated ${selectedSupplierName || "Supplier"} TLC`}
-                      stroke={ABI_LIGHT_BLUE}
-                      strokeWidth={2.6}
-                      dot={false}
-                      connectNulls
-                    />
+                    {/* Simulated Supplier - only shown when simulation is active */}
+                    {simulationPercent !== 0 && (
+                      <>
+                        <Line
+                          type="monotone"
+                          dataKey="simulatedSupplierActual"
+                          name={`Simulated ${selectedSupplierName || "Supplier"} TLC`}
+                          stroke={ABI_LIGHT_BLUE}
+                          strokeWidth={2.6}
+                          dot={false}
+                          connectNulls={false}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="simulatedSupplierForecast"
+                          name={`Simulated ${selectedSupplierName || "Supplier"} TLC`}
+                          stroke={ABI_LIGHT_BLUE}
+                          strokeWidth={2.6}
+                          strokeDasharray="6 4"
+                          dot={false}
+                          connectNulls={false}
+                          legendType="none"
+                        />
+                      </>
+                    )}
                   </LineChart>
                 </ResponsiveContainer>
               </div>

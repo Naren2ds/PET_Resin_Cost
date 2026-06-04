@@ -43,9 +43,6 @@ const DEFAULT_DESTINATIONS = [
   "Colombia",
   "Peru",
   "Dominican Republic",
-  "Nigeria",
-  "Bolivia",
-  "Korea",
   "Panama",
   "Uruguay",
   "Ecuador",
@@ -528,7 +525,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
         const delta =
           value === null || marketTlc === null
             ? null
-            : Number((value - marketTlc).toFixed(1));
+            : Number((marketTlc - value).toFixed(1));
         return {
           name,
           supplierTlc: value,
@@ -817,7 +814,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                           Market Research TLC
                         </th>
                         <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Delta (Supplier - Market)
+                          Delta (Market - Supplier)
                         </th>
                       </tr>
                     ) : (

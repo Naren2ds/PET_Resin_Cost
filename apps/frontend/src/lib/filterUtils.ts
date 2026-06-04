@@ -29,7 +29,7 @@ export function getMonthOptions(selectedYear: string, _destination?: string) {
     return MONTHS.slice(6);
   }
   if (year === 2026) {
-    return MONTHS.slice(1);
+    return MONTHS;
   }
   return MONTHS;
 }

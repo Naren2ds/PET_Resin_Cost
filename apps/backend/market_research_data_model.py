@@ -42,6 +42,11 @@ DEFAULT_DESTINATION = "Colombia"
 DEFAULT_MONTH = "March"
 DEFAULT_YEAR = "2026"
 
+# Combined destinations that map to multiple MR entries
+DESTINATION_ALIASES: dict[str, list[str]] = {
+    "El Salvador and Honduras": ["El Salvador", "Honduras"],
+}
+
 TOTAL_LANDING_COST = "Total Landing Cost"
 TOTAL_LANDING_COST_LABEL = "Total landed cost (PET resin)"
 RESIN_INDEX_MAPPING_COLUMN = "Resin Index vPET"
@@ -181,10 +186,15 @@ def build_market_research_countries(
     selected_destination = destination
     selected_year = clean_text(year)
 
+    alias_keys = {
+        normalized_key(alias)
+        for alias in DESTINATION_ALIASES.get(selected_destination, [selected_destination])
+    }
+
     grouped: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in read_market_research_rows():
         model_destination = clean_text(row.get("Destination Country"))
-        if normalized_key(model_destination) != normalized_key(selected_destination):
+        if normalized_key(model_destination) not in alias_keys:
             continue
 
         period = month_year_from_row(row)

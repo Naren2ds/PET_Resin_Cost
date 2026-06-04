@@ -152,6 +152,19 @@ def countries(
     vendor_breakdowns = (
         build_vendor_breakdowns(source_countries) if includeVendorBreakdowns else []
     )
+
+    # When no market research data exists for the selected period, create
+    # stub country entries from vendor breakdown source countries so the
+    # frontend table still renders supplier TLC values.
+    if not market_countries and vendor_breakdowns:
+        seen_sources = sorted(
+            {str(vb.get("sourceCountry", "")) for vb in vendor_breakdowns if vb.get("sourceCountry")}
+        )
+        market_countries = [
+            {"country": src, "amount": None, "rank": "#N/A", "dataType": "", "sourceFile": "", "breakdown": []}
+            for src in seen_sources
+        ]
+
     if includeVendorBreakdowns:
         market_countries = add_supplier_delta_rows(
             market_countries,

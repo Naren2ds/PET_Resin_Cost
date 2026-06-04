@@ -78,14 +78,15 @@ export const trendPeriodKey = (year: number, monthIndexValue: number) =>
   `${MONTH_ORDER[monthIndexValue]}-${year}`;
 
 /** Map ``Jan-2026``-style keys to supplier TLC from vendor rows (actual API data only). */
-export function supplierTlcByPeriodFromEntries(entries: VendorBreakdownEntry[]): Map<string, number> {
-  const map = new Map<string, number>();
+export function supplierTlcByPeriodFromEntries(entries: VendorBreakdownEntry[]): Map<string, { value: number; isForecast: boolean }> {
+  const map = new Map<string, { value: number; isForecast: boolean }>();
   entries.forEach((entry) => {
     const v = supplierTlcFromVendorEntry(entry);
     if (v === null) return;
     const monthIdx = monthIndexFromVendorMonth(entry.month);
     if (monthIdx < 0) return;
-    map.set(trendPeriodKey(Number(entry.year), monthIdx), v);
+    const isForecast = entry.dataType?.toLowerCase() === "forecast";
+    map.set(trendPeriodKey(Number(entry.year), monthIdx), { value: v, isForecast });
   });
   return map;
 }
@@ -96,6 +97,7 @@ export type DestinationSourceMonthlyRow = {
   monthIndex: number;
   marketResearchValue: number | null;
   supplierTlcValue: number | null;
+  isForecast: boolean;
 };
 
 /** One row per chart period: supplier TLC from vendor rows; MR from latest country breakdown snapshot (repeated per month). */
@@ -119,12 +121,14 @@ export function buildDestinationSourceMonthly(args: {
 
   return periods.map((period) => {
     const key = trendPeriodKey(period.year, period.monthIndex);
+    const entry = supplierByPeriod.get(key);
     return {
       period: period.period,
       year: period.year,
       monthIndex: period.monthIndex,
       marketResearchValue: marketSnapshot,
-      supplierTlcValue: supplierByPeriod.get(key) ?? null,
+      supplierTlcValue: entry?.value ?? null,
+      isForecast: entry?.isForecast ?? false,
     };
   });
 }

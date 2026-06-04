@@ -15,6 +15,7 @@ SUPPLIER_PIPELINE_SCRIPTS = [
     ROOT / "pipelines" / "suppliers" / "Pricing_Pref-Bot_ABI_PER_Men_4_26_Cliente" / "scripts" / "run_per_pipeline.py",
     ROOT / "pipelines" / "suppliers" / "Pricing_Pref_ABI_PAN_Men_04_26_Cliente" / "scripts" / "run_pan_pipeline.py",
     ROOT / "pipelines" / "suppliers" / "Pricing_Pref_ABI_RD_Men_4_26_Cliente" / "scripts" / "run_rd_pipeline.py",
+    ROOT / "pipelines" / "suppliers" / "Sell_Side_2026-ABI_SLV_HND" / "scripts" / "run_slv_hnd_pipeline.py",
 ]
 
 CONSOLIDATION_SCRIPT = ROOT / "pipelines" / "suppliers" / "consolidation" / "consolidate_front_end_data_model.py"

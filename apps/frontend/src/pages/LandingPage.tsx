@@ -192,7 +192,7 @@ const LandingPage: React.FC = () => {
                       <th className="border-b border-border px-3 py-2.5 text-left">Destination Country</th>
                       <th className="border-b border-border px-3 py-2.5 text-left">Supplier</th>
                       <th className="border-b border-border px-3 py-2.5 text-left">Latest Month Available</th>
-                      <th className="border-b border-border border-l border-l-border px-3 py-2.5 text-left">Destination Country</th>
+                      <th className="border-b border-l-2 border-b-border border-l-primary/30 px-3 py-2.5 text-left">Destination Country</th>
                       <th className="border-b border-border px-3 py-2.5 text-left">Supplier</th>
                       <th className="border-b border-border px-3 py-2.5 text-left">Latest Month Available</th>
                     </tr>
@@ -252,44 +252,51 @@ const LandingPage: React.FC = () => {
                   <thead>
                     <tr>
                       <th className="border-b border-border px-3 py-2.5 text-left">Destination Country</th>
-                      <th className="border-b border-border px-3 py-2.5 text-left">Months Available</th>
+                      <th className="border-b border-l border-b-border border-l-border px-3 py-2.5 text-left">Months Available</th>
                       <th className="border-b border-border border-l border-l-border px-3 py-2.5 text-left">Destination Country</th>
-                      <th className="border-b border-border px-3 py-2.5 text-left">Months Available</th>
+                      <th className="border-b border-l border-b-border border-l-border px-3 py-2.5 text-left">Months Available</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(() => {
                       const data = [
-                        ["Argentina", "Feb 2026"],
-                        ["Bolivia", "Feb 2026"],
-                        ["Brazil", "Feb 2026"],
-                        ["Colombia", "Feb 2026"],
-                        ["Dominican Republic", "Feb 2026"],
-                        ["Ecuador", "Feb 2026"],
-                        ["El Salvador", "Feb 2026"],
-                        ["Honduras", "Feb 2026"],
-                        ["Panama", "Feb 2026"],
-                        ["Peru", "Feb 2026"],
-                        ["Uruguay", "Feb 2026"],
+                        "Argentina",
+                        "Bolivia",
+                        "Brazil",
+                        "Colombia",
+                        "Dominican Republic",
+                        "Ecuador",
+                        "El Salvador",
+                        "Honduras",
+                        "Panama",
+                        "Peru",
+                        "Uruguay",
                       ];
+                      const rowCount = Math.ceil(data.length / 2);
                       const rows = [];
                       for (let i = 0; i < data.length; i += 2) {
                         const left = data[i];
                         const right = data[i + 1];
+                        const isFirstRow = i === 0;
                         rows.push(
                           <tr key={i} className="border-b border-border/60">
-                            <td className="px-3 py-2.5 text-foreground">{left[0]}</td>
-                            <td className="px-3 py-2.5 font-semibold text-foreground">{left[1]}</td>
+                            <td className="px-3 py-2.5 text-foreground">{left}</td>
+                            {isFirstRow ? (
+                              <td rowSpan={rowCount} className="border-l border-l-border px-3 py-2.5 text-center align-middle font-semibold text-foreground">
+                                Feb 2026
+                              </td>
+                            ) : null}
                             {right ? (
                               <>
-                                <td className="border-l border-l-border px-3 py-2.5 text-foreground">{right[0]}</td>
-                                <td className="px-3 py-2.5 font-semibold text-foreground">{right[1]}</td>
+                                <td className="border-l border-l-border px-3 py-2.5 text-foreground">{right}</td>
+                                {isFirstRow ? (
+                                  <td rowSpan={rowCount} className="border-l border-l-border px-3 py-2.5 text-center align-middle font-semibold text-foreground">
+                                    Feb 2026
+                                  </td>
+                                ) : null}
                               </>
                             ) : (
-                              <>
-                                <td className="border-l border-l-border px-3 py-2.5" />
-                                <td className="px-3 py-2.5" />
-                              </>
+                              <td className="border-l border-l-border px-3 py-2.5" />
                             )}
                           </tr>
                         );

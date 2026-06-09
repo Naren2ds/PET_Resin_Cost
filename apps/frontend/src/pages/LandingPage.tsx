@@ -207,8 +207,9 @@ const LandingPage: React.FC = () => {
                         ["Peru", "San Miguel Industrias (SMI)", "YTD May"],
                         ["Argentina", "Amcor", "YTD Feb"],
                         ["Dominican Republic", "SMI PET", "YTD May"],
-                        ["Uruguay", "Cristalpet", "April 26 only"],
+                        ["Uruguay", "Cristalpet", "YTD May"],
                         ["El Salvador and Honduras", "Amcor", "YTD May"],
+                        ["Bolivia","Gestora, Administradora e Industrializadora Preformas S.A.","YTD May"]
                       ];
                       const rows = [];
                       for (let i = 0; i < data.length; i += 2) {

@@ -38,6 +38,7 @@ type HomePageProps = {
 
 const DEFAULT_DESTINATIONS = [
   "Brazil",
+  "Bolivia",
   "Argentina",
   "El Salvador and Honduras",
   "Colombia",

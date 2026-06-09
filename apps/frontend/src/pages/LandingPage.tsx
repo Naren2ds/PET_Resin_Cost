@@ -47,8 +47,8 @@ const LandingPage: React.FC = () => {
                     <a className="pet-button-secondary" href="#flow">
                       See how it works
                     </a>
-                    <a className="pet-button-secondary" href="#supplier-availability">
-                      Supplier Data Availability
+                    <a className="pet-button-secondary" href="#data-availability">
+                      Data Availability
                     </a>
                   </div>
                 </div>
@@ -180,7 +180,7 @@ const LandingPage: React.FC = () => {
           </section>
 
           <div className="grid gap-5">
-            <section id="supplier-availability" className={cn(SHELL)}>
+            <section id="data-availability" className={cn(SHELL)}>
               <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground">Supplier Data Availability</h2>
               <p className="mt-2 text-sm text-muted-foreground">
                 Latest month of supplier data available in the frontend by destination and supplier.
@@ -241,6 +241,9 @@ const LandingPage: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Destination countries: Brazil, Panama, Peru, Dominican Republic, El Salvador and Honduras, Ecuador, Colombia, Argentina, Uruguay, Bolivia. Indexes used ICIS FOB China, ICIS Asia SE.
+              </p>
             </section>
 
             <section className={cn(SHELL)}>
@@ -308,7 +311,7 @@ const LandingPage: React.FC = () => {
                 </table>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                Source countries: China, India, Indonesia, South Korea, Taiwan, Thailand, USA, Vietnam, Argentina, Brazil, Mexico.
+                Source countries: China, India, Indonesia, South Korea, Taiwan, Thailand, USA, Vietnam, Argentina, Brazil, Mexico. Indexes used ICIS FOB Mexico, ICIS FOB China, ICIS FOB Asia SE, ICIS FOB India, ICIS FOB South Korea, ICIS FOB Taiwan. 
               </p>
             </section>
           </div>

@@ -3,6 +3,10 @@ import { ScrollProgressBar } from "../components/ScrollProgressBar";
 import { cn } from "@/lib/utils";
 
 const SHELL = "pet-app-surface p-6 sm:p-8";
+const LATEST_MONTH_TARGET = "YTD May";
+
+const latestMonthToneClass = (value: string) =>
+  value.trim() === LATEST_MONTH_TARGET ? "text-success" : "text-warning";
 
 const LandingPage: React.FC = () => {
   return (
@@ -219,12 +223,16 @@ const LandingPage: React.FC = () => {
                           <tr key={i} className="border-b border-border/60">
                             <td className="px-3 py-2.5 text-foreground">{left[0]}</td>
                             <td className="px-3 py-2.5 text-foreground">{left[1]}</td>
-                            <td className="px-3 py-2.5 font-semibold text-foreground">{left[2]}</td>
+                            <td className={cn("px-3 py-2.5 font-semibold", latestMonthToneClass(left[2]))}>
+                              {left[2]}
+                            </td>
                             {right ? (
                               <>
                                 <td className="border-l border-l-border px-3 py-2.5 text-foreground">{right[0]}</td>
                                 <td className="px-3 py-2.5 text-foreground">{right[1]}</td>
-                                <td className="px-3 py-2.5 font-semibold text-foreground">{right[2]}</td>
+                                <td className={cn("px-3 py-2.5 font-semibold", latestMonthToneClass(right[2]))}>
+                                  {right[2]}
+                                </td>
                               </>
                             ) : (
                               <>
@@ -286,7 +294,13 @@ const LandingPage: React.FC = () => {
                           <tr key={i} className="border-b border-border/60">
                             <td className="px-3 py-2.5 text-foreground">{left}</td>
                             {isFirstRow ? (
-                              <td rowSpan={rowCount} className="border-l border-l-border px-3 py-2.5 text-center align-middle font-semibold text-foreground">
+                              <td
+                                rowSpan={rowCount}
+                                className={cn(
+                                  "border-l border-l-border px-3 py-2.5 text-center align-middle font-semibold",
+                                  latestMonthToneClass("Feb 2026")
+                                )}
+                              >
                                 Feb 2026
                               </td>
                             ) : null}
@@ -294,7 +308,13 @@ const LandingPage: React.FC = () => {
                               <>
                                 <td className="border-l border-l-border px-3 py-2.5 text-foreground">{right}</td>
                                 {isFirstRow ? (
-                                  <td rowSpan={rowCount} className="border-l border-l-border px-3 py-2.5 text-center align-middle font-semibold text-foreground">
+                                  <td
+                                    rowSpan={rowCount}
+                                    className={cn(
+                                      "border-l border-l-border px-3 py-2.5 text-center align-middle font-semibold",
+                                      latestMonthToneClass("Feb 2026")
+                                    )}
+                                  >
                                     Feb 2026
                                   </td>
                                 ) : null}

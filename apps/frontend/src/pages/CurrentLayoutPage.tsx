@@ -276,20 +276,20 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
     vendorBreakdown,
   ]);
 
-  /** Supplier TLC − market TLC (same convention as HomePage / SourceCountryCard). */
-  const supplierVersusMarketDelta = useMemo(() => {
+  /** Market TLC − supplier TLC (same convention as HomePage). */
+  const marketVersusSupplierDelta = useMemo(() => {
     const m = parseBreakdownNumeric(marketTlc);
     const s = parseBreakdownNumeric(supplierTlc);
     if (m === null || s === null) return null;
-    return Number((s - m).toFixed(1));
+    return Number((m - s).toFixed(1));
   }, [marketTlc, supplierTlc]);
 
   const isNegativeDelta =
-    supplierVersusMarketDelta !== null && supplierVersusMarketDelta < 0;
+    marketVersusSupplierDelta !== null && marketVersusSupplierDelta < 0;
   const diffDisplay =
-    supplierVersusMarketDelta === null
+    marketVersusSupplierDelta === null
       ? "$0/MT"
-      : formatDeltaVersusMarketForCompany(supplierVersusMarketDelta);
+      : formatDeltaVersusMarketForCompany(marketVersusSupplierDelta);
 
   return (
     <div className="pet-page-bg min-h-screen">
@@ -334,7 +334,7 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
                   }`}
                 >
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Supplier TLC - Market Research TLC
+                    Market Research TLC - Supplier TLC
                   </p>
                   <p
                     className={`mt-1 text-base font-extrabold ${

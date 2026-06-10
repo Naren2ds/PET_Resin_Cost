@@ -288,7 +288,7 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
         supplierValue,
         marketShare: costSharePercent(marketValue, marketTotal),
         supplierShare: costSharePercent(supplierValue, supplierTotal),
-        differenceValue: supplierValue - marketValue,
+        differenceValue: marketValue - supplierValue,
       };
     });
   }, [breakdown, compactVendorBreakdown]);
@@ -408,7 +408,7 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
                 <TableHead className="w-[190px] text-right text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
                   Difference
                   <span className="block text-[9px] font-semibold normal-case tracking-normal opacity-80">
-                    Supplier - Market
+                    Market - Supplier
                   </span>
                 </TableHead>
               </TableRow>

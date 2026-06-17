@@ -112,6 +112,13 @@ function getDestinationFixedSuppliers(destination: string): readonly string[] | 
 }
 
 function pickHighestDeviation(deviations: SupplierDeviation[]): SupplierDeviation | null {
+  const positiveDeviations = deviations.filter((entry) => entry.delta > 0);
+  if (positiveDeviations.length) {
+    return positiveDeviations.reduce<SupplierDeviation>((leastPositive, current) =>
+      current.delta < leastPositive.delta ? current : leastPositive,
+    positiveDeviations[0]);
+  }
+
   return deviations.reduce<SupplierDeviation | null>((highest, current) => {
     if (!highest) return current;
     return Math.abs(current.delta) > Math.abs(highest.delta) ? current : highest;

@@ -11,6 +11,7 @@ from supplier_data_model import (
     as_float,
     clean_text,
     month_year_from_row,
+    normalize_resin_index_type,
     normalized_key,
     parse_number,
     read_csv_rows,
@@ -130,6 +131,9 @@ def row_sort_key(row: dict[str, Any]) -> int:
 def market_research_api_row(row: dict[str, Any]) -> dict[str, Any]:
     raw_label = clean_text(row.get("Raw Cost Breakdown"))
     mapping_column = clean_text(row.get("Mapping Columns"))
+    source_country = clean_text(row.get("Supplier Name")) or clean_text(
+        row.get("Location")
+    )
     common_component = MARKET_RESEARCH_COMMON_COST_MAPPING.get(
         mapping_column,
         mapping_column,
@@ -143,8 +147,16 @@ def market_research_api_row(row: dict[str, Any]) -> dict[str, Any]:
         "sourceFile": relative_path(clean_text(row.get("Source File"))),
         "mappingColumn": mapping_column,
         "rawLabel": raw_label,
-        "resinIndexType": clean_text(row.get("Resin Index Type")),
-        "forecastResinIndexType": clean_text(row.get("Forecast Resin Index Type")),
+        "resinIndexType": normalize_resin_index_type(
+            row.get("Resin Index Type"),
+            source_country=source_country,
+            market_context=True,
+        ),
+        "forecastResinIndexType": normalize_resin_index_type(
+            row.get("Forecast Resin Index Type"),
+            source_country=source_country,
+            market_context=True,
+        ),
         "columnRequiredForCalculation": clean_text(
             row.get("Column Required for Calculation")
         ),
@@ -397,9 +409,15 @@ def build_market_research_tlc_trends(
                 "resinIndexAmount": round(resin_index_amount, 1)
                 if resin_index_amount is not None
                 else None,
-                "resinIndexType": clean_text(resin_index_row.get("Resin Index Type")),
-                "forecastResinIndexType": clean_text(
-                    resin_index_row.get("Forecast Resin Index Type")
+                "resinIndexType": normalize_resin_index_type(
+                    resin_index_row.get("Resin Index Type"),
+                    source_country=source_country,
+                    market_context=True,
+                ),
+                "forecastResinIndexType": normalize_resin_index_type(
+                    resin_index_row.get("Forecast Resin Index Type"),
+                    source_country=source_country,
+                    market_context=True,
                 ),
                 "indexRawLabel": clean_text(resin_index_row.get("Raw Cost Breakdown")),
                 "formulaReference": clean_text(resin_index_row.get("TLC Formula")),

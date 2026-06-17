@@ -122,7 +122,18 @@ const isStackableCostRow = (row: CostRow) => {
   return parseNumber(row.amount) !== null;
 };
 
-const rowDisplayLabel = (row: CostRow) => row.rawLabel?.trim() || row.label;
+const rowDisplayLabel = (row: CostRow) => {
+  // For Resin Index, prefer standardized mapped index names from backend.
+  if (normalize(toComponentName(row)) === "resin index") {
+    return (
+      row.resinIndexType?.trim() ||
+      row.forecastResinIndexType?.trim() ||
+      row.rawLabel?.trim() ||
+      row.label
+    );
+  }
+  return row.rawLabel?.trim() || row.label;
+};
 
 const findTotal = (rows: CostRow[], fallback: number | string | null | undefined) => {
   const totalRow = rows.find((row) => {

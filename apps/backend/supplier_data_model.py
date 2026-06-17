@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import re
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
@@ -67,6 +68,70 @@ def clean_text(value: Any) -> str:
 
 def clean_header(value: Any) -> str:
     return clean_text(value).strip()
+
+
+def _normalized_text_for_match(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", value.casefold()).strip()
+
+
+def _extract_month_lag(value: str) -> tuple[str, int] | None:
+    match = re.search(r"\b([MN])\s*-\s*(\d+)\b", value, flags=re.IGNORECASE)
+    if match:
+        return match.group(1).upper(), int(match.group(2))
+
+    # Handles shorthand values such as "ICIS N-1".
+    match = re.search(r"\bN\s*-\s*(\d+)\b", value, flags=re.IGNORECASE)
+    if match:
+        return "N", int(match.group(1))
+    return None
+
+
+def normalize_resin_index_type(
+    value: Any,
+    *,
+    source_country: str = "",
+    market_context: bool = False,
+) -> str:
+    text = clean_text(value)
+    if market_context:
+        market_index_by_source = {
+            "china": "ICIS FOB China",
+            "mexico": "ICIS FOB Mexico",
+            "vietnam": "ICIS FOB Asia SE",
+            "indonesia": "ICIS FOB Asia SE",
+            "thailand": "ICIS FOB Asia SE",
+            "india": "ICIS FOB India",
+            "south korea": "ICIS FOB South Korea",
+            "taiwan": "ICIS FOB Taiwan",
+        }
+        mapped = market_index_by_source.get(_normalized_text_for_match(source_country))
+        if mapped:
+            return mapped
+
+    if not text:
+        return ""
+
+    normalized = _normalized_text_for_match(text)
+
+    lag = _extract_month_lag(text)
+    lag_prefix = lag[0] if lag else "N"
+    lag_value = lag[1] if lag else 1
+
+    if "asia se" in normalized and "low" in normalized:
+        return f"ICIS Asia SE Low ({lag_prefix}-{lag_value})"
+
+    if "ihs" in normalized:
+        return f"IHS PET China Mid ({lag_prefix}-{lag_value})"
+
+    if (
+        "fob china" in normalized
+        or "icis china" in normalized
+        or "pet china" in normalized
+        or normalized.startswith("icis n ")
+    ):
+        return f"ICIS PET China Mid ({lag_prefix}-{lag_value})"
+
+    return text
 
 
 def normalized_key(value: Any) -> str:
@@ -299,8 +364,8 @@ def to_api_row(row: dict[str, Any], common_mapping: dict[str, str]) -> dict[str,
         "dataType": clean_text(row.get("Data Type")),
         "sourceFile": clean_text(row.get("Source File")),
         "location": clean_text(row.get("Location")),
-        "resinIndexType": clean_text(row.get("Resin Index Type")),
-        "forecastResinIndexType": clean_text(row.get("Forecast Resin Index Type")),
+        "resinIndexType": normalize_resin_index_type(row.get("Resin Index Type")),
+        "forecastResinIndexType": normalize_resin_index_type(row.get("Forecast Resin Index Type")),
         "columnRequiredForCalculation": clean_text(row.get("Column Required for Calculation")),
     }
 

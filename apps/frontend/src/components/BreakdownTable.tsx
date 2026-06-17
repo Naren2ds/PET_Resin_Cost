@@ -21,6 +21,8 @@ type VendorBreakdownItem = {
   dataType?: string;
   sourceFile?: string;
   location?: string;
+  resinIndexType?: string;
+  forecastResinIndexType?: string;
 };
 
 type BreakdownTableProps = {
@@ -181,8 +183,22 @@ const componentSortIndex = (component: string) => {
   return index >= 0 ? index : COMMON_COMPONENT_ORDER.length;
 };
 
-const detailDisplayLabel = (item: { rawLabel?: string; label: string }) =>
-  item.rawLabel?.trim() || item.label;
+const detailDisplayLabel = (item: {
+  rawLabel?: string;
+  label: string;
+  resinIndexType?: string;
+  forecastResinIndexType?: string;
+}, component: string) => {
+  if (normalize(component) === "resin index") {
+    return (
+      item.resinIndexType?.trim() ||
+      item.forecastResinIndexType?.trim() ||
+      item.rawLabel?.trim() ||
+      item.label
+    );
+  }
+  return item.rawLabel?.trim() || item.label;
+};
 
 const AmountWithShare = ({
   value,
@@ -306,7 +322,7 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
         if (!component) return;
         const rows = marketGroups.get(component) ?? [];
         rows.push({
-          label: detailDisplayLabel(item),
+          label: detailDisplayLabel(item, component),
           amount: item.amount,
           isReference: normalize(item.columnRequiredForCalculation) === "no",
         });
@@ -318,7 +334,7 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       if (!component) return;
       const rows = supplierGroups.get(component) ?? [];
       rows.push({
-        label: detailDisplayLabel(item),
+        label: detailDisplayLabel(item, component),
         amount: item.amount,
       });
       supplierGroups.set(component, rows);

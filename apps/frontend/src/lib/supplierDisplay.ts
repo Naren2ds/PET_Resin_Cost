@@ -90,3 +90,24 @@ export const supplierNameMatchesEntry = (
       (!location && (alias.includes(requested) || requested.includes(alias)))
   );
 };
+
+export const fallbackSupplierNameForDestination = (destination: string | undefined) => {
+  const value = (destination ?? "").trim();
+  if (value === "Brazil") return "Amcor";
+  if (value === "Peru") return "San Miguel Industrias (SMI)";
+  if (value === "Dominican Republic") return "SMI PET";
+  if (value === "Panama") return "Pastiglas S.A";
+  if (value === "Uruguay") return "Cristalpet";
+  if (value === "Bolivia") {
+    return "Gestora, Administradora e Industrializadora Preformas S.A.";
+  }
+  if (
+    value === "Argentina" ||
+    value === "Colombia" ||
+    value === "Ecuador" ||
+    value === "El Salvador and Honduras"
+  ) {
+    return "Amcor";
+  }
+  return "";
+};

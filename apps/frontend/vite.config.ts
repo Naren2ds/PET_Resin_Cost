@@ -19,6 +19,7 @@ export default defineConfig({
       "/countries": "http://127.0.0.1:8000",
       "/market-research-trends": "http://127.0.0.1:8000",
       "/health": "http://127.0.0.1:8000",
+      "/insights": "http://127.0.0.1:8000",
     },
   },
 })

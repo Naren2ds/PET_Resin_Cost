@@ -17,9 +17,11 @@ import type {
 } from "../types";
 import { formatAmount } from "../types";
 import RevealOnScroll from "../components/RevealOnScroll";
+import AIInsightPanel from "../components/AIInsightPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createApiUrl } from "../lib/api";
 import {
+  fallbackSupplierNameForDestination,
   supplierDisplayNameForEntry,
   supplierNameMatchesEntry,
 } from "../lib/supplierDisplay";
@@ -557,6 +559,11 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
   const supplierOptionsKey = supplierOptions.join("|");
 
   const supplierName = useMemo(() => {
+    const destinationFallback = fallbackSupplierNameForDestination(selectedDestination);
+    if (normalize(selectedDestination) === "argentina" && destinationFallback) {
+      return destinationFallback;
+    }
+
     if (requestedSupplier) {
       const requestedEntry = supplierEntriesForSource.find((entry) =>
         supplierNameMatchesEntry(entry, requestedSupplier)
@@ -1200,7 +1207,23 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
             </CardContent>
           </Card>
         </section>
+        <div className="mx-auto w-full max-w-[1400px] mb-4 mt-4">
+        <AIInsightPanel
+          request={{
+            page: "trends",
+            destination: selectedDestination,
+            year: "2026",
+            marketResearchTrends: marketResearchTrendRows,
+            vendorBreakdowns: data.vendorBreakdowns.filter(
+              (e) =>
+                destinationDisplayName(e.destination) === selectedDestination &&
+                Number(e.year) === 2026
+            ),
+          }}
+        />
+      </div>
       </RevealOnScroll>
+      
     </div>
   );
 };

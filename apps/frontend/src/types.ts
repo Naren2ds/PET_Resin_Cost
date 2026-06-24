@@ -90,3 +90,24 @@ export const formatAmount = (value: number | string | null | undefined) => {
 /** Delta = supplier TLC - market research TLC. */
 export const formatDeltaVersusMarketForCompany = (supplierMinusMarket: number): string =>
   `${supplierMinusMarket > 0 ? "+" : ""}$${formatAmount(supplierMinusMarket)}/MT`;
+
+// ---------------------------------------------------------------------------
+// AI Insights
+// ---------------------------------------------------------------------------
+export type InsightsRequest = {
+  page: string;
+  destination?: string;
+  month?: string;
+  year?: string;
+  countries?: CountryCost[];
+  vendorBreakdowns?: VendorBreakdownEntry[];
+  marketResearchTrends?: MarketResearchTrendEntry[];
+  baseTlc?: number | null;
+  simulatedTlc?: number | null;
+};
+
+export type InsightsResult = {
+  page: string;
+  insights: string;        // markdown bullet list from LLM
+  analytics: Record<string, unknown>;
+};

@@ -31,6 +31,7 @@ import {
   supplierNameMatchesEntry,
 } from "../lib/supplierDisplay";
 import { formatAmount, formatDeltaVersusMarketForCompany } from "../types";
+import AIInsightPanel from "../components/AIInsightPanel";
 
 type HomePageProps = {
   data: ApiResponse;
@@ -1062,6 +1063,24 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
               </div>
             </div>
           </section>
+        </RevealOnScroll>
+         <RevealOnScroll>
+          <AIInsightPanel
+            request={{
+              page: "home",
+              destination: selectedDestination,
+              month: selectedMonth,
+              year: selectedYear,
+              countries: data.countries,
+              vendorBreakdowns: data.vendorBreakdowns.filter(
+                (e) =>
+                  e.destination === selectedDestination &&
+                  e.month === selectedMonth &&
+                  vendorYearMatches(e.year, selectedYear)
+              ),
+            }}
+            className="mb-1"
+          />
         </RevealOnScroll>
       </main>
     </div>

@@ -900,6 +900,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--skip-extraction", action="store_true")
     parser.add_argument("--skip-mapping", action="store_true")
+    parser.add_argument(
+        "--skip-forecast",
+        action="store_true",
+        help="Generate actual artifacts only and skip forecast generation.",
+    )
     return parser.parse_args()
 
 
@@ -924,9 +929,16 @@ def main() -> None:
     validation = source_workbook_validation(final_rows)
     actual_standardized = standardized_rows(final_rows, validation)
     actual_front_end = front_end_actual_rows(actual_standardized)
-    resin_forecast = read_resin_forecast(RESIN_FORECAST_CSV)
-    forecast_inputs = build_forecast_inputs(validation, resin_forecast)
-    forecast_estimates, forecast_front_end = build_forecast_estimates(forecast_inputs)
+
+    if args.skip_forecast:
+        forecast_inputs = []
+        forecast_estimates = []
+        forecast_front_end = []
+    else:
+        resin_forecast = read_resin_forecast(RESIN_FORECAST_CSV)
+        forecast_inputs = build_forecast_inputs(validation, resin_forecast)
+        forecast_estimates, forecast_front_end = build_forecast_estimates(forecast_inputs)
+
     write_outputs(
         final_rows,
         actual_standardized,
@@ -944,6 +956,7 @@ def main() -> None:
     print(f"final_rows={len(final_rows)}")
     print(f"validation_rows={len(validation)}")
     print(f"forecast_months={len(forecast_estimates)}")
+    print(f"skip_forecast={args.skip_forecast}")
     print(f"forecast_template={FORECAST_TEMPLATE_FILE}")
     print(f"forecast_estimation={FORECAST_ESTIMATION_FILE}")
     print(f"front_end_actual_forecast_csv={FRONT_END_ACTUAL_FORECAST_CSV}")

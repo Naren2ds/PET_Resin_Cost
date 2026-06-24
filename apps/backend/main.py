@@ -15,6 +15,13 @@ from market_research_data_model import (
     build_market_research_tlc_trends,
 )
 from supplier_data_model import build_vendor_breakdowns, supplier_price_for
+from ai_insights import (
+    analytics_home,
+    analytics_trends,
+    analytics_cost_components,
+    analytics_simulation,
+    generate_insights,
+)
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -211,6 +218,67 @@ def market_research_trends(
             selected_year,
         ),
     }
+
+
+class InsightsRequest(BaseModel):
+    page: str  # "home" | "trends" | "cost_components" | "simulation"
+    destination: Optional[str] = None
+    month: Optional[str] = None
+    year: Optional[str] = None
+    # home / cost_components
+    countries: Optional[List[dict]] = None
+    vendorBreakdowns: Optional[List[dict]] = None
+    # trends
+    marketResearchTrends: Optional[List[dict]] = None
+    # simulation
+    baseTlc: Optional[float] = None
+    simulatedTlc: Optional[float] = None
+
+
+class InsightsResponse(BaseModel):
+    page: str
+    insights: str
+    analytics: dict
+
+
+@app.post("/insights", response_model=InsightsResponse)
+def insights(req: InsightsRequest):
+    """
+    Accepts the current page's data payload, runs analytics, calls the LLM,
+    and returns business-friendly insights as markdown bullet points.
+    """
+    destination = req.destination or DEFAULT_DESTINATION
+    month = req.month or DEFAULT_MONTH
+    year = str(req.year or DEFAULT_YEAR)
+    page = req.page.lower()
+
+    if page == "home":
+        analytics = analytics_home(
+            destination, month, year,
+            req.countries or [],
+            req.vendorBreakdowns or [],
+        )
+    elif page == "trends":
+        analytics = analytics_trends(
+            destination, year,
+            req.marketResearchTrends or [],
+            req.vendorBreakdowns or [],
+        )
+    elif page == "cost_components":
+        analytics = analytics_cost_components(
+            destination, month, year,
+            req.vendorBreakdowns or [],
+        )
+    elif page == "simulation":
+        analytics = analytics_simulation(
+            req.baseTlc, req.simulatedTlc,
+            destination, month, year,
+        )
+    else:
+        analytics = {"page": page, "note": "unknown page"}
+
+    insight_text = generate_insights(page, analytics)
+    return {"page": page, "insights": insight_text, "analytics": analytics}
 
 
 @app.get("/{full_path:path}", include_in_schema=False)

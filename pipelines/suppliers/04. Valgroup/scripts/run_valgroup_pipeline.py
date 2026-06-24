@@ -1107,6 +1107,11 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--skip-legacy-extraction", action="store_true")
     parser.add_argument("--skip-legacy-mapping", action="store_true")
+    parser.add_argument(
+        "--skip-forecast",
+        action="store_true",
+        help="Generate actual artifacts only and skip forecast generation.",
+    )
     return parser.parse_args()
 
 
@@ -1131,8 +1136,15 @@ def main() -> None:
     validation = validation_rows(final_rows)
     standardized = build_standardized_rows(final_rows)
     actual_front_end = build_front_end_actual_rows(standardized)
-    forecast_inputs = build_forecast_inputs(validation)
-    forecast_estimates, forecast_front_end = build_forecast_estimates(forecast_inputs)
+
+    if args.skip_forecast:
+        forecast_inputs = []
+        forecast_estimates = []
+        forecast_front_end = []
+    else:
+        forecast_inputs = build_forecast_inputs(validation)
+        forecast_estimates, forecast_front_end = build_forecast_estimates(forecast_inputs)
+
     write_outputs(
         raw_rows,
         final_rows,
@@ -1150,6 +1162,7 @@ def main() -> None:
     print(f"validation_rows={len(validation)}")
     print(f"forecast_input_rows={len(forecast_inputs)}")
     print(f"forecast_estimate_rows={len(forecast_estimates)}")
+    print(f"skip_forecast={args.skip_forecast}")
     print(f"extracted_file={EXTRACTED_FILE}")
     print(f"tlc_validation_file={TLC_VALIDATION_FILE}")
     print(f"forecast_template={FORECAST_TEMPLATE_FILE}")

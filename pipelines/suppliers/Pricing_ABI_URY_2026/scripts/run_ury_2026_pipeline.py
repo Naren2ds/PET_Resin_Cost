@@ -39,9 +39,10 @@ SHEET_SPECS = [
     {"sheet_name":"Febrero" , "month": 2, "year": 2026},
     {"sheet_name":"Marzo" , "month": 3, "year": 2026},
     {"sheet_name": "Abril", "month": 4, "year": 2026},
-    # Example:
     {"sheet_name": "Mayo", "month": 5, "year": 2026},
-    # {"sheet_name": "Junio 2026", "month": 6, "year": 2026},
+    {"sheet_name": "Junio", "month": 6, "year": 2026},
+    {"sheet_name": "Junio 2026", "month": 6, "year": 2026},
+    {"sheet_name": "Jun 2026", "month": 6, "year": 2026},
 ]
 
 # Components to extract from each sheet
@@ -114,6 +115,7 @@ def extract_all_rows() -> list[dict[str, Any]]:
     wb = load_workbook(SOURCE_FILE, read_only=True, data_only=True)
 
     all_rows: list[dict[str, Any]] = []
+    month_seen: set[tuple[int, int]] = set()
 
     try:
         for spec in SHEET_SPECS:
@@ -121,16 +123,17 @@ def extract_all_rows() -> list[dict[str, Any]]:
             month = spec["month"]
             year = spec["year"]
 
+            if (year, month) in month_seen:
+                continue
+
             if sheet_name not in wb.sheetnames:
-                raise ValueError(
-                    f"Sheet {sheet_name!r} not found in workbook. "
-                    f"Available sheets: {wb.sheetnames}"
-                )
+                continue
 
             print(f"\nReading sheet: {sheet_name}")
             ws = wb[sheet_name]
             rows = extract_rows_from_sheet(ws, sheet_name=sheet_name, year=year, month=month)
             all_rows.extend(rows)
+            month_seen.add((year, month))
     finally:
         wb.close()
 

@@ -21,7 +21,16 @@ from typing import Any
 from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
+BACKEND_DIR = Path(__file__).resolve().parent
+REPO_ROOT = BACKEND_DIR.parent.parent
+WORKSPACE_ROOT = REPO_ROOT.parent
+
+for env_path in (
+    WORKSPACE_ROOT / ".env",
+    REPO_ROOT / ".env",
+    BACKEND_DIR / ".env",
+):
+    load_dotenv(dotenv_path=env_path, override=False)
 
 
 def _env_value(*names: str) -> str | None:
@@ -399,8 +408,8 @@ def generate_insights(page: str, analytics: dict) -> str:
     if cached is not None:
         return cached
 
-    client = _get_client()
     try:
+        client = _get_client()
         response = client.chat.completions.create(
             model=MODEL,
             messages=[

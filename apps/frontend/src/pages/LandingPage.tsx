@@ -3,7 +3,7 @@ import { ScrollProgressBar } from "../components/ScrollProgressBar";
 import { cn } from "@/lib/utils";
 
 const SHELL = "pet-app-surface p-6 sm:p-8";
-const LATEST_MONTH_TARGET = "YTD May";
+const LATEST_MONTH_TARGET = "YTD June";
 
 const latestMonthToneClass = (value: string) =>
   value.trim() === LATEST_MONTH_TARGET ? "text-success" : "text-warning";
@@ -204,16 +204,16 @@ const LandingPage: React.FC = () => {
                   <tbody>
                     {(() => {
                       const data = [
-                        ["Brazil", "Amcor, Cristalpet, Engepack, Valgroup", "YTD April"],
-                        ["Ecuador", "Amcor", "YTD April"],
-                        ["Panama", "Pastiglas", "YTD May"],
+                        ["Brazil", "Amcor, Cristalpet, Engepack, Valgroup", "YTD June"],
+                        ["Ecuador", "Amcor", "YTD June"],
+                        ["Panama", "Pastiglas", "YTD June"],
                         ["Colombia", "Amcor", "YTD March"],
-                        ["Peru", "San Miguel Industrias (SMI)", "YTD May"],
+                        ["Peru", "San Miguel Industrias (SMI)", "YTD June"],
                         ["Argentina", "Amcor", "YTD Feb"],
-                        ["Dominican Republic", "SMI PET", "YTD May"],
-                        ["Uruguay", "Cristalpet", "YTD May"],
-                        ["El Salvador and Honduras", "Amcor", "YTD May"],
-                        ["Bolivia","Gestora, Administradora e Industrializadora Preformas S.A.","YTD May"]
+                        ["Dominican Republic", "SMI PET", "YTD June"],
+                        ["Uruguay", "Cristalpet", "YTD June"],
+                        ["El Salvador and Honduras", "Amcor", "YTD June"],
+                        ["Bolivia","Gestora, Administradora e Industrializadora Preformas S.A.","YTD June"]
                       ];
                       const rows = [];
                       for (let i = 0; i < data.length; i += 2) {

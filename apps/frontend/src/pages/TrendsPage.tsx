@@ -822,6 +822,11 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
     return Array.from(names);
   }, [marketIndexValuesByCountryAndMonth, selectedMarketCountries]);
 
+  const marketIndexDisplayName = useMemo(() => {
+    if (!marketIndexNames.length) return "No MR index available";
+    return marketIndexNames.join(" | ");
+  }, [marketIndexNames]);
+
   const latestActual = useMemo(() => {
     const actualRows = MONTHS.map((_, index) => supplierEntriesByMonth.get(index))
       .filter((entry): entry is VendorBreakdownEntry => Boolean(entry) && !dataTypeIsForecast(entry));
@@ -940,6 +945,25 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     <span className="ml-2 text-xs font-semibold text-muted-foreground">
                       {forecastRowsCount} forecast months
                     </span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="-mt-1 grid gap-2 md:grid-cols-2">
+                <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5">
+                  <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                    Training data
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                    Jan 2020 to May 2026
+                  </p>
+                </div>
+                <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5">
+                  <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                    Predicted data
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                    June 2026 to Dec 2026
                   </p>
                 </div>
               </div>
@@ -1102,7 +1126,23 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                         MR index used
                       </p>
                       <p className="mt-1 line-clamp-2 font-semibold text-foreground">
-                        {marketIndexNames[1] || "No MR index available"}
+                        {marketIndexDisplayName}
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5 md:col-span-1">
+                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                        Training data
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                        Jan 2020 to May 2026
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5 md:col-span-1">
+                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                        Predicted data
+                      </p>
+                      <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                        June 2026 to Dec 2026
                       </p>
                     </div>
                   </div>

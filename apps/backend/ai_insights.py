@@ -14,12 +14,14 @@ import os
 import statistics
 import hashlib
 import json
+import math
+import re
 from threading import Lock
 from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from openai import OpenAI
+# from openai import OpenAI
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
 
@@ -67,6 +69,50 @@ LABEL_FREIGHT = "freight"
 LABEL_TAX = "tax"
 LABEL_SUPPLIER_TLC = "total resin price abi virgin formula"
 
+# ---------------------------------------------------------------------------
+# Guardrail: only these component keywords are eligible for AI insights.
+# Sub Total (CIF) and any other derived subtotals are explicitly excluded.
+# ---------------------------------------------------------------------------
+ALLOWED_COMPONENT_KEYWORDS: list[str] = [
+    "resin",       # Resin Index / Resin Index VPET
+    "freight",     # Freight
+    "insurance",   # Insurance
+    "duty",        # Duty and Import Taxes
+    "import tax",  # Import Taxes
+    "local tax",   # Local Taxes and Fees
+    "local fee",   # Local Fees
+]
+
+EXCLUDED_COMPONENT_KEYWORDS: list[str] = [
+    "sub total",   # Sub Total (CIF) and similar subtotals
+    "subtotal",
+    "cif",         # Cost-Insurance-Freight rolled-up values
+]
+
+
+def _is_allowed_component(label: str) -> bool:
+    """Return True only if the label matches an allowed component keyword
+    and does not match any excluded subtotal keyword."""
+    lower = label.strip().lower()
+    if any(kw in lower for kw in EXCLUDED_COMPONENT_KEYWORDS):
+        return False
+    return any(kw in lower for kw in ALLOWED_COMPONENT_KEYWORDS)
+MONTH_ORDER = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
+MONTH_INDEX = {name.lower(): i for i, name in enumerate(MONTH_ORDER)}
+
 
 def _label_matches(label: str, keyword: str) -> bool:
     return keyword in label.strip().lower()
@@ -91,6 +137,441 @@ def _supplier_tlc(entry: dict) -> float | None:
             except (TypeError, ValueError):
                 pass
     return None
+
+
+def _to_float(value: Any) -> float | None:
+    if value in (None, ""):
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(str(value).replace(",", ""))
+    except (TypeError, ValueError):
+        return None
+
+
+def _month_idx(value: Any) -> int:
+    if value is None:
+        return -1
+
+    text = str(value).strip()
+    key = text.lower()
+    if key in MONTH_INDEX:
+        return MONTH_INDEX[key]
+
+    # Support formats like 2026-07-01, 2026/07/01, 2026-07
+    ymd_match = re.search(r"\b(20\d{2})[-/](\d{1,2})(?:[-/](\d{1,2}))?\b", text)
+    if ymd_match:
+        month_number = int(ymd_match.group(2))
+        if 1 <= month_number <= 12:
+            return month_number - 1
+
+    return -1
+
+
+def _extract_year(value: Any) -> int:
+    if value is None:
+        return 0
+    year = int(_to_float(value) or 0)
+    if year > 0:
+        return year
+    text = str(value).strip()
+    match = re.search(r"\b(20\d{2})\b", text)
+    if match:
+        return int(match.group(1))
+    return 0
+
+
+def _is_forecast_row(entry: dict) -> bool:
+    # Accept both API-style and standardized-sheet style keys.
+    raw = (
+        entry.get("dataType")
+        or entry.get("Data Type")
+        or entry.get("datatype")
+        or ""
+    )
+    return str(raw).strip().lower() == "forecast"
+
+
+def _entry_period_key(entry: dict) -> tuple[int, int]:
+    month_value = (
+        entry.get("month")
+        or entry.get("Time Period Month")
+        or entry.get("Time_Period")
+        or entry.get("Time_Period ")
+        or entry.get("Time Period")
+        or entry.get("period")
+    )
+    year_value = entry.get("year") or entry.get("Time Period Year")
+
+    year = _extract_year(year_value)
+    month = _month_idx(month_value)
+
+    # Fallback for compact date values kept in period fields (e.g. 2026-07-01).
+    if year <= 0:
+        year = _extract_year(month_value)
+
+    return year, month
+
+
+def _supplier_name(entry: dict) -> str:
+    return str(
+        entry.get("supplierName")
+        or entry.get("supplier")
+        or entry.get("vendor")
+        or "Unknown Supplier"
+    )
+
+
+def _same_destination(entry: dict, destination: str) -> bool:
+    return str(entry.get("destination", "")).strip().lower() == destination.strip().lower()
+
+
+def _component_amounts(entry: dict) -> list[tuple[str, float]]:
+    """Return cost component (label, amount) pairs for AI insights.
+
+    Guardrail: only components matching ALLOWED_COMPONENT_KEYWORDS are
+    included. TLC totals, Sub Total (CIF), and any other derived subtotals
+    are excluded to prevent double-counting in gap/driver analysis.
+    """
+    amounts: list[tuple[str, float]] = []
+    for row in entry.get("rows", []):
+        label = str(row.get("label", "")).strip()
+        if not label:
+            continue
+        # Exclude TLC totals (supplier and market)
+        if _label_matches(label, LABEL_SUPPLIER_TLC) or _label_matches(label, LABEL_TLC):
+            continue
+        # Guardrail: only permitted components pass through
+        if not _is_allowed_component(label):
+            continue
+        value = _to_float(row.get("amount"))
+        if value is None:
+            continue
+        amounts.append((label, value))
+    return sorted(amounts, key=lambda item: abs(item[1]), reverse=True)
+
+
+def _trend_label_from_series(series: list[float], pct_threshold: float = 2.0) -> str:
+    if len(series) < 2:
+        return "insufficient data"
+    start = series[0]
+    end = series[-1]
+    if start == 0:
+        return "insufficient data"
+    pct = ((end - start) / abs(start)) * 100
+    if pct > pct_threshold:
+        return f"increasing ({pct:.1f}%)"
+    if pct < -pct_threshold:
+        return f"decreasing ({pct:.1f}%)"
+    return f"stable ({pct:.1f}%)"
+
+
+def _volatility_risk(values: list[float]) -> str:
+    if len(values) < 3:
+        return "Low"
+    mean = statistics.fmean(values)
+    if math.isclose(mean, 0.0, abs_tol=1e-9):
+        return "Low"
+    std = statistics.pstdev(values)
+    cv = abs(std / mean)
+    if cv >= 0.12:
+        return "High"
+    if cv >= 0.06:
+        return "Medium"
+    return "Low"
+
+
+def _priority_and_action(
+    gap_pct: float | None,
+    volatility_risk: str,
+    forecast_gap_trend: str,
+    supplier_rank: int | None,
+    market_count: int,
+) -> tuple[str, str]:
+    score = 0
+    if gap_pct is not None:
+        if gap_pct >= 15:
+            score += 3
+        elif gap_pct >= 8:
+            score += 2
+        elif gap_pct >= 3:
+            score += 1
+    if volatility_risk == "High":
+        score += 1
+    elif volatility_risk == "Medium":
+        score += 0.5
+    if "increasing" in forecast_gap_trend:
+        score += 1
+    elif "decreasing" in forecast_gap_trend:
+        # Narrowing gap is a favourable signal — reduce score by 1 (floor at 0)
+        score = max(0, score - 1)
+    if supplier_rank is not None and market_count > 0 and supplier_rank > max(1, market_count // 2):
+        score += 1
+
+    if score >= 4:
+        return (
+            "High",
+            "Prioritize negotiation now; challenge freight/tax assumptions and run competitive rebid against lower-cost market alternatives.",
+        )
+    if score >= 2:
+        return (
+            "Medium",
+            "Open negotiation with targeted asks on the largest cost drivers and monitor monthly gap movement before renewal.",
+        )
+    return (
+        "Low",
+        "Maintain current sourcing position; continue monitoring benchmark and lock terms if volatility risk rises.",
+    )
+
+
+def build_procurement_intelligence(
+    page: str,
+    destination: str,
+    month: str,
+    year: str,
+    countries: list[dict],
+    vendor_breakdowns: list[dict],
+    market_research_trends: list[dict],
+    base_tlc: float | None,
+    simulated_tlc: float | None,
+) -> dict[str, Any]:
+    year_int = int(_to_float(year) or 0)
+    month_idx = _month_idx(month)
+
+    market_tlc_by_source: dict[str, float] = {}
+    for c in countries:
+        source = str(c.get("country", "")).strip()
+        if not source:
+            continue
+        value = _to_float(c.get("amount"))
+        if value is None:
+            value = _breakdown_value(c.get("breakdown", []), LABEL_TLC)
+        if value is not None:
+            market_tlc_by_source[source] = value
+
+    mr_trend_lookup: dict[str, dict[tuple[int, int], float]] = {}
+    for row in market_research_trends:
+        if destination and not _same_destination(row, destination):
+            continue
+        src = str(row.get("sourceCountry", "")).strip()
+        if not src:
+            continue
+        value = _to_float(row.get("amount"))
+        key = _entry_period_key(row)
+        if value is None or key[0] <= 0 or key[1] < 0:
+            continue
+        mr_trend_lookup.setdefault(src, {})[key] = value
+
+    if not market_tlc_by_source:
+        for src, points in mr_trend_lookup.items():
+            candidate = points.get((year_int, month_idx)) if month_idx >= 0 else None
+            if candidate is None and points:
+                candidate = points[sorted(points.keys())[-1]]
+            if candidate is not None:
+                market_tlc_by_source[src] = candidate
+
+    vendor_rows = [
+        v for v in vendor_breakdowns if not destination or _same_destination(v, destination)
+    ]
+
+    # Use the raw supplier field (base name) for grouping so that actual and forecast
+    # entries from different location variants (e.g. "Amcor" vs "Amcor - China") are
+    # merged into a single timeline per (base_supplier, source_country).
+    def _base_supplier(entry: dict) -> str:
+        return str(
+            entry.get("supplier")
+            or entry.get("supplierName")
+            or entry.get("vendor")
+            or "Unknown Supplier"
+        )
+
+    grouped: dict[tuple[str, str], list[dict]] = {}
+    for entry in vendor_rows:
+        key = (
+            _base_supplier(entry),
+            str(entry.get("sourceCountry", "")).strip(),
+        )
+        grouped.setdefault(key, []).append(entry)
+
+    snapshot_entries: list[dict] = []
+    for entries in grouped.values():
+        # Prefer the actual row for the selected month/year as the display snapshot.
+        selected = None
+        if year_int > 0 and month_idx >= 0:
+            actuals_matching = [
+                e for e in entries
+                if int(_to_float(e.get("year")) or 0) == year_int
+                and _month_idx(e.get("month")) == month_idx
+                and not _is_forecast_row(e)
+            ]
+            if actuals_matching:
+                selected = sorted(actuals_matching, key=_entry_period_key)[-1]
+            if selected is None:
+                matching = [
+                    e for e in entries
+                    if int(_to_float(e.get("year")) or 0) == year_int
+                    and _month_idx(e.get("month")) == month_idx
+                ]
+                if matching:
+                    selected = sorted(matching, key=_entry_period_key)[-1]
+        if selected is None:
+            # Fall back to latest actual, then latest forecast
+            actuals = [e for e in entries if not _is_forecast_row(e)]
+            selected = sorted(actuals, key=_entry_period_key)[-1] if actuals else sorted(entries, key=_entry_period_key)[-1]
+        snapshot_entries.append((entries, selected))
+
+    best_market_tlc = min(market_tlc_by_source.values()) if market_tlc_by_source else None
+    market_values_sorted = sorted(market_tlc_by_source.values())
+    market_count = len(market_values_sorted)
+
+    records: list[dict[str, Any]] = []
+    for all_entries, entry in snapshot_entries:
+        supplier = _supplier_name(entry)
+        source_country = str(entry.get("sourceCountry", "")).strip()
+        location = str(entry.get("location") or entry.get("destination") or "").strip()
+        supplier_tlc = _supplier_tlc(entry)
+
+        same_source_market_tlc = market_tlc_by_source.get(source_country)
+        gap_abs = None
+        gap_pct = None
+        if supplier_tlc is not None and same_source_market_tlc not in (None, 0):
+            gap_abs = round(supplier_tlc - float(same_source_market_tlc), 1)
+            gap_pct = round((gap_abs / float(same_source_market_tlc)) * 100, 2)
+
+        supplier_rank = None
+        if supplier_tlc is not None and market_values_sorted:
+            supplier_rank = 1 + sum(1 for value in market_values_sorted if value < supplier_tlc)
+
+        components = _component_amounts(entry)
+        largest = components[0][0] if len(components) >= 1 else "Unknown"
+        second = components[1][0] if len(components) >= 2 else "Unknown"
+
+        # Use the full merged timeline (all location variants) for trend computation.
+        supplier_series_entries = sorted(
+            [e for e in all_entries if _supplier_tlc(e) is not None],
+            key=_entry_period_key,
+        )
+        forecast_series = [_supplier_tlc(e) for e in supplier_series_entries if _is_forecast_row(e)]
+        forecast_series_clean = [float(v) for v in forecast_series if v is not None]
+        forecast_trend = _trend_label_from_series(forecast_series_clean)
+
+        forecast_gap_series: list[float] = []
+        for e in supplier_series_entries:
+            if not _is_forecast_row(e):
+                continue
+            tlc_value = _supplier_tlc(e)
+            if tlc_value is None:
+                continue
+            period_key = _entry_period_key(e)
+            mr_value = mr_trend_lookup.get(source_country, {}).get(period_key)
+            if mr_value in (None, 0):
+                continue
+            forecast_gap_series.append(tlc_value - mr_value)
+        forecast_gap_trend = _trend_label_from_series(forecast_gap_series)
+
+        history_series = [
+            float(value)
+            for value in [_supplier_tlc(e) for e in supplier_series_entries]
+            if value is not None
+        ]
+        volatility_risk = _volatility_risk(history_series)
+
+        negotiation_priority, recommended_action = _priority_and_action(
+            gap_pct=gap_pct,
+            volatility_risk=volatility_risk,
+            forecast_gap_trend=forecast_gap_trend,
+            supplier_rank=supplier_rank,
+            market_count=market_count,
+        )
+
+        records.append(
+            {
+                "supplier": supplier,
+                "destination": destination,
+                "source_country": source_country,
+                "location": location,
+                "supplier_tlc": round(supplier_tlc, 1) if supplier_tlc is not None else None,
+                "best_market_tlc": round(best_market_tlc, 1) if best_market_tlc is not None else None,
+                "same_source_market_tlc": round(same_source_market_tlc, 1)
+                if same_source_market_tlc is not None
+                else None,
+                "gap_abs": gap_abs,
+                "gap_pct": gap_pct,
+                "supplier_rank": supplier_rank,
+                "largest_cost_driver": largest,
+                "second_largest_cost_driver": second,
+                "cost_driver_breakdown": [
+                    {"label": label, "amount": round(amount, 1)} for label, amount in components[:5]
+                ],
+                "forecast_trend": forecast_trend,
+                "forecast_gap_trend": forecast_gap_trend,
+                "volatility_risk": volatility_risk,
+                "negotiation_priority": negotiation_priority,
+                "recommended_action": recommended_action,
+                "benchmark_scope": "same_source_country",
+                "comparison_guardrail": "gap_abs and gap_pct are computed only against same_source_market_tlc.",
+            }
+        )
+
+    risk_sorted = sorted(
+        records,
+        key=lambda r: (
+            {"High": 3, "Medium": 2, "Low": 1}.get(str(r.get("negotiation_priority")), 0),
+            _to_float(r.get("gap_abs")) or -9999,
+        ),
+        reverse=True,
+    )
+    opportunities = sorted(
+        [r for r in records if (_to_float(r.get("gap_abs")) or 0) > 0],
+        key=lambda r: _to_float(r.get("gap_abs")) or 0,
+        reverse=True,
+    )
+    best_suppliers = sorted(
+        records,
+        key=lambda r: (_to_float(r.get("gap_abs")) if r.get("gap_abs") is not None else 999999),
+    )
+    worst_suppliers = sorted(
+        records,
+        key=lambda r: (_to_float(r.get("gap_abs")) if r.get("gap_abs") is not None else -999999),
+        reverse=True,
+    )
+
+    def _summary_item(r: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "supplier": r.get("supplier"),
+            "source_country": r.get("source_country"),
+            "destination": r.get("destination"),
+            "gap_abs": r.get("gap_abs"),
+            "gap_pct": r.get("gap_pct"),
+            "negotiation_priority": r.get("negotiation_priority"),
+            "recommended_action": r.get("recommended_action"),
+        }
+
+    simulation_context = None
+    if base_tlc is not None and simulated_tlc is not None and base_tlc != 0:
+        delta = simulated_tlc - base_tlc
+        simulation_context = {
+            "base_tlc": round(base_tlc, 1),
+            "simulated_tlc": round(simulated_tlc, 1),
+            "impact_delta_usd": round(delta, 1),
+            "impact_pct": round((delta / base_tlc) * 100, 2),
+        }
+
+    return {
+        "page": page,
+        "destination": destination,
+        "month": month,
+        "year": year,
+        "records": records,
+        "summary": {
+            "top_risks": [_summary_item(r) for r in risk_sorted[:5]],
+            "top_opportunities": [_summary_item(r) for r in opportunities[:5]],
+            "best_suppliers": [_summary_item(r) for r in best_suppliers[:5]],
+            "worst_suppliers": [_summary_item(r) for r in worst_suppliers[:5]],
+        },
+        "simulation_context": simulation_context,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -277,7 +758,18 @@ def analytics_cost_components(
     Cost Components page: breakdown of what drives TLC per supplier.
     """
     summaries: list[dict] = []
+    year_int: int | None = None
+    try:
+        year_int = int(str(year))
+    except (TypeError, ValueError):
+        year_int = None
+
     for vb in vendor_breakdowns:
+        if str(vb.get("month", "")).strip().lower() != str(month).strip().lower():
+            continue
+        if year_int is not None and int(vb.get("year", 0)) != year_int:
+            continue
+
         rows = vb.get("rows", [])
         resin = _breakdown_value(rows, LABEL_RESIN)
         freight = _breakdown_value(rows, LABEL_FREIGHT)
@@ -351,24 +843,22 @@ def analytics_simulation(
 # LLM prompt + call
 # ---------------------------------------------------------------------------
 
-_SYSTEM_PROMPT = """You are a senior procurement strategist at AB InBev specializing in PET resin 
-sourcing for Latin America. You interpret Total Landing Cost (TLC) data and give sharp, 
-actionable insights in 3-5 bullet points. Be direct. Use $ and % numbers from the data. 
-Prioritize cost-saving opportunities and risk flags. Output only the bullet list, no headers.
+_SYSTEM_PROMPT = """You are a senior procurement strategist for PET resin sourcing.
 
-DATA SCHEMA RULES — read carefully before generating insights:
-- "market_research_benchmark_by_source_country": benchmark TLC indexed by RAW MATERIAL SOURCE country 
-    (e.g. China, India). Do NOT compare these directly to supplier contracted prices.
-- "supplier_contracted_tlc_at_destination": what AB InBev actually pays a named supplier, 
-    delivered to the DESTINATION country. Not comparable to source-country benchmarks.
-- "supplier_vs_market_gaps_same_source_country": each entry shows supplier delivered price vs 
-    market benchmark FOR THE SAME source country. "premium_over_benchmark_usd" is the premium 
-    above the raw index — this INCLUDES legitimate costs (freight, duties, supplier margin, FX).
-    A premium is NOT automatically overpayment; only flag it as a risk when it is unusually large
-    compared to other suppliers sourcing from that same country.
-- "spread_across_source_countries_usd": price range between cheapest and most expensive 
-    source country benchmarks. Not a supplier saving.
-- Never claim a saving or overpayment by comparing supplier TLC to a different source-country benchmark.
+You will receive structured procurement intelligence metrics that are already computed.
+Generate procurement decision insights, not generic chart summaries.
+
+Output format:
+- Return exactly 3 to 5 concise bullet insights.
+- Focus on: pricing opportunity, main cost driver, competitiveness, forecast risk, and recommended action.
+- Use business-friendly wording and quantify important statements with $ and %.
+
+Hard rules:
+- Do not invent savings.
+- Do not compare supplier TLC against the wrong market benchmark.
+- Respect that gap_abs and gap_pct are valid only when benchmark_scope is same_source_country.
+- Do not repeat raw metrics verbatim unless needed for context.
+- Keep output concise and action-oriented.
 """
 
 
@@ -380,8 +870,8 @@ def _build_user_prompt(page: str, analytics: dict) -> str:
     return (
         f"Page context: {page.upper()} dashboard\n\n"
         f"Analytics data:\n{payload}\n\n"
-        "Give 3–5 bullet-point business insights. Start each bullet with a bold keyword like "
-        "**Cost Alert**, **Opportunity**, **Trend**, **Risk**, or **Recommendation**."
+        "Generate 3-5 procurement decision bullets. Each bullet should clearly support one of: "
+        "Pricing Opportunity, Cost Driver, Competitiveness, Forecast Risk, or Recommended Action."
     )
 
 

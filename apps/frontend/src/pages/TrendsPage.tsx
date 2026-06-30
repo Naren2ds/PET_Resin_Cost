@@ -98,6 +98,65 @@ const MARKET_FALLBACK_COLORS = [
   "#10B981",
 ];
 
+const RESIN_INDEX_MAPE_SCORES: Array<{ market: string; value: string }> = [
+  { market: "Asia SE", value: "7.31%" },
+  { market: "Mexico", value: "13%" },
+  { market: "India", value: "5.99%" },
+  { market: "South Korea", value: "6.14%" },
+  { market: "Taiwan", value: "6.6%" },
+];
+
+type ResinIndexMapeBlockProps = {
+  selectedCountries: string[];
+};
+
+const MAPE_SELECTION_ALIASES: Record<string, string> = {
+  vietnam: "asia se",
+  indonesia: "asia se",
+  thailand: "asia se",
+};
+
+const mapeKeyForSelection = (country: string) => {
+  const key = normalize(country);
+  return MAPE_SELECTION_ALIASES[key] ?? key;
+};
+
+const ResinIndexMapeBlock = ({ selectedCountries }: ResinIndexMapeBlockProps) => {
+  const normalizedSelections = new Set(
+    selectedCountries.map((country) => mapeKeyForSelection(country))
+  );
+  const filteredScores = RESIN_INDEX_MAPE_SCORES.filter((item) =>
+    normalizedSelections.has(normalize(item.market))
+  );
+
+  return (
+    <div className="rounded-lg border border-border bg-background/25 px-3 py-2.5">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Resin Index MAPE
+      </p>
+      {filteredScores.length ? (
+        <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          {filteredScores.map((item) => (
+            <div
+              key={item.market}
+              className="rounded-md border border-border/70 bg-card/40 px-2.5 py-2"
+            >
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                {item.market}
+              </p>
+              <p className="mt-1 text-sm font-extrabold text-foreground">{item.value}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-1 text-xs text-muted-foreground">
+          No MAPE score configured for the currently selected market countries.
+        </p>
+      )}
+    </div>
+  );
+};
+
 const normalize = (value: string | undefined) => (value ?? "").trim().toLowerCase();
 
 const destinationDisplayName = (value: string | undefined) => {
@@ -969,6 +1028,10 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
               </div>
 
               <div>
+                <ResinIndexMapeBlock selectedCountries={selectedMarketCountries} />
+              </div>
+
+              <div>
                 <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Market Research Countries
                 </p>
@@ -1155,6 +1218,9 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     Hover any forecast index point to view the forecast formula, forecast training
                     months, back-tested months, and predicted months for that supplier or market index.
                   </p>
+                </div>
+                <div className="mb-3">
+                  <ResinIndexMapeBlock selectedCountries={selectedMarketCountries} />
                 </div>
                 {hasIndexChartData ? (
                   <div className="h-[340px] w-full">

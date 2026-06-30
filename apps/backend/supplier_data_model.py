@@ -91,6 +91,7 @@ def normalize_resin_index_type(
     *,
     source_country: str = "",
     market_context: bool = False,
+    destination: str = "",
 ) -> str:
     text = clean_text(value)
     if market_context:
@@ -107,6 +108,10 @@ def normalize_resin_index_type(
         mapped = market_index_by_source.get(_normalized_text_for_match(source_country))
         if mapped:
             return mapped
+
+    destination_key = _normalized_text_for_match(destination)
+    if destination_key in {"el salvador", "honduras", "el salvador and honduras"}:
+        return "ICIS PET China Mid (M-1)"
 
     if not text:
         return ""
@@ -268,6 +273,8 @@ def month_year_from_row(row: dict[str, Any]) -> tuple[str, str] | None:
 
 
 def model_destinations_for_response(destination: str) -> list[str]:
+    if normalized_key(destination) == normalized_key("El Salvador and Honduras"):
+        return ["El Salvador and Honduras", "El Salvador", "Honduras"]
     return [destination]
 
 
@@ -361,6 +368,7 @@ def to_api_row(row: dict[str, Any], common_mapping: dict[str, str]) -> dict[str,
     mapping_column = clean_text(row.get("Mapping Columns"))
     raw_label = clean_text(row.get("Raw Cost Breakdown"))
     common_component = common_mapping.get(mapping_column, mapping_column)
+    destination = clean_text(row.get("Destination Country"))
     return {
         "label": api_label_for_row(row),
         "amount": parse_number(row.get("Value")),
@@ -371,8 +379,14 @@ def to_api_row(row: dict[str, Any], common_mapping: dict[str, str]) -> dict[str,
         "dataType": clean_text(row.get("Data Type")),
         "sourceFile": clean_text(row.get("Source File")),
         "location": clean_text(row.get("Location")),
-        "resinIndexType": normalize_resin_index_type(row.get("Resin Index Type")),
-        "forecastResinIndexType": normalize_resin_index_type(row.get("Forecast Resin Index Type")),
+        "resinIndexType": normalize_resin_index_type(
+            row.get("Resin Index Type"),
+            destination=destination,
+        ),
+        "forecastResinIndexType": normalize_resin_index_type(
+            row.get("Forecast Resin Index Type"),
+            destination=destination,
+        ),
         "columnRequiredForCalculation": clean_text(row.get("Column Required for Calculation")),
     }
 

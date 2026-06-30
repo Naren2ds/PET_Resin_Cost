@@ -17,7 +17,7 @@ import type {
 } from "../types";
 import { formatAmount } from "../types";
 import RevealOnScroll from "../components/RevealOnScroll";
-import AIInsightPanel from "../components/AIInsightPanel";
+// import AIInsightPanel from "../components/AIInsightPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createApiUrl } from "../lib/api";
 import {
@@ -53,8 +53,26 @@ const SUPPLIER_INDEX_FORECAST_COLOR = "#38BDF8";
 const RESIN_INDEX_COMPONENT = "resin index";
 const RESIN_INDEX_MAPPING = "resin index vpet";
 const INDEX_MAPPING = "index";
-const DESTINATION_DISPLAY_ALIASES: Record<string, string> = {
-  "El Salvador": "El Salvador and Honduras",
+const COMBINED_EL_SALVADOR_HONDURAS = "El Salvador and Honduras";
+const PRIMARY_EL_SALVADOR_HONDURAS_OPTION = "El Salvador";
+
+const normalizeDestinationForUi = (value: string | undefined) => {
+  const trimmed = (value ?? "").trim();
+  return trimmed === COMBINED_EL_SALVADOR_HONDURAS
+    ? PRIMARY_EL_SALVADOR_HONDURAS_OPTION
+    : trimmed;
+};
+
+const destinationMatchKey = (value: string | undefined) => {
+  const key = normalize(value);
+  if (
+    key === "el salvador and honduras" ||
+    key === "el salvador" ||
+    key === "honduras"
+  ) {
+    return "el-salvador-honduras";
+  }
+  return key;
 };
 
 const MARKET_SHORT_NAMES: Record<string, string> = {
@@ -160,8 +178,7 @@ const ResinIndexMapeBlock = ({ selectedCountries }: ResinIndexMapeBlockProps) =>
 const normalize = (value: string | undefined) => (value ?? "").trim().toLowerCase();
 
 const destinationDisplayName = (value: string | undefined) => {
-  const trimmed = (value ?? "").trim();
-  return DESTINATION_DISPLAY_ALIASES[trimmed] ?? trimmed;
+  return normalizeDestinationForUi(value);
 };
 
 const shortMarketName = (country: string) => MARKET_SHORT_NAMES[country] ?? country;
@@ -533,7 +550,9 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
     data.vendorBreakdowns.forEach((entry) => {
       if (entry.destination) options.add(destinationDisplayName(entry.destination));
     });
-    return Array.from(options).sort((a, b) => a.localeCompare(b));
+    return Array.from(options)
+      .filter((destination) => destination !== COMBINED_EL_SALVADOR_HONDURAS)
+      .sort((a, b) => a.localeCompare(b));
   }, [data.destination, data.vendorBreakdowns]);
 
   useEffect(() => {
@@ -555,7 +574,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
     () =>
       marketResearchTrendRows.filter(
         (entry) =>
-          destinationDisplayName(entry.destination) === selectedDestination &&
+            destinationMatchKey(entry.destination) === destinationMatchKey(selectedDestination) &&
           Number(entry.year) === 2026 &&
           parseNumber(entry.amount) !== null
       ),
@@ -592,7 +611,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
     () =>
       data.vendorBreakdowns.filter(
         (entry) =>
-          entry.destination === selectedDestination &&
+          destinationMatchKey(entry.destination) === destinationMatchKey(selectedDestination) &&
           entry.sourceCountry === selectedSourceCountry &&
           Number(entry.year) === 2026
       ),
@@ -1210,15 +1229,6 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     </div>
                   </div>
                 </div>
-                <div className="mb-3 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">
-                    Forecast details
-                  </p>
-                  <p className="mt-1">
-                    Hover any forecast index point to view the forecast formula, forecast training
-                    months, back-tested months, and predicted months for that supplier or market index.
-                  </p>
-                </div>
                 <div className="mb-3">
                   <ResinIndexMapeBlock selectedCountries={selectedMarketCountries} />
                 </div>
@@ -1313,6 +1323,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
             </CardContent>
           </Card>
         </section>
+        {/*
         <div className="mx-auto w-full max-w-[1400px] mb-4 mt-4">
         <AIInsightPanel
           request={{
@@ -1328,6 +1339,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
           }}
         />
       </div>
+      */}
       </RevealOnScroll>
       
     </div>

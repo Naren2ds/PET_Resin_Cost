@@ -17,7 +17,7 @@ import type {
 } from "../types";
 import { formatAmount } from "../types";
 import RevealOnScroll from "../components/RevealOnScroll";
-import AIInsightPanel from "../components/AIInsightPanel";
+// import AIInsightPanel from "../components/AIInsightPanel";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createApiUrl } from "../lib/api";
@@ -486,8 +486,8 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
     return latest ? { entry: latest, value: getSupplierTlc(latest) } : null;
   }, [supplierEntriesByMonth]);
 
-  const selectedYear = searchParams.get("year") || "2026";
-  const selectedMonth = searchParams.get("month") || latestActual?.entry.month || "";
+  // const selectedYear = searchParams.get("year") || "2026";
+  // const selectedMonth = searchParams.get("month") || latestActual?.entry.month || "";
 
   const forecastRowsCount = useMemo(
     () =>
@@ -821,6 +821,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
               </div>
             </CardContent>
           </Card>
+          {/*
           <RevealOnScroll>
           <div className="mx-auto w-full max-w-[1480px] mb-4 mt-4">
           <AIInsightPanel
@@ -844,6 +845,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
               />
             </div>
           </RevealOnScroll>
+          */}
           
         </RevealOnScroll>
       </section>

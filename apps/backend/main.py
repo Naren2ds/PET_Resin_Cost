@@ -20,6 +20,7 @@ from ai_insights import (
     analytics_trends,
     analytics_cost_components,
     analytics_simulation,
+    build_procurement_intelligence,
     generate_insights,
 )
 
@@ -276,6 +277,18 @@ def insights(req: InsightsRequest):
         )
     else:
         analytics = {"page": page, "note": "unknown page"}
+
+    analytics["procurement_intelligence"] = build_procurement_intelligence(
+        page=page,
+        destination=destination,
+        month=month,
+        year=year,
+        countries=req.countries or [],
+        vendor_breakdowns=req.vendorBreakdowns or [],
+        market_research_trends=req.marketResearchTrends or [],
+        base_tlc=req.baseTlc,
+        simulated_tlc=req.simulatedTlc,
+    )
 
     insight_text = generate_insights(page, analytics)
     return {"page": page, "insights": insight_text, "analytics": analytics}

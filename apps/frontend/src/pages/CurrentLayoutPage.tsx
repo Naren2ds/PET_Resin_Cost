@@ -39,7 +39,8 @@ type CurrentLayoutPageProps = {
 const DEFAULT_DESTINATIONS = [
   "Brazil",
   "Argentina",
-  "El Salvador and Honduras",
+  "El Salvador",
+  "Honduras",
   "Colombia",
   "Peru",
   "Dominican Republic",
@@ -101,6 +102,8 @@ function fallbackSupplierNameForDestination(destination: string): string {
     destination === "Argentina" ||
     destination === "Colombia" ||
     destination === "Ecuador" ||
+    destination === "El Salvador" ||
+    destination === "Honduras" ||
     destination === "El Salvador and Honduras"
   ) {
     return "Amcor";

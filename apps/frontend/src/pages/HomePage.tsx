@@ -31,7 +31,7 @@ import {
   supplierNameMatchesEntry,
 } from "../lib/supplierDisplay";
 import { formatAmount, formatDeltaVersusMarketForCompany } from "../types";
-import AIInsightPanel from "../components/AIInsightPanel";
+// import AIInsightPanel from "../components/AIInsightPanel";
 
 type HomePageProps = {
   data: ApiResponse;
@@ -41,7 +41,8 @@ const DEFAULT_DESTINATIONS = [
   "Brazil",
   "Bolivia",
   "Argentina",
-  "El Salvador and Honduras",
+  "El Salvador",
+  "Honduras",
   "Colombia",
   "Peru",
   "Dominican Republic",
@@ -49,6 +50,14 @@ const DEFAULT_DESTINATIONS = [
   "Uruguay",
   "Ecuador",
 ];
+const COMBINED_EL_SALVADOR_HONDURAS = "El Salvador and Honduras";
+const PRIMARY_EL_SALVADOR_HONDURAS_OPTION = "El Salvador";
+
+function normalizeDestinationForUi(value: string): string {
+  return value === COMBINED_EL_SALVADOR_HONDURAS
+    ? PRIMARY_EL_SALVADOR_HONDURAS_OPTION
+    : value;
+}
 const TOTAL_LANDED_COST_KEY = "total landed cost";
 const DIFFERENCE_KEY = "difference";
 type SortKey = "tlc" | "supplierTlc" | "delta";
@@ -69,6 +78,8 @@ const BRAZIL_DESTINATION_SUPPLIERS = [
 /** These destination markets show a single supplier column: Amcor. */
 const AMCOR_ONLY_DESTINATIONS = new Set([
   "Argentina",
+  "El Salvador",
+  "Honduras",
   "El Salvador and Honduras",
   "Colombia",
   "Ecuador",
@@ -172,17 +183,19 @@ const VIEW_SHELL_CLASS =
 
 const HomePage: React.FC<HomePageProps> = ({ data }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const paramDestinationRaw = searchParams.get("destination") ?? "";
+  const paramDestination = normalizeDestinationForUi(paramDestinationRaw);
 
   const destinationOptions = useMemo(() => {
-    const apiDestination = data.destination;
+    const apiDestination = normalizeDestinationForUi(data.destination);
     return Array.from(new Set([apiDestination, ...DEFAULT_DESTINATIONS])).filter(
-      Boolean
+      (destination): destination is string =>
+        Boolean(destination) && destination !== COMBINED_EL_SALVADOR_HONDURAS
     );
   }, [data.destination]);
 
   const yearOptions = useMemo(() => getYearOptions(), []);
 
-  const paramDestination = searchParams.get("destination") ?? "";
   const paramMonth = searchParams.get("month") ?? "";
   const paramYear = searchParams.get("year") ?? "";
   const paramSource = searchParams.get("source") ?? "";
@@ -358,7 +371,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
       : "";
 
   useEffect(() => {
-    const needsDestination = !paramDestination;
+    const needsDestination = !paramDestinationRaw || paramDestinationRaw !== selectedDestination;
     const needsMonth = !paramMonth;
     const needsYear = !paramYear;
     const hasInvalidSource = paramSource && !sourceOptions.includes(paramSource);
@@ -376,6 +389,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
     setSearchParams(next, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    paramDestinationRaw,
     paramDestination,
     paramMonth,
     paramYear,
@@ -1064,6 +1078,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
             </div>
           </section>
         </RevealOnScroll>
+         {/*
          <RevealOnScroll>
           <AIInsightPanel
             request={{
@@ -1081,6 +1096,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
             className="mb-1"
           />
         </RevealOnScroll>
+        */}
       </main>
     </div>
   );

@@ -18,7 +18,7 @@ import type {
 } from "../types";
 import { formatAmount } from "../types";
 import RevealOnScroll from "../components/RevealOnScroll";
-import AIInsightPanel from "../components/AIInsightPanel";
+// import AIInsightPanel from "../components/AIInsightPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getMonthOptions } from "../lib/filterUtils";
 import { supplierDisplayNameForEntry } from "../lib/supplierDisplay";
@@ -586,6 +586,7 @@ const CostComponentsPage: React.FC<CostComponentsPageProps> = ({ data }) => {
             </CardContent>
           </Card>
         </section>
+        {/*
         <div className="mx-auto w-full max-w-[1480px] mb-4 mt-4">
         <AIInsightPanel
           request={{
@@ -601,6 +602,7 @@ const CostComponentsPage: React.FC<CostComponentsPageProps> = ({ data }) => {
           }}
         />
       </div>
+      */}
       </RevealOnScroll>
       
     </div>

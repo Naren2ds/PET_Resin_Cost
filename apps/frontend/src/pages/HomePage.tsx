@@ -1072,11 +1072,10 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
               month: selectedMonth,
               year: selectedYear,
               countries: data.countries,
+              marketResearchTrends: data.marketResearchTrends ?? [],
               vendorBreakdowns: data.vendorBreakdowns.filter(
                 (e) =>
-                  e.destination === selectedDestination &&
-                  e.month === selectedMonth &&
-                  vendorYearMatches(e.year, selectedYear)
+                  e.destination === selectedDestination
               ),
             }}
             className="mb-1"

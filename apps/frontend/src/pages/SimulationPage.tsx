@@ -829,6 +829,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
               destination: selectedDestination,
               month: selectedMonth,
               year: selectedYear,
+              marketResearchTrends: data.marketResearchTrends ?? [],
               vendorBreakdowns: data.vendorBreakdowns.filter(
                 (e) =>
                   destinationDisplayName(e.destination) === selectedDestination &&

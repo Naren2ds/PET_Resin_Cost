@@ -43,6 +43,20 @@ type CombinedDetailRow = {
   supplierRows: DetailCellRow[];
 };
 
+const dedupeDetailRows = (rows: DetailCellRow[]) => {
+  const seen = new Set<string>();
+  return rows.filter((row) => {
+    const key = [
+      normalize(row.label),
+      String(row.amount ?? ""),
+      row.isReference ? "ref" : "nonref",
+    ].join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
 const COMMON_COMPONENT_ORDER = [
   "Resin Index",
   "Freight",
@@ -359,8 +373,8 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
 
     return components.map((component) => ({
       component,
-      marketRows: marketGroups.get(component) ?? [],
-      supplierRows: supplierGroups.get(component) ?? [],
+      marketRows: dedupeDetailRows(marketGroups.get(component) ?? []),
+      supplierRows: dedupeDetailRows(supplierGroups.get(component) ?? []),
     }));
   }, [breakdown, compactVendorBreakdown]);
 

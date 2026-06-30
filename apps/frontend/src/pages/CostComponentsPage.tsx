@@ -593,11 +593,10 @@ const CostComponentsPage: React.FC<CostComponentsPageProps> = ({ data }) => {
             destination: selectedDestination,
             month: selectedMonth,
             year: selectedYear,
+            marketResearchTrends: data.marketResearchTrends ?? [],
             vendorBreakdowns: data.vendorBreakdowns.filter(
               (e) =>
-                e.destination === selectedDestination &&
-                e.month === selectedMonth &&
-                vendorYearMatches(e.year, selectedYear)
+                e.destination === selectedDestination
             ),
           }}
         />

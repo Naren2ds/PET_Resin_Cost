@@ -203,7 +203,7 @@ def build_market_research_countries(
         for alias in DESTINATION_ALIASES.get(selected_destination, [selected_destination])
     }
 
-    grouped: dict[tuple[str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    grouped: dict[tuple[str, str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in read_market_research_rows():
         model_destination = clean_text(row.get("Destination Country"))
         if normalized_key(model_destination) not in alias_keys:
@@ -221,6 +221,7 @@ def build_market_research_countries(
 
         key = (
             source_country,
+            model_destination,
             clean_text(row.get("Location")),
             clean_text(row.get("Data Type")),
             clean_text(row.get("Source File")),
@@ -228,8 +229,30 @@ def build_market_research_countries(
         grouped[key].append(row)
 
     groups_by_source: dict[str, list[list[dict[str, Any]]]] = defaultdict(list)
-    for (source_country, _location, _data_type, _source_file), rows in grouped.items():
-        groups_by_source[source_country].append(rows)
+    for (source_country, _destination, _location, _data_type, _source_file), rows in grouped.items():
+        # Alias destinations can legitimately contribute duplicate lines.
+        # Deduplicate exact rows before selecting best group to prevent doubled values.
+        seen = set()
+        deduped_rows: list[dict[str, Any]] = []
+        for row in rows:
+            row_key = (
+                clean_text(row.get("Destination Country")),
+                clean_text(row.get("Supplier Name")),
+                clean_text(row.get("Location")),
+                clean_text(row.get("Data Type")),
+                clean_text(row.get("Time_Period")),
+                clean_text(row.get("Time Period Year")),
+                clean_text(row.get("Time Period Month")),
+                clean_text(row.get("Mapping Columns")),
+                clean_text(row.get("Raw Cost Breakdown")),
+                clean_text(row.get("Value")),
+                clean_text(row.get("Source File")),
+            )
+            if row_key in seen:
+                continue
+            seen.add(row_key)
+            deduped_rows.append(row)
+        groups_by_source[source_country].append(deduped_rows)
 
     countries: list[dict[str, Any]] = []
     for source_country, groups in groups_by_source.items():
@@ -354,7 +377,7 @@ def build_market_research_tlc_trends(
 ) -> list[dict[str, Any]]:
     selected_destination = destination
     selected_year = clean_text(year)
-    grouped: dict[tuple[str, str, str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    grouped: dict[tuple[str, str, str, str, str, str, str], list[dict[str, Any]]] = defaultdict(list)
 
     for row in read_market_research_rows():
         model_destination = clean_text(row.get("Destination Country"))
@@ -376,6 +399,7 @@ def build_market_research_tlc_trends(
 
         key = (
             source_country,
+            model_destination,
             month,
             period_year,
             clean_text(row.get("Location")),
@@ -385,8 +409,28 @@ def build_market_research_tlc_trends(
         grouped[key].append(row)
 
     groups_by_period_source: dict[tuple[str, str, str], list[list[dict[str, Any]]]] = defaultdict(list)
-    for (source_country, month, period_year, _location, _data_type, _source_file), rows in grouped.items():
-        groups_by_period_source[(source_country, month, period_year)].append(rows)
+    for (source_country, _destination, month, period_year, _location, _data_type, _source_file), rows in grouped.items():
+        seen = set()
+        deduped_rows: list[dict[str, Any]] = []
+        for row in rows:
+            row_key = (
+                clean_text(row.get("Destination Country")),
+                clean_text(row.get("Supplier Name")),
+                clean_text(row.get("Location")),
+                clean_text(row.get("Data Type")),
+                clean_text(row.get("Time_Period")),
+                clean_text(row.get("Time Period Year")),
+                clean_text(row.get("Time Period Month")),
+                clean_text(row.get("Mapping Columns")),
+                clean_text(row.get("Raw Cost Breakdown")),
+                clean_text(row.get("Value")),
+                clean_text(row.get("Source File")),
+            )
+            if row_key in seen:
+                continue
+            seen.add(row_key)
+            deduped_rows.append(row)
+        groups_by_period_source[(source_country, month, period_year)].append(deduped_rows)
 
     trend_rows: list[dict[str, Any]] = []
     for (source_country, month, period_year), groups in groups_by_period_source.items():

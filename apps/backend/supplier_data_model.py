@@ -321,24 +321,31 @@ def rows_for_selected_scenario(rows: list[dict[str, Any]]) -> list[dict[str, Any
     if not total_row:
         return []
 
-    total_index = required_rows.index(total_row)
-    total_uses_preferred_currency = is_preferred_total_landing_cost(total_row)
-    previous_total_indexes = [
-        index
-        for index, row in enumerate(required_rows[:total_index])
-        if is_total_landing_cost(row)
-        and (
-            not total_uses_preferred_currency
-            or is_preferred_total_landing_cost(row)
-        )
-    ]
-    start_index = previous_total_indexes[-1] + 1 if previous_total_indexes else 0
+    # Row order is not guaranteed in the standardized workbook after merges.
+    # Select best non-total row per component, then append the chosen TLC row.
+    def component_key(row: dict[str, Any]) -> str:
+        mapping = clean_text(row.get("Mapping Columns"))
+        if mapping:
+            return normalized_key(mapping)
+        return normalized_key(row.get("Raw Cost Breakdown"))
 
-    selected = [
-        row
-        for row in required_rows[start_index:total_index]
-        if not is_total_landing_cost(row)
-    ]
+    def row_score(row: dict[str, Any]) -> tuple[int, int, int]:
+        value = as_float(row.get("Value"))
+        has_value = 1 if value is not None else 0
+        non_zero = 1 if value is not None and value != 0 else 0
+        preferred = 1 if is_preferred_total_landing_cost(row) else 0
+        return has_value, non_zero, preferred
+
+    selected_by_component: dict[str, dict[str, Any]] = {}
+    for row in required_rows:
+        if is_total_landing_cost(row):
+            continue
+        key = component_key(row)
+        existing = selected_by_component.get(key)
+        if existing is None or row_score(row) >= row_score(existing):
+            selected_by_component[key] = row
+
+    selected = list(selected_by_component.values())
     selected.append(total_row)
     return selected
 
@@ -447,7 +454,17 @@ def build_vendor_breakdowns(source_countries: tuple[str, ...]) -> list[dict[str,
             "rows": [to_api_row(row, common_mapping) for row in selected_rows],
         }
 
-        collapsed_key = (destination, supplier_name, supplier, location, month, year, source_file)
+        # Keep actual and forecast as distinct timeline entries for downstream trend analytics.
+        collapsed_key = (
+            destination,
+            supplier_name,
+            supplier,
+            location,
+            month,
+            year,
+            data_type,
+            source_file,
+        )
         collapsed[collapsed_key].append(entry)
 
     deduped_entries = [choose_best_entry(entries) for entries in collapsed.values()]

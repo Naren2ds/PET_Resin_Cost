@@ -67,12 +67,28 @@ MARKET_RESEARCH_COMMON_COST_MAPPING = {
 }
 
 
-@lru_cache(maxsize=1)
-def read_market_research_rows() -> list[dict[str, Any]]:
+def _market_research_data_version() -> tuple[float | None, float | None]:
+    def file_mtime(path: Path) -> float | None:
+        try:
+            return path.stat().st_mtime
+        except OSError:
+            return None
+
+    return file_mtime(DATA_MODEL_XLSX), file_mtime(DATA_MODEL_CSV)
+
+
+@lru_cache(maxsize=4)
+def _read_market_research_rows_cached(
+    _data_version: tuple[float | None, float | None],
+) -> list[dict[str, Any]]:
     rows = read_xlsx_rows(DATA_MODEL_XLSX, DATA_MODEL_SHEET)
     if rows:
         return rows
     return read_csv_rows(DATA_MODEL_CSV)
+
+
+def read_market_research_rows() -> list[dict[str, Any]]:
+    return _read_market_research_rows_cached(_market_research_data_version())
 
 
 def is_total_landing_cost(row: dict[str, Any]) -> bool:
@@ -191,7 +207,6 @@ def choose_best_group(groups: Iterable[list[dict[str, Any]]]) -> list[dict[str, 
     return max(groups, key=score)
 
 
-@lru_cache(maxsize=64)
 def build_market_research_countries(
     destination: str,
     month: str,
@@ -372,7 +387,6 @@ def add_supplier_delta_rows(
     return updated
 
 
-@lru_cache(maxsize=32)
 def build_market_research_tlc_trends(
     destination: str,
     year: str | int = DEFAULT_YEAR,

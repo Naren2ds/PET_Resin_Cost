@@ -52,9 +52,9 @@ const AMCOR_ONLY_DESTINATIONS = new Set([
 const AMCOR_ONLY_SUPPLIERS = ["Amcor"] as const;
 
 const PERU_DESTINATION = "Peru";
-const PERU_DESTINATION_SUPPLIERS = ["San Miguel Industrias (SMI)"] as const;
+const PERU_DESTINATION_SUPPLIERS = ["Pastiglas S.A"] as const;
 const DOMINICAN_REPUBLIC_DESTINATION = "Dominican Republic";
-const DOMINICAN_REPUBLIC_DESTINATION_SUPPLIERS = ["SMI PET"] as const;
+const DOMINICAN_REPUBLIC_DESTINATION_SUPPLIERS = ["SMI PET", "Pastiglas S.A"] as const;
 
 const NIGERIA_DESTINATION = "Nigeria";
 const NIGERIA_DESTINATION_SUPPLIERS = ["No contract (Resin formula unknown)"] as const;

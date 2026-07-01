@@ -111,7 +111,11 @@ def normalize_resin_index_type(
 
     destination_key = _normalized_text_for_match(destination)
     if destination_key in {"el salvador", "honduras", "el salvador and honduras"}:
-        return "ICIS PET China Mid (M-1)"
+        return "ICIS FOB China"
+
+    # Uruguay supplier index must consistently use IHS PET China Mid (M-1).
+    if destination_key == "uruguay":
+        return "IHS PET China Mid (M-1)"
 
     if not text:
         return ""
@@ -123,6 +127,10 @@ def normalize_resin_index_type(
     lag_value = lag[1] if lag else 1
 
     if "asia se" in normalized and "low" in normalized:
+        # Peru supplier formulas use Asia SE with an M-2 reference.
+        # Normalize to M-2 to avoid showing/applying M-1 in Deep Dive.
+        if destination_key == "peru":
+            return "ICIS Asia SE Low (M-2)"
         return f"ICIS Asia SE Low ({lag_prefix}-{lag_value})"
 
     if "ihs" in normalized:
@@ -134,7 +142,7 @@ def normalize_resin_index_type(
         or "pet china" in normalized
         or normalized.startswith("icis n ")
     ):
-        return f"ICIS PET China Mid ({lag_prefix}-{lag_value})"
+        return "ICIS FOB China"
 
     return text
 

@@ -62,7 +62,7 @@ FORECAST_MONTHS = [
 DEFAULT_METADATA = {
     "supplier": "Amcor",
     "destination_country": "Brazil",
-    "resin_index_type": "ICIS PET China MID (M-1) USD/ton",
+    "resin_index_type": "ICIS FOB China USD/ton",
     "tlc_formula": "Resin: [(Index + Int. Freight) x (1+Tax) + Others + Scrap]",
 }
 

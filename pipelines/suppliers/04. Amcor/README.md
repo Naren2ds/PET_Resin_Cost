@@ -14,7 +14,7 @@ Supplier-local pipeline for `data/04. Amcor.xlsx`.
 
 - Supplier: `Amcor`
 - Destination country: `Brazil`
-- Resin index type: `ICIS PET China MID (M-1) USD/ton`
+- Resin index type: `ICIS FOB China USD/ton`
 - Locations: `SUAPE`, `MANAUS`
 
 ## TLC Logic

@@ -91,7 +91,7 @@ function entrySupplierDisplay(item: VendorBreakdownEntry | undefined): string {
 
 function fallbackSupplierNameForDestination(destination: string): string {
   if (destination === "Brazil") return "Amcor";
-  if (destination === "Peru") return "San Miguel Industrias (SMI)";
+  if (destination === "Peru") return "Pastiglas S.A";
   if (destination === "Dominican Republic") return "SMI PET";
   if (destination === "Panama") return "Pastiglas S.A";
   if (destination === "Uruguay") return "Cristalpet";
@@ -213,7 +213,11 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
 
     if (paramSupplier) {
       const requested = pool.find((item) => supplierNameMatchesEntry(item, paramSupplier));
+      // For Brazil, keep explicit no-match behavior (can be a valid no-data month).
+      // For other destinations, safely fall back to available pool data so
+      // stale supplier query params don't blank out the deep-dive table.
       if (requested) return requested;
+      return selectedDestination === "Brazil" ? undefined : pool[0];
     }
 
     if (selectedDestination === "Brazil" && pool.length > 1) {

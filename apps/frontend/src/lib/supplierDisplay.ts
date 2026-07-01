@@ -94,7 +94,7 @@ export const supplierNameMatchesEntry = (
 export const fallbackSupplierNameForDestination = (destination: string | undefined) => {
   const value = (destination ?? "").trim();
   if (value === "Brazil") return "Amcor";
-  if (value === "Peru") return "San Miguel Industrias (SMI)";
+  if (value === "Peru") return "Pastiglas S.A";
   if (value === "Dominican Republic") return "SMI PET";
   if (value === "Panama") return "Pastiglas S.A";
   if (value === "Uruguay") return "Cristalpet";

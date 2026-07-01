@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-# from openai import OpenAI
+from openai import OpenAI
 
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env")
 

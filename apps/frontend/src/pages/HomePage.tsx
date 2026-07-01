@@ -52,6 +52,9 @@ const DEFAULT_DESTINATIONS = [
 ];
 const COMBINED_EL_SALVADOR_HONDURAS = "El Salvador and Honduras";
 const PRIMARY_EL_SALVADOR_HONDURAS_OPTION = "El Salvador";
+const DEFAULT_OPEN_DESTINATION = "Colombia";
+const DEFAULT_OPEN_MONTH = "March";
+const DEFAULT_OPEN_YEAR = "2026";
 
 function normalizeDestinationForUi(value: string): string {
   return value === COMBINED_EL_SALVADOR_HONDURAS
@@ -203,16 +206,23 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
   const sortOrder = (searchParams.get("sortOrder") as SortOrder) || "desc";
 
   const computedDefaultDestination = useMemo(() => {
+    if (destinationOptions.includes(DEFAULT_OPEN_DESTINATION)) {
+      return DEFAULT_OPEN_DESTINATION;
+    }
     return data.destination && destinationOptions.includes(data.destination)
       ? data.destination
       : destinationOptions[0] ?? "";
   }, [data.destination, destinationOptions]);
 
   const computedDefaultMonth = useMemo(() => {
-    return paramMonth || data.month || "";
+    return paramMonth || DEFAULT_OPEN_MONTH || data.month || "";
   }, [paramMonth, data.month]);
 
   const computedDefaultYear = useMemo(() => {
+    if (!paramYear && yearOptions.includes(DEFAULT_OPEN_YEAR)) {
+      return DEFAULT_OPEN_YEAR;
+    }
+
     const month = paramMonth || data.month || "";
     const destination = paramDestination || computedDefaultDestination;
 

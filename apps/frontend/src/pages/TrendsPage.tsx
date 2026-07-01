@@ -938,6 +938,14 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
     return mrKeys.some((name) => name.includes("icis fob china"));
   }, [marketIndexNames]);
 
+  const isSupplierIcisFobChinaContext = useMemo(() => {
+    const supplierKeys = supplierIndexNames.map((name) => normalize(name));
+    return supplierKeys.some((name) => name.includes("icis fob china"));
+  }, [supplierIndexNames]);
+
+  const showIcisOnlyCallout =
+    isSupplierIcisFobChinaContext && isMrIcisFobChinaContext;
+
   const showSupplierMape = !isIcisOrIhsIndexContext;
   const showMrMape = !isMrIcisFobChinaContext;
 
@@ -1234,23 +1242,27 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                         {marketIndexDisplayName}
                       </p>
                     </div>
-                    <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5 md:col-span-1">
-                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                        Training data
-                      </p>
-                      <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
-                        {MR_INDEX_TRAINING_WINDOW}
-                      </p>
-                    </div>
-                    <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5 md:col-span-1">
-                      <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
-                        Predicted data
-                      </p>
-                      <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
-                        {MR_INDEX_PREDICTED_WINDOW}
-                      </p>
-                    </div>
-                    {isIcisOrIhsIndexContext ? (
+                    {!showIcisOnlyCallout ? (
+                      <>
+                        <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5 md:col-span-1">
+                          <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                            Training data
+                          </p>
+                          <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                            {MR_INDEX_TRAINING_WINDOW}
+                          </p>
+                        </div>
+                        <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5 md:col-span-1">
+                          <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                            Predicted data
+                          </p>
+                          <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                            {MR_INDEX_PREDICTED_WINDOW}
+                          </p>
+                        </div>
+                      </>
+                    ) : null}
+                    {showIcisOnlyCallout ? (
                       <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5 md:col-span-2">
                         <p className="text-[11px] font-medium text-muted-foreground">
                           ICIS estimates

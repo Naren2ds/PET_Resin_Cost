@@ -207,9 +207,9 @@ const LandingPage: React.FC = () => {
                         ["Brazil", "Amcor, Cristalpet, Engepack, Valgroup", "YTD June"],
                         ["Ecuador", "Amcor", "YTD June"],
                         ["Panama", "Pastiglas", "YTD June"],
-                        ["Colombia", "Amcor", "YTD March"],
+                        ["Colombia", "Amcor", "YTD June"],
                         ["Peru", "San Miguel Industrias (SMI)", "YTD June"],
-                        ["Argentina", "Amcor", "YTD Feb"],
+                        ["Argentina", "Amcor", "YTD May"],
                         ["Dominican Republic", "SMI PET", "YTD June"],
                         ["Uruguay", "Cristalpet", "YTD June"],
                         ["El Salvador and Honduras", "Amcor", "YTD June"],
@@ -250,7 +250,7 @@ const LandingPage: React.FC = () => {
                 </table>
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
-                Destination countries: Brazil, Panama, Peru, Dominican Republic, El Salvador and Honduras, Ecuador, Colombia, Argentina, Uruguay, Bolivia. Indexes used ICIS FOB China, ICIS Asia SE.
+                Destination countries: Brazil, Panama, Peru, Dominican Republic, El Salvador and Honduras, Ecuador, Colombia, Argentina, Uruguay, Bolivia. Indexes used ICIS FOB China, IHS FOB China, ICIS Asia SE.
               </p>
             </section>
 

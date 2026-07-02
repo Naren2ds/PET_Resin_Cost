@@ -71,3 +71,68 @@ export default defineConfig([
   },
 ])
 ```
+
+## Offline AI Insights Cache
+
+The frontend no longer performs runtime LLM calls for insights. It reads from a
+static JSON file:
+
+- `public/insights-cache.json`
+
+Format:
+
+```json
+{
+  "generatedAt": "2026-07-02T00:00:00Z",
+  "entries": {
+    "page=home|destination=brazil|month=february|year=2026": {
+      "page": "home",
+      "insights": "- Example insight line 1\n- Example insight line 2",
+      "analytics": {}
+    }
+  }
+}
+```
+
+Key format used by the app:
+
+- `page=<page>|destination=<destination>|month=<month>|year=<year>`
+- For simulation page, two extra tokens are appended:
+  - `|base_tlc=<number>|simulated_tlc=<number>` (2 decimal places)
+
+Normalization rules:
+
+- values are lowercased
+- spaces are converted to `_`
+- missing values default to `all` (or `na` for numeric simulation values)
+
+When a key is not found, the panel shows the existing empty state message.
+
+Insights mode can be configured through `VITE_INSIGHTS_MODE`:
+
+- `hybrid` (default): cache first, fallback to `/insights` API when key is missing
+- `cache-only`: read cache only, never call API
+- `api-only`: always call API, ignore cache
+
+### Populate cache with LLM responses
+
+Use the backend batch generator to fill `public/insights-cache.json`.
+
+From repository root:
+
+```bash
+python apps/backend/generate_insights_cache.py --max-entries 5
+```
+
+Then run full generation:
+
+```bash
+python apps/backend/generate_insights_cache.py
+```
+
+Useful options:
+
+- `--destinations "Brazil,Argentina,USA"`
+- `--pages "home,cost_components,trends"`
+- `--simulation-percents "-10,-5,0,5,10"`
+- `--overwrite` to rebuild all entries from scratch

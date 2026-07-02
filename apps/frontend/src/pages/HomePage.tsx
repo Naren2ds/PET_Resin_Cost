@@ -31,7 +31,7 @@ import {
   supplierNameMatchesEntry,
 } from "../lib/supplierDisplay";
 import { formatAmount, formatDeltaVersusMarketForCompany } from "../types";
-// import AIInsightPanel from "../components/AIInsightPanel";
+import AIInsightPanel from "../components/AIInsightPanel";
 
 type HomePageProps = {
   data: ApiResponse;
@@ -92,7 +92,7 @@ const AMCOR_ONLY_SUPPLIERS = ["Amcor"] as const;
 const PERU_DESTINATION = "Peru";
 const PERU_DESTINATION_SUPPLIERS = ["Pastiglas S.A"] as const;
 const DOMINICAN_REPUBLIC_DESTINATION = "Dominican Republic";
-const DOMINICAN_REPUBLIC_DESTINATION_SUPPLIERS = ["SMI PET", "Pastiglas S.A"] as const;
+const DOMINICAN_REPUBLIC_DESTINATION_SUPPLIERS = ["SMI PET"] as const;
 
 const NIGERIA_DESTINATION = "Nigeria";
 const NIGERIA_DESTINATION_SUPPLIERS = ["No contract (Resin formula unknown)"] as const;
@@ -1088,7 +1088,6 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
             </div>
           </section>
         </RevealOnScroll>
-         {/*
          <RevealOnScroll>
           <AIInsightPanel
             request={{
@@ -1106,7 +1105,6 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
             className="mb-1"
           />
         </RevealOnScroll>
-        */}
       </main>
     </div>
   );

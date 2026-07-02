@@ -3,3 +3,4 @@ uvicorn
 pydantic
 openpyxl
 python-dotenv
+openai

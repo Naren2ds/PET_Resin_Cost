@@ -17,7 +17,7 @@ import type {
 } from "../types";
 import { formatAmount } from "../types";
 import RevealOnScroll from "../components/RevealOnScroll";
-// import AIInsightPanel from "../components/AIInsightPanel";
+import AIInsightPanel from "../components/AIInsightPanel";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createApiUrl } from "../lib/api";
 import {
@@ -1394,7 +1394,6 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
             </CardContent>
           </Card>
         </section>
-        {/*
         <div className="mx-auto w-full max-w-[1400px] mb-4 mt-4">
         <AIInsightPanel
           request={{
@@ -1410,7 +1409,6 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
           }}
         />
       </div>
-      */}
       </RevealOnScroll>
       
     </div>

@@ -27,6 +27,7 @@ from ai_insights import (
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_DIST = REPO_ROOT / "apps" / "frontend" / "dist"
+FRONTEND_PUBLIC = REPO_ROOT / "apps" / "frontend" / "public"
 
 app = FastAPI(title="PET Resin API")
 
@@ -292,6 +293,26 @@ def insights(req: InsightsRequest):
 
     insight_text = generate_insights(page, analytics)
     return {"page": page, "insights": insight_text, "analytics": analytics}
+
+
+@app.get("/insights-cache.json", include_in_schema=False)
+def insights_cache_file():
+    """Serve insights cache from frontend public assets (with dist fallback)."""
+    public_cache = (FRONTEND_PUBLIC / "insights-cache.json").resolve()
+    dist_cache = (FRONTEND_DIST / "insights-cache.json").resolve()
+
+    try:
+        public_cache.relative_to(FRONTEND_PUBLIC.resolve())
+        dist_cache.relative_to(FRONTEND_DIST.resolve())
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Insights cache not found") from exc
+
+    if public_cache.is_file():
+        return FileResponse(public_cache)
+    if dist_cache.is_file():
+        return FileResponse(dist_cache)
+
+    raise HTTPException(status_code=404, detail="Insights cache not found")
 
 
 @app.get("/{full_path:path}", include_in_schema=False)

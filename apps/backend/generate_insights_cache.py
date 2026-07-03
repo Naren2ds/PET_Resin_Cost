@@ -317,7 +317,11 @@ def main() -> None:
         "generatedAt": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "entries": entries,
     }
-    output_path.write_text(json.dumps(final_payload, indent=2, ensure_ascii=True), encoding="utf-8")
+    # Keep output minified to stay below deployment source file-size limits.
+    output_path.write_text(
+        json.dumps(final_payload, ensure_ascii=True, separators=(",", ":")),
+        encoding="utf-8",
+    )
 
     log(f"\nWrote cache file: {output_path}")
     log(f"Total entries: {len(entries)}")

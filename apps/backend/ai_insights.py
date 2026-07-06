@@ -289,22 +289,26 @@ def _priority_and_action(
     supplier_rank: int | None,
     market_count: int,
 ) -> tuple[str, str]:
-    score = 0
     if gap_pct is not None:
-        if gap_pct >= 15:
-            score += 3
-        elif gap_pct >= 8:
-            score += 2
-        elif gap_pct >= 3:
-            score += 1
+        if gap_pct < 0:
+            return (
+                "High",
+                "Prioritize pricing correction now; challenge the supplier premium versus same-source market TLC and run a competitive rebid.",
+            )
+        return (
+            "Low",
+            "Maintain current sourcing position; the supplier is at or below market, but continue monitoring gap movement.",
+        )
+
+    score = 0
     if volatility_risk == "High":
         score += 1
     elif volatility_risk == "Medium":
         score += 0.5
-    if "increasing" in forecast_gap_trend:
+    if "decreasing" in forecast_gap_trend:
         score += 1
-    elif "decreasing" in forecast_gap_trend:
-        # Narrowing gap is a favourable signal — reduce score by 1 (floor at 0)
+    elif "increasing" in forecast_gap_trend:
+        # A larger Market - Supplier gap is favourable; reduce score by 1.
         score = max(0, score - 1)
     if supplier_rank is not None and market_count > 0 and supplier_rank > max(1, market_count // 2):
         score += 1
@@ -312,16 +316,16 @@ def _priority_and_action(
     if score >= 4:
         return (
             "High",
-            "Prioritize negotiation now; challenge freight/tax assumptions and run competitive rebid against lower-cost market alternatives.",
+            "Prioritize pricing correction now; challenge the supplier premium versus same-source market TLC and run a competitive rebid.",
         )
     if score >= 2:
         return (
             "Medium",
-            "Open negotiation with targeted asks on the largest cost drivers and monitor monthly gap movement before renewal.",
+            "Open negotiation on the largest gap drivers and monitor whether the Market - Supplier gap improves before renewal.",
         )
     return (
         "Low",
-        "Maintain current sourcing position; continue monitoring benchmark and lock terms if volatility risk rises.",
+        "Maintain current sourcing position; the supplier is at or below market, but continue monitoring gap movement.",
     )
 
 
@@ -435,9 +439,9 @@ def build_procurement_intelligence(
         same_source_market_tlc = market_tlc_by_source.get(source_country)
         gap_abs = None
         gap_pct = None
-        if supplier_tlc is not None and same_source_market_tlc not in (None, 0):
-            gap_abs = round(supplier_tlc - float(same_source_market_tlc), 1)
-            gap_pct = round((gap_abs / float(same_source_market_tlc)) * 100, 2)
+        if supplier_tlc not in (None, 0) and same_source_market_tlc is not None:
+            gap_abs = round(float(same_source_market_tlc) - supplier_tlc, 1)
+            gap_pct = round((gap_abs / supplier_tlc) * 100, 2)
 
         supplier_rank = None
         if supplier_tlc is not None and market_values_sorted:
@@ -467,7 +471,7 @@ def build_procurement_intelligence(
             mr_value = mr_trend_lookup.get(source_country, {}).get(period_key)
             if mr_value in (None, 0):
                 continue
-            forecast_gap_series.append(tlc_value - mr_value)
+            forecast_gap_series.append(mr_value - tlc_value)
         forecast_gap_trend = _trend_label_from_series(forecast_gap_series)
 
         history_series = [
@@ -510,7 +514,7 @@ def build_procurement_intelligence(
                 "negotiation_priority": negotiation_priority,
                 "recommended_action": recommended_action,
                 "benchmark_scope": "same_source_country",
-                "comparison_guardrail": "gap_abs and gap_pct are computed only against same_source_market_tlc.",
+                "comparison_guardrail": "gap_abs = same_source_market_tlc - supplier_tlc; gap_pct = gap_abs / supplier_tlc. Negative gaps mean Supplier TLC is above Market TLC.",
             }
         )
 
@@ -518,23 +522,22 @@ def build_procurement_intelligence(
         records,
         key=lambda r: (
             {"High": 3, "Medium": 2, "Low": 1}.get(str(r.get("negotiation_priority")), 0),
-            _to_float(r.get("gap_abs")) or -9999,
+            abs(min(_to_float(r.get("gap_abs")) or 0, 0)),
         ),
         reverse=True,
     )
     opportunities = sorted(
-        [r for r in records if (_to_float(r.get("gap_abs")) or 0) > 0],
+        [r for r in records if (_to_float(r.get("gap_abs")) or 0) < 0],
         key=lambda r: _to_float(r.get("gap_abs")) or 0,
-        reverse=True,
     )
     best_suppliers = sorted(
         records,
-        key=lambda r: (_to_float(r.get("gap_abs")) if r.get("gap_abs") is not None else 999999),
+        key=lambda r: (_to_float(r.get("gap_abs")) if r.get("gap_abs") is not None else -999999),
+        reverse=True,
     )
     worst_suppliers = sorted(
         records,
-        key=lambda r: (_to_float(r.get("gap_abs")) if r.get("gap_abs") is not None else -999999),
-        reverse=True,
+        key=lambda r: (_to_float(r.get("gap_abs")) if r.get("gap_abs") is not None else 999999),
     )
 
     def _summary_item(r: dict[str, Any]) -> dict[str, Any]:
@@ -848,15 +851,28 @@ _SYSTEM_PROMPT = """You are a senior procurement strategist for PET resin sourci
 You will receive structured procurement intelligence metrics that are already computed.
 Generate procurement decision insights, not generic chart summaries.
 
+Critical pricing gap definition:
+- Pricing Gap = Market TLC - Supplier TLC.
+- Gap % = (Market TLC - Supplier TLC) / Supplier TLC * 100.
+- Positive gap means Supplier TLC is below Market TLC and ABI is in a better position.
+- Negative gap means Supplier TLC is above Market TLC and this is a high-priority pricing opportunity.
+- Prioritize use cases where Supplier TLC is greater than Market TLC.
+- If no Supplier TLC is greater than Market TLC, highlight the two closest absolute gaps between Market TLC and Supplier TLC.
+- For forecast_gap_trend, increasing means the Market - Supplier gap is improving; decreasing means the gap is worsening.
+
 Output format:
 - Return exactly 3 to 5 concise bullet insights.
-- Focus on: pricing opportunity, main cost driver, competitiveness, forecast risk, and recommended action.
+- Focus on: pricing opportunity, main gap driver, competitiveness, forecast risk, and recommended action.
+- Always include the gap amount and gap % when describing a pricing gap.
+- For gap drivers, call out the highest component drivers and whether Supplier TLC is above or below Market TLC.
 - Use business-friendly wording and quantify important statements with $ and %.
 
 Hard rules:
 - Do not invent savings.
 - Do not compare supplier TLC against the wrong market benchmark.
 - Respect that gap_abs and gap_pct are valid only when benchmark_scope is same_source_country.
+- Do not describe a positive gap as a pricing opportunity; positive means the supplier is already below market.
+- Do not describe a negative gap as favourable; negative means the supplier is above market.
 - Do not repeat raw metrics verbatim unless needed for context.
 - Keep output concise and action-oriented.
 """
@@ -871,7 +887,8 @@ def _build_user_prompt(page: str, analytics: dict) -> str:
         f"Page context: {page.upper()} dashboard\n\n"
         f"Analytics data:\n{payload}\n\n"
         "Generate 3-5 procurement decision bullets. Each bullet should clearly support one of: "
-        "Pricing Opportunity, Cost Driver, Competitiveness, Forecast Risk, or Recommended Action."
+        "Pricing Opportunity, Gap Driver, Competitiveness, Forecast Risk, or Recommended Action. "
+        "Use Pricing Gap = Market TLC - Supplier TLC and Gap % = Pricing Gap / Supplier TLC."
     )
 
 

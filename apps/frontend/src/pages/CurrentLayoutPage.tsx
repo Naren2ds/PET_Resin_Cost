@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { ABICard, AppCardTone, AppCardVariant } from "@ab-inbev-labs/ux-react-components";
 import type { ApiResponse, VendorBreakdownEntry } from "../types";
 import BreakdownTable from "../components/BreakdownTable";
 import RevealOnScroll from "../components/RevealOnScroll";
@@ -324,43 +325,42 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
               </div>
 
               <div className="mt-5 grid grid-cols-3 gap-3 max-lg:grid-cols-2">
-                <div className="rounded-xl border border-border bg-card/30 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <ABICard
+                  variant={AppCardVariant.Plain}
+                  tone={AppCardTone.Weak}
+                  className="rounded-xl !h-auto !w-full !px-3 !py-3"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
                     Market Research (Delloite) TLC
                   </p>
                   <p className="mt-1 text-base font-extrabold text-primary">
                     {formatTlc(marketTlc)}
                   </p>
-                </div>
+                </ABICard>
 
-                <div
-                  className={`rounded-xl border p-3 ${
-                    isNegativeDelta
-                      ? "border-destructive/25 bg-destructive/10"
-                      : "border-success/25 bg-success/10"
-                  }`}
+                <ABICard
+                  variant={isNegativeDelta ? AppCardVariant.Warm : AppCardVariant.Fresh}
+                  tone={AppCardTone.Weak}
+                  className="rounded-xl !h-auto !w-full !px-3 !py-3"
                 >
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
                     Market Research TLC - Supplier TLC
                   </p>
                   <p
-                    className={`mt-1 text-base font-extrabold ${
-                      isNegativeDelta ? "text-destructive" : "text-success"
-                    }`}
+                    className='mt-1 text-base font-extrabold text-primary'
                   >
                     {diffDisplay}
                   </p>
-                </div>
+                </ABICard>
 
-                <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/3 p-3">
+                <ABICard
+                  variant={AppCardVariant.Neutral}
+                  tone={AppCardTone.Weak}
+                  className="rounded-xl !h-auto !w-full !px-3 !py-3"
+                >
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Supplier TLC
                   </p>
-                  {selectedSupplierName ? (
-                    <p className="mt-0.5 truncate text-[11px] font-semibold text-foreground">
-                      {selectedSupplierName}
-                    </p>
-                  ) : null}
                   <p className="mt-1 text-base font-extrabold text-primary">
                     {formatTlc(supplierTlc)}
                   </p>
@@ -381,25 +381,23 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
                       Amcor resin index (Excel): {BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}
                     </p>
                   ) : null}
-                </div>
+                </ABICard>
 
               </div>
             </CardContent>
           </Card>
 
-          <Card className="shadow-lg h-full">
-            <CardContent className="p-5 h-full">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+          <ABICard variant={AppCardVariant.Brand} className="rounded-xl !h-full !w-full !border !border-black">
+              <p className="text-[10px] font-semibold uppercase text-foreground mb-1.5">
                 Selected Destination
               </p>
               <h3 className="text-xl font-extrabold pet-gradient-heading pet-deep-dive-heading bg-clip-text text-transparent">
                 {selectedDestination}
               </h3>
-              <p className="mt-3 text-sm text-muted-foreground">
+              <p className="mt-3 text-sm text-foreground">
                 Period: {selectedMonth} {selectedYear}
               </p>
-            </CardContent>
-          </Card>
+          </ABICard>
           </section>
         </RevealOnScroll>
 

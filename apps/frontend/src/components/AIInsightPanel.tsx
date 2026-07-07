@@ -542,6 +542,7 @@
 
 import { type ReactNode, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { ABIButton, ButtonSize, ButtonVariant, Version } from "@ab-inbev-labs/ux-react-components";
 import type {
   InsightsRequest,
   ProcurementIntelligence,
@@ -812,16 +813,22 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
             <>
               {!isTrendsPage ? (
                 <div className="mb-3 flex flex-wrap items-center gap-2">
-                  <TabButton
-                    active={activeView === "procurement"}
+                  <ABIButton
+                    version={Version.V1}
+                    variant={activeView === "procurement" ? ButtonVariant.Secondary : ButtonVariant.Secondary}
+                    size={ButtonSize.xs}
                     onClick={() => setActiveView("procurement")}
-                    label="Procurement Intelligence"
-                  />
-                  <TabButton
-                    active={activeView === "summary"}
+                  >
+                    Procurement Intelligence
+                  </ABIButton>
+                  <ABIButton
+                    version={Version.V1}
+                    variant={activeView === "summary" ? ButtonVariant.Secondary : ButtonVariant.Secondary}
+                    size={ButtonSize.xs}
                     onClick={() => setActiveView("summary")}
-                    label="Overall Summary"
-                  />
+                  >
+                    Overall Summary
+                  </ABIButton>
                 </div>
               ) : null}
 
@@ -1487,30 +1494,6 @@ const forecastRiskLabel = (record: ProcurementIntelligenceRecord): ReactNode => 
   }
   return <><Critical>{baseRisk}</Critical> risk</>;
 };
-
-function TabButton({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
-        active
-          ? "border-primary/40 bg-primary/15 text-primary"
-          : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
 
 function TagLine({
   label,

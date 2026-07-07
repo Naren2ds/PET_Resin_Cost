@@ -1,15 +1,8 @@
 import React, { useMemo, useState } from "react";
+import { ABIResponsiveTable } from "@ab-inbev-labs/ux-react-components";
 import type { BreakdownItem } from "../types";
 import { formatAmount } from "../types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 type VendorBreakdownItem = {
   label: string;
@@ -393,6 +386,105 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
     return formula ?? "";
   }, [compactVendorBreakdown]);
 
+  const comparisonHeaders = useMemo(
+    () => [
+      { header: "Common Component", accessor: "component" },
+      { header: "Market Research ($/MT)", accessor: "market" },
+      { header: supplierName ? `Supplier ($/MT) - ${supplierName}` : "Supplier ($/MT)", accessor: "supplier" },
+      { header: "Difference (Market - Supplier)", accessor: "difference" },
+    ],
+    [supplierName]
+  );
+
+  const comparisonData = useMemo(
+    () =>
+      comparisonRows.map((row, idx) => ({
+        fields: {
+          component: [
+            <span key="component" className="font-medium text-foreground">
+              {idx + 1}. {row.component}
+            </span>,
+          ],
+          market: [
+            <span key="market" className="text-right tabular-nums text-muted-foreground">
+              <AmountWithShare value={row.marketValue} share={row.marketShare} />
+            </span>,
+          ],
+          supplier: [
+            <span key="supplier" className="text-right tabular-nums text-muted-foreground">
+              <AmountWithShare value={row.supplierValue} share={row.supplierShare} />
+            </span>,
+          ],
+          difference: [
+            <span
+              key="difference"
+              className={`text-right tabular-nums font-semibold ${differenceClass(
+                row.differenceValue
+              )}`}>
+              {formatDifference(row.differenceValue)}
+            </span>,
+          ],
+        },
+      })),
+    [comparisonRows]
+  );
+
+  const detailHeaders = useMemo(
+    () => [
+      { header: "Common Component", accessor: "component" },
+      { header: "Market Research Column", accessor: "marketDetail" },
+      {
+        header: supplierName
+          ? `Supplier Raw Cost Breakdown (${supplierName})`
+          : "Supplier Raw Cost Breakdown",
+        accessor: "supplierDetail",
+      },
+    ],
+    [supplierName]
+  );
+
+  const detailData = useMemo(() => {
+    const rows = combinedDetailRows.map((row, idx) => ({
+      fields: {
+        component: [
+          <span key="component" className="whitespace-normal break-words font-semibold leading-snug text-foreground">
+            {idx + 1}. {row.component}
+          </span>,
+        ],
+        marketDetail: [detailCellRows(row.marketRows, "No Market Research row")],
+        supplierDetail: [detailCellRows(row.supplierRows, "No supplier row")],
+      },
+    }));
+
+    if (marketTlcFormula || supplierTlcFormula) {
+      rows.push({
+        fields: {
+          component: [
+            <span key="component" className="font-semibold text-foreground">
+              {combinedDetailRows.length + 1}. TLC Formulae
+            </span>,
+          ],
+          marketDetail: [
+            <span
+              key="marketFormula"
+              className="whitespace-normal break-words text-xs leading-relaxed text-muted-foreground">
+              {marketTlcFormula || "No Market Research formula available."}
+            </span>,
+          ],
+          supplierDetail: [
+            <span
+              key="supplierFormula"
+              className="whitespace-normal break-words text-xs leading-relaxed text-muted-foreground">
+              {supplierTlcFormula || "No supplier formula available."}
+            </span>,
+          ],
+        },
+      });
+    }
+
+    return rows;
+  }, [combinedDetailRows, marketTlcFormula, supplierTlcFormula]);
+
   return (
     <Card className="animate-fade-in-up shadow-lg">
       <CardHeader className="pb-2">
@@ -400,69 +492,16 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
         <CardDescription>
           Market Research and Supplier values mapped to common components, shown as $ per Metric Ton.
         </CardDescription>
-        {supplierName ? (
-          <div className="mt-2 inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs text-muted-foreground">
-            <span className="font-semibold uppercase tracking-wider">Supplier</span>
-            <span className="truncate font-bold text-foreground">{supplierName}</span>
-          </div>
-        ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="overflow-hidden rounded-lg border border-border">
-          <Table className="table-fixed">
-            <TableHeader>
-              <TableRow className="border-b-2 border-primary/80 bg-primary hover:bg-primary">
-                <TableHead className="w-[42px] text-center text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                  #
-                </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                  Common Component
-                </TableHead>
-                <TableHead className="w-[180px] text-right text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                  Market Research
-                  <span className="block text-[9px] font-semibold normal-case tracking-normal opacity-80">
-                    $ per Metric Ton
-                  </span>
-                </TableHead>
-                <TableHead className="w-[180px] text-right text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                  Supplier
-                  {supplierName ? (
-                    <span className="block truncate text-[9px] font-semibold normal-case tracking-normal opacity-90">
-                      {supplierName}
-                    </span>
-                  ) : null}
-                  <span className="block text-[9px] font-semibold normal-case tracking-normal opacity-80">
-                    $ per Metric Ton
-                  </span>
-                </TableHead>
-                <TableHead className="w-[190px] text-right text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
-                  Difference
-                  <span className="block text-[9px] font-semibold normal-case tracking-normal opacity-80">
-                    Market - Supplier
-                  </span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {comparisonRows.map((row, idx) => (
-                <TableRow key={row.component} className="h-10">
-                  <TableCell className="text-center text-[11px] text-muted-foreground">
-                    {idx + 1}
-                  </TableCell>
-                  <TableCell className="font-medium">{row.component}</TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
-                    <AmountWithShare value={row.marketValue} share={row.marketShare} />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
-                    <AmountWithShare value={row.supplierValue} share={row.supplierShare} />
-                  </TableCell>
-                  <TableCell className={`text-right tabular-nums font-semibold ${differenceClass(row.differenceValue)}`}>
-                    {formatDifference(row.differenceValue)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ABIResponsiveTable
+            id="breakdown-summary-responsive-table"
+            ariaLabel="Unified Cost Component Comparison"
+            headers={comparisonHeaders}
+            data={comparisonData}
+            className="!w-full"
+          />
         </div>
 
         <div className="overflow-hidden rounded-lg border border-border">
@@ -480,69 +519,13 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
           </button>
           {showCostDetailTable ? (
             <div className="overflow-x-auto border-t border-border">
-              <Table className="min-w-[980px] table-fixed">
-                <TableHeader>
-                  <TableRow className="bg-muted/40">
-                    <TableHead className="w-[22%] whitespace-normal break-words">
-                      Common Component
-                    </TableHead>
-                    <TableHead className="w-[39%] whitespace-normal break-words">
-                      Market Research Column
-                      <span className="block text-xs font-normal text-muted-foreground">
-                        Raw cost breakdown and $ per Metric Ton
-                      </span>
-                    </TableHead>
-                    <TableHead className="w-[39%] whitespace-normal break-words">
-                      Supplier Raw Cost Breakdown
-                      {supplierName ? (
-                        <span className="block text-xs font-normal text-muted-foreground">
-                          ({supplierName}) and $ per Metric Ton
-                        </span>
-                      ) : null}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {combinedDetailRows.map((row, idx) => (
-                    <TableRow key={row.component}>
-                      <TableCell className="align-top">
-                        <div className="flex gap-2">
-                          <span className="mt-0.5 text-[11px] text-muted-foreground">
-                            {idx + 1}
-                          </span>
-                          <span className="whitespace-normal break-words font-semibold leading-snug text-foreground">
-                            {row.component}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        {detailCellRows(row.marketRows, "No Market Research row")}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        {detailCellRows(row.supplierRows, "No supplier row")}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(marketTlcFormula || supplierTlcFormula) ? (
-                    <TableRow>
-                      <TableCell className="align-top">
-                        <div className="flex gap-2">
-                          <span className="mt-0.5 text-[11px] text-muted-foreground">
-                            {combinedDetailRows.length + 1}
-                          </span>
-                          <span className="font-semibold text-foreground">TLC Formulae</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="whitespace-normal break-words align-top text-xs leading-relaxed text-muted-foreground">
-                        {marketTlcFormula || "No Market Research formula available."}
-                      </TableCell>
-                      <TableCell className="whitespace-normal break-words align-top text-xs leading-relaxed text-muted-foreground">
-                        {supplierTlcFormula || "No supplier formula available."}
-                      </TableCell>
-                    </TableRow>
-                  ) : null}
-                </TableBody>
-              </Table>
+              <ABIResponsiveTable
+                id="breakdown-detail-responsive-table"
+                ariaLabel="Common Component Detail Mapping"
+                headers={detailHeaders}
+                data={detailData}
+                className="!w-full !min-w-[980px]"
+              />
             </div>
           ) : null}
         </div>

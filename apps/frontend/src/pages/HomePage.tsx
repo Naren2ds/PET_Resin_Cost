@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { ABICard, ABIResponsiveTable, AppCardTone, AppCardVariant } from "@ab-inbev-labs/ux-react-components";
 import type { ApiResponse, VendorBreakdownEntry } from "../types";
 import RevealOnScroll from "../components/RevealOnScroll";
 import { getMonthOptions, getYearOptions } from "../lib/filterUtils";
@@ -656,7 +657,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
           <section className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Destination</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-foreground mb-1">Destination</label>
               <select
                 value={selectedDestination}
                 onChange={(e) => {
@@ -664,7 +665,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                   next.set("destination", e.target.value);
                   setSearchParams(next);
                 }}
-                className="h-9 rounded-md bg-secondary border border-border px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
+                className="h-9 rounded-md border border-border px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
               >
                 {destinationOptions.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
@@ -672,7 +673,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Month</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-foreground mb-1">Month</label>
               <select
                 value={selectedMonth}
                 onChange={(e) => {
@@ -680,7 +681,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                   next.set("month", e.target.value);
                   setSearchParams(next);
                 }}
-                className="h-9 rounded-md bg-secondary border border-border px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
+                className="h-9 rounded-md border border-border px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
               >
                 {monthOptions.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
@@ -688,7 +689,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Year</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-foreground mb-1">Year</label>
               <select
                 value={selectedYear}
                 onChange={(e) => {
@@ -705,7 +706,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                   next.set("month", nextMonth);
                   setSearchParams(next);
                 }}
-                className="h-9 rounded-md bg-secondary border border-border px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
+                className="h-9 rounded-md border border-border px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
               >
                 {yearOptions.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
@@ -760,26 +761,34 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
               {consolidatedSupplier ? (
                 <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(180px,0.45fr)_minmax(180px,0.45fr)] gap-3 border-b-2 border-border/80 bg-card/35 p-4 max-md:grid-cols-1">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
                       Supplier benchmark
                     </p>
                     <h3 className="mt-1 truncate text-xl font-extrabold text-foreground">
                       {consolidatedSupplier.name}
                     </h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-foreground">
                       One supplier quote compared across {consolidatedSupplier.marketCount} market research countries.
                     </p>
                   </div>
-                  <div className="rounded-lg border border-primary/25 bg-primary/10 px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <ABICard
+                    variant={AppCardVariant.Brand}
+                    tone={AppCardTone.Strong}
+                    className="rounded-lg !h-auto !w-full !px-4 !py-3"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
                       Supplier TLC
                     </p>
                     <p className="mt-1 text-lg font-extrabold text-primary">
                       {formatTlcDisplay(consolidatedSupplier.supplierTlc)}
                     </p>
-                  </div>
-                  <div className="rounded-lg border border-border bg-background/30 px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  </ABICard>
+                  <ABICard
+                    variant={AppCardVariant.Brand}
+                    tone={AppCardTone.Strong}
+                    className="rounded-lg !h-auto !w-full !px-4 !py-3"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
                       Highest Deviation
                     </p>
                     <p
@@ -789,12 +798,12 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                     >
                       {formatDeltaDisplay(consolidatedSupplier.highestDeviation?.delta ?? null)}
                       {consolidatedSupplier.highestDeviation ? (
-                        <span className="ml-1 text-[11px] font-semibold text-muted-foreground">
+                        <span className="ml-1 text-[11px] font-semibold text-foreground">
                           ({consolidatedSupplier.highestDeviation.marketCountry})
                         </span>
                       ) : null}
                     </p>
-                  </div>
+                  </ABICard>
                 </div>
               ) : supplierBenchmarks.length > 1 ? (
                 <div className="grid gap-3 border-b-2 border-border/80 bg-card/35 p-4 md:grid-cols-2 xl:grid-cols-4">
@@ -832,258 +841,188 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                 </div>
               ) : null}
               <div className="overflow-x-auto">
-                <table
-                  className={`pet-data-table w-full ${
-                    consolidatedSupplier ? "min-w-[640px]" : "min-w-[920px]"
-                  } border-collapse text-sm`}
-                >
-                  <thead className="sticky top-0 z-10">
-                    {consolidatedSupplier ? (
-                      <tr className="bg-secondary/80 backdrop-blur">
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Market Research Country
-                        </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Market Research TLC
-                        </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Delta (Market - Supplier)
-                        </th>
-                      </tr>
-                    ) : (
-                      <tr className="bg-secondary/80 backdrop-blur">
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Market Research Country
-                        </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Market Research TLC
-                        </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          <span className="block">Supplier</span>
-                          {isArgentinaApril2026View(
-                            selectedDestination,
-                            selectedMonth,
-                            selectedYear
-                          ) ? (
-                            <span className="mt-0.5 block normal-case font-normal text-[10px] text-muted-foreground/90">
-                              Resin (Excel): {ARGENTINA_APRIL_2026_RESIN_VENDOR_LABEL}
-                            </span>
-                          ) : isBrazilApril2026View(
-                            selectedDestination,
-                            selectedMonth,
-                            selectedYear
-                          ) ? (
-                            <span className="mt-0.5 block normal-case font-normal text-[10px] text-muted-foreground/90">
-                              Amcor resin (Excel): {BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}
-                            </span>
-                          ) : null}
-                        </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Supplier TLC
-                        </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Delta
-                        </th>
-                      </tr>
-                    )}
-                  </thead>
-                  <tbody>
-                    {consolidatedSupplier
-                      ? tableRows.map((row, rowIndex) => {
-                          const isSelectedMarket = selectedSource === row.marketCountry;
-                          const rowSupplierDelta = row.suppliers[0]?.delta;
-                          const supplierDelta =
-                            rowSupplierDelta ??
-                            (row.marketTlc !== null &&
-                            consolidatedSupplier.supplierTlc !== null
-                              ? Number(
-                                  (
-                                    consolidatedSupplier.supplierTlc -
-                                    row.marketTlc
-                                  ).toFixed(1)
-                                )
-                              : null);
-
-                          return (
-                            <tr
-                              key={`${row.marketCountry}-consolidated-supplier`}
-                              className={`cursor-pointer border-b-2 border-border/75 transition ${
-                                isSelectedMarket
-                                  ? "bg-primary/10"
-                                  : rowIndex % 2 === 0
-                                    ? "bg-background/10 hover:bg-secondary/25"
-                                    : "hover:bg-secondary/25"
-                              }`}
-                              onClick={() => {
-                                const next = new URLSearchParams(searchParams);
-                                next.set("source", row.marketCountry);
-                                next.set("supplier", consolidatedSupplier.name);
-                                setSearchParams(next);
-                              }}
-                            >
-                              <td className="border-r-2 border-border/70 px-4 py-3 font-semibold text-foreground">
-                                <div className="flex items-center gap-2">
-                                  <span>{row.marketCountry}</span>
-                                  {isSelectedMarket ? (
-                                    <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                                      Selected
-                                    </span>
-                                  ) : null}
-                                </div>
-                              </td>
-                              <td className="border-r-2 border-border/70 px-4 py-3 font-semibold text-primary">
+                {consolidatedSupplier ? (
+                  <ABIResponsiveTable
+                    id="pet-consolidated-table"
+                    ariaLabel="TLC Comparison - Consolidated"
+                    className="!w-full !min-w-[640px]"
+                    headers={[
+                      { header: "Market Research Country", accessor: "marketCountry" },
+                      { header: "Market Research TLC", accessor: "marketTlc" },
+                      { header: "Delta (Market - Supplier)", accessor: "delta" },
+                    ]}
+                    data={tableRows.map((row) => {
+                      const isSelectedMarket = selectedSource === row.marketCountry;
+                      const rowSupplierDelta = row.suppliers[0]?.delta;
+                      const supplierDelta =
+                        rowSupplierDelta ??
+                        (row.marketTlc !== null && consolidatedSupplier.supplierTlc !== null
+                          ? Number((consolidatedSupplier.supplierTlc - row.marketTlc).toFixed(1))
+                          : null);
+                      const handleClick = () => {
+                        const next = new URLSearchParams(searchParams);
+                        next.set("source", row.marketCountry);
+                        next.set("supplier", consolidatedSupplier.name);
+                        setSearchParams(next);
+                      };
+                      return {
+                        fields: {
+                          marketCountry: [
+                            <div key="mc" className="cursor-pointer flex items-center gap-2" onClick={handleClick}>
+                              <span className="font-semibold text-foreground">{row.marketCountry}</span>
+                              {isSelectedMarket && (
+                                <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Selected</span>
+                              )}
+                            </div>,
+                          ],
+                          marketTlc: [
+                            <div key="mt" className="cursor-pointer font-semibold text-primary" onClick={handleClick}>
+                              {formatTlcDisplay(row.marketTlc)}
+                            </div>,
+                          ],
+                          delta: [
+                            <div key="d" className="cursor-pointer" onClick={handleClick}>
+                              <span className={`font-semibold ${deltaClass(supplierDelta)}`}>
+                                {formatDeltaDisplay(supplierDelta)}
+                              </span>
+                            </div>,
+                          ],
+                        },
+                      };
+                    })}
+                  />
+                ) : (
+                  <ABIResponsiveTable
+                    id="pet-detailed-table"
+                    ariaLabel="TLC Comparison - Detailed"
+                    className="!w-full !min-w-[920px]"
+                    headers={[
+                      { header: "Market Research Country", accessor: "marketCountry" },
+                      { header: "Market Research TLC", accessor: "marketTlc" },
+                      { header: "Supplier", accessor: "supplier" },
+                      { header: "Supplier TLC", accessor: "supplierTlc" },
+                      { header: "Delta", accessor: "delta" },
+                    ]}
+                    data={tableRows.map((row) => {
+                      const isSelectedMarket = selectedSource === row.marketCountry;
+                      if (!row.suppliers.length) {
+                        const handleClick = () => {
+                          const next = new URLSearchParams(searchParams);
+                          next.set("source", row.marketCountry);
+                          next.delete("supplier");
+                          setSearchParams(next);
+                        };
+                        return {
+                          fields: {
+                            marketCountry: [
+                              <div key="mc" className="cursor-pointer flex items-center gap-2" onClick={handleClick}>
+                                <span className="font-semibold text-foreground">{row.marketCountry}</span>
+                                {isSelectedMarket && (
+                                  <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Selected</span>
+                                )}
+                              </div>,
+                            ],
+                            marketTlc: [
+                              <div key="mt" className="cursor-pointer font-semibold text-primary" onClick={handleClick}>
                                 {formatTlcDisplay(row.marketTlc)}
-                              </td>
-                              <td className="px-4 py-3">
-                                <span className={`font-semibold ${deltaClass(supplierDelta)}`}>
-                                  {formatDeltaDisplay(supplierDelta)}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      : tableRows.map((row, rowIndex) => {
-                          const isSelectedMarket = selectedSource === row.marketCountry;
-                          if (!row.suppliers.length) {
-                            return (
-                              <tr
-                                key={`${row.marketCountry}-no-supplier`}
-                                className={`cursor-pointer border-b-2 border-border/75 transition ${
-                                  isSelectedMarket
-                                    ? "bg-primary/10"
-                                    : rowIndex % 2 === 0
-                                      ? "bg-background/10 hover:bg-secondary/25"
-                                      : "hover:bg-secondary/25"
-                                }`}
-                                onClick={() => {
-                                  const next = new URLSearchParams(searchParams);
-                                  next.set("source", row.marketCountry);
-                                  next.delete("supplier");
-                                  setSearchParams(next);
-                                }}
-                              >
-                                <td className="border-r-2 border-border/70 px-4 py-3 font-semibold text-foreground">
-                                  <div className="flex items-center gap-2">
-                                    <span>{row.marketCountry}</span>
-                                    {isSelectedMarket ? (
-                                      <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                                        Selected
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                </td>
-                                <td className="border-r-2 border-border/70 px-4 py-3 font-semibold text-primary">
-                                  {formatTlcDisplay(row.marketTlc)}
-                                </td>
-                                <td className="px-4 py-2.5 text-muted-foreground">No supplier data</td>
-                                <td className="px-4 py-2.5 font-semibold text-primary">$0/MT</td>
-                                <td className="px-4 py-2.5 font-semibold text-muted-foreground">$0/MT</td>
-                              </tr>
-                            );
-                          }
-                          return row.suppliers.map((supplier, supplierIndex) => (
-                            <tr
-                              key={`${row.marketCountry}-${supplier.name || "supplier"}-${supplierIndex}`}
-                              className={`cursor-pointer border-b-2 border-border/75 transition ${
-                                isSelectedMarket
-                                  ? "bg-primary/10"
-                                  : supplierIndex % 2 === 0
-                                    ? "bg-background/10 hover:bg-secondary/25"
-                                    : "hover:bg-secondary/25"
-                              }`}
+                              </div>,
+                            ],
+                            supplier: [<div key="s" className="text-muted-foreground">No supplier data</div>],
+                            supplierTlc: [<div key="st" className="font-semibold text-primary">$0/MT</div>],
+                            delta: [<div key="d" className="font-semibold text-muted-foreground">$0/MT</div>],
+                          },
+                        };
+                      }
+                      return {
+                        fields: {
+                          marketCountry: [
+                            <div
+                              key="mc"
+                              className="cursor-pointer flex items-center gap-2"
                               onClick={() => {
                                 const next = new URLSearchParams(searchParams);
                                 next.set("source", row.marketCountry);
-                                next.set("supplier", supplier.name);
+                                next.set("supplier", row.suppliers[0]?.name ?? "");
                                 setSearchParams(next);
                               }}
                             >
-                              {supplierIndex === 0 ? (
-                                <>
-                                  <td
-                                    rowSpan={row.suppliers.length}
-                                    className="border-r-2 border-border/70 px-4 py-3 font-semibold text-foreground"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <span>{row.marketCountry}</span>
-                                      {isSelectedMarket ? (
-                                        <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                                          Selected
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                  </td>
-                                  <td
-                                    rowSpan={row.suppliers.length}
-                                    className="border-r-2 border-border/70 px-4 py-3 font-semibold text-primary"
-                                  >
-                                    {formatTlcDisplay(row.marketTlc)}
-                                  </td>
-                                </>
-                              ) : null}
-                              <td className="px-4 py-2.5">
-                                <div className="flex flex-col gap-0.5">
-                                  <span className="font-medium text-foreground">{supplier.name}</span>
-                                  {isArgentinaApril2026View(
-                                    selectedDestination,
-                                    selectedMonth,
-                                    selectedYear
-                                  ) ? (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      {ARGENTINA_APRIL_2026_RESIN_VENDOR_LABEL}
-                                    </span>
-                                  ) : isBrazilApril2026View(
-                                    selectedDestination,
-                                    selectedMonth,
-                                    selectedYear
-                                  ) &&
-                                  supplier.name.trim().toLowerCase().startsWith("amcor") ? (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      {BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}
-                                    </span>
-                                  ) : isBrazilApril2026View(
-                                    selectedDestination,
-                                    selectedMonth,
-                                    selectedYear
-                                  ) &&
-                                  supplier.name.trim().toLowerCase() === "valgroup" ? (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      {BRAZIL_APRIL_2026_VALGROUP_VENDOR_LABEL}
-                                    </span>
-                                  ) : isBrazilApril2026View(
-                                    selectedDestination,
-                                    selectedMonth,
-                                    selectedYear
-                                  ) &&
-                                  supplier.name.trim().toLowerCase() === "cristalpet" ? (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      {BRAZIL_APRIL_2026_CRISTALPET_VENDOR_LABEL}
-                                    </span>
-                                  ) : isBrazilApril2026View(
-                                    selectedDestination,
-                                    selectedMonth,
-                                    selectedYear
-                                  ) &&
-                                  supplier.name.trim().toLowerCase() === "engepack" ? (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      {BRAZIL_APRIL_2026_ENGEPACK_VENDOR_LABEL}
-                                    </span>
-                                  ) : null}
-                                </div>
-                              </td>
-                              <td className="px-4 py-2.5 font-semibold text-primary">
+                              <span className="font-semibold text-foreground">{row.marketCountry}</span>
+                              {isSelectedMarket && (
+                                <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Selected</span>
+                              )}
+                            </div>,
+                          ],
+                          marketTlc: [
+                            <div
+                              key="mt"
+                              className="cursor-pointer font-semibold text-primary"
+                              onClick={() => {
+                                const next = new URLSearchParams(searchParams);
+                                next.set("source", row.marketCountry);
+                                next.set("supplier", row.suppliers[0]?.name ?? "");
+                                setSearchParams(next);
+                              }}
+                            >
+                              {formatTlcDisplay(row.marketTlc)}
+                            </div>,
+                          ],
+                          supplier: row.suppliers.map((supplier, si) => {
+                            const handleClick = () => {
+                              const next = new URLSearchParams(searchParams);
+                              next.set("source", row.marketCountry);
+                              next.set("supplier", supplier.name);
+                              setSearchParams(next);
+                            };
+                            return (
+                              <div key={si} className="cursor-pointer flex flex-col gap-0.5" onClick={handleClick}>
+                                <span className="font-medium text-foreground">{supplier.name}</span>
+                                {isArgentinaApril2026View(selectedDestination, selectedMonth, selectedYear) ? (
+                                  <span className="text-[10px] text-muted-foreground">{ARGENTINA_APRIL_2026_RESIN_VENDOR_LABEL}</span>
+                                ) : isBrazilApril2026View(selectedDestination, selectedMonth, selectedYear) && supplier.name.trim().toLowerCase().startsWith("amcor") ? (
+                                  <span className="text-[10px] text-muted-foreground">{BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}</span>
+                                ) : isBrazilApril2026View(selectedDestination, selectedMonth, selectedYear) && supplier.name.trim().toLowerCase() === "valgroup" ? (
+                                  <span className="text-[10px] text-muted-foreground">{BRAZIL_APRIL_2026_VALGROUP_VENDOR_LABEL}</span>
+                                ) : isBrazilApril2026View(selectedDestination, selectedMonth, selectedYear) && supplier.name.trim().toLowerCase() === "cristalpet" ? (
+                                  <span className="text-[10px] text-muted-foreground">{BRAZIL_APRIL_2026_CRISTALPET_VENDOR_LABEL}</span>
+                                ) : isBrazilApril2026View(selectedDestination, selectedMonth, selectedYear) && supplier.name.trim().toLowerCase() === "engepack" ? (
+                                  <span className="text-[10px] text-muted-foreground">{BRAZIL_APRIL_2026_ENGEPACK_VENDOR_LABEL}</span>
+                                ) : null}
+                              </div>
+                            );
+                          }),
+                          supplierTlc: row.suppliers.map((supplier, si) => {
+                            const handleClick = () => {
+                              const next = new URLSearchParams(searchParams);
+                              next.set("source", row.marketCountry);
+                              next.set("supplier", supplier.name);
+                              setSearchParams(next);
+                            };
+                            return (
+                              <div key={si} className="cursor-pointer font-semibold text-primary" onClick={handleClick}>
                                 {formatTlcDisplay(supplier.supplierTlc)}
-                              </td>
-                              <td className="px-4 py-2.5">
+                              </div>
+                            );
+                          }),
+                          delta: row.suppliers.map((supplier, si) => {
+                            const handleClick = () => {
+                              const next = new URLSearchParams(searchParams);
+                              next.set("source", row.marketCountry);
+                              next.set("supplier", supplier.name);
+                              setSearchParams(next);
+                            };
+                            return (
+                              <div key={si} className="cursor-pointer" onClick={handleClick}>
                                 <span className={`font-semibold ${deltaClass(supplier.delta)}`}>
                                   {formatDeltaDisplay(supplier.delta)}
                                 </span>
-                              </td>
-                            </tr>
-                          ));
-                        })}
-                  </tbody>
-                </table>
+                              </div>
+                            );
+                          }),
+                        },
+                      };
+                    })}
+                  />
+                )}
               </div>
             </div>
           </section>

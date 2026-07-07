@@ -25,3 +25,4 @@ pipelines/market_research/data_exploration/outputs/
 README_legacy.md
 docs/**/*.docx
 docs/**/*.xlsx
+apps/frontend/.npmrc

@@ -1,6 +1,21 @@
-import AppHeader from "../components/AppHeader";
 import { ScrollProgressBar } from "../components/ScrollProgressBar";
 import { cn } from "@/lib/utils";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { LEGACY_OVERVIEW_PATH, ROUTE_TABS, VIEW_TLCS_PATH } from "@/lib/navigation";
+import {
+  ABIAppButton,
+  ABIAppBar,
+  ABICard,
+  ABIResponsiveTable,
+  AppButtonV2Variant,
+  AppCardSize,
+  AppCardTone,
+  AppCardVariant,
+  Version,
+  App,
+} from "@ab-inbev-labs/ux-react-components";
+import AppHeader from "@/components/AppHeader";
+import { ABINavBar } from '@ab-inbev-labs/ux-react-components';
 
 const SHELL = "pet-app-surface p-6 sm:p-8";
 const LATEST_MONTH_TARGET = "YTD June";
@@ -9,11 +24,133 @@ const latestMonthToneClass = (value: string) =>
   value.trim() === LATEST_MONTH_TARGET ? "text-success" : "text-warning";
 
 const LandingPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const scrollToSection = (sectionId: string) => () => {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const search = searchParams.toString();
+  const activePath = location.pathname === LEGACY_OVERVIEW_PATH ? VIEW_TLCS_PATH : location.pathname;
+  const supplierData = [
+    ["Brazil", "Amcor, Cristalpet, Engepack, Valgroup", "YTD June"],
+    ["Ecuador", "Amcor", "YTD June"],
+    ["Panama", "Pastiglas", "YTD June"],
+    ["Colombia", "Amcor", "YTD June"],
+    ["Peru", "San Miguel Industrias (SMI)", "YTD June"],
+    ["Argentina", "Amcor", "YTD May"],
+    ["Dominican Republic", "SMI PET", "YTD June"],
+    ["Uruguay", "Cristalpet", "YTD June"],
+    ["El Salvador and Honduras", "Amcor", "YTD June"],
+    ["Bolivia", "Gestora, Administradora e Industrializadora Preformas S.A.", "YTD June"],
+  ];
+
+  const supplierHeaders = [
+    { header: "Destination Country", accessor: "destinationLeft" },
+    { header: "Supplier", accessor: "supplierLeft" },
+    { header: "Latest Month Available", accessor: "monthLeft" },
+    { header: "Destination Country", accessor: "destinationRight" },
+    { header: "Supplier", accessor: "supplierRight" },
+    { header: "Latest Month Available", accessor: "monthRight" },
+  ];
+
+  const supplierRows = (() => {
+    const rows = [];
+    for (let i = 0; i < supplierData.length; i += 2) {
+      const left = supplierData[i];
+      const right = supplierData[i + 1];
+      rows.push({
+        fields: {
+          destinationLeft: [left[0]],
+          supplierLeft: [left[1]],
+          monthLeft: [
+            <span key={`month-left-${i}`} className={cn("font-semibold", latestMonthToneClass(left[2]))}>
+              {left[2]}
+            </span>,
+          ],
+          destinationRight: [right ? right[0] : ""],
+          supplierRight: [right ? right[1] : ""],
+          monthRight: [
+            right ? (
+              <span
+                key={`month-right-${i}`}
+                className={cn("font-semibold", latestMonthToneClass(right[2]))}>
+                {right[2]}
+              </span>
+            ) : (
+              ""
+            ),
+          ],
+        },
+      });
+    }
+    return rows;
+  })();
+
+  const marketResearchCountries = [
+    "Argentina",
+    "Bolivia",
+    "Brazil",
+    "Colombia",
+    "Dominican Republic",
+    "Ecuador",
+    "El Salvador",
+    "Honduras",
+    "Panama",
+    "Peru",
+    "Uruguay",
+  ];
+
+  const marketResearchHeaders = [
+    { header: "Destination Country", accessor: "destinationLeft" },
+    { header: "Months Available", accessor: "monthLeft" },
+    { header: "Destination Country", accessor: "destinationRight" },
+    { header: "Months Available", accessor: "monthRight" },
+  ];
+
+  const marketResearchRows = (() => {
+    const rows = [];
+    const rowCount = Math.ceil(marketResearchCountries.length / 2);
+    for (let i = 0; i < marketResearchCountries.length; i += 2) {
+      const left = marketResearchCountries[i];
+      const right = marketResearchCountries[i + 1];
+      const isFirstRow = i === 0;
+      rows.push({
+        fields: {
+          destinationLeft: [left],
+          monthLeft: [
+            isFirstRow ? (
+              <span key="month-left" className={cn("font-semibold", latestMonthToneClass("Feb 2026"))}>
+                Feb 2026
+              </span>
+            ) : (
+              ""
+            ),
+          ],
+          destinationRight: [right ?? ""],
+          monthRight: [
+            right && isFirstRow ? (
+              <span key="month-right" className={cn("font-semibold", latestMonthToneClass("Feb 2026"))}>
+                Feb 2026
+              </span>
+            ) : (
+              ""
+            ),
+          ],
+        },
+        summaryText:
+          isFirstRow && rowCount > 1
+            ? `Same month applies for ${rowCount} destination rows`
+            : undefined,
+      });
+    }
+    return rows;
+  })();
+
   return (
     <>
       <ScrollProgressBar />
       <AppHeader />
-      <div className="pet-page-bg min-h-screen">
+      <div className="pet-page-bg landing-page-plain min-h-screen">
         <main className="mx-auto flex w-full max-w-[1480px] flex-col gap-5 p-7 max-sm:p-4">
           <section id="top" className="pet-portal">
             <div className="pet-portal-topbar max-md:flex-col max-md:items-start">
@@ -38,41 +175,66 @@ const LandingPage: React.FC = () => {
                   <h1 className="mt-3 max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.02em] sm:text-4xl lg:text-5xl">
                     From supplier-led pricing to market-led sourcing decisions.
                   </h1>
-                  <p className="mt-4 max-w-3xl text-sm text-muted-foreground sm:text-base">
+                  <p className="mt-4 max-w-3xl text-sm text-foreground sm:text-base">
                     A transparent procurement cockpit that digitizes the Total Landed Cost model,
                     reconciles supplier prices against market-implied cost, and equips the business to
                     negotiate, challenge, and plan sourcing with confidence.
                   </p>
 
                   <div className="mt-6 flex flex-wrap gap-3">
-                    <a className="pet-button-secondary" href="#solution">
+                    <ABIAppButton
+                      version={Version.V2}
+                      variant={AppButtonV2Variant.Primary}
+                      className="bg-blue-500 text-white rounded-lg"
+                      onClick={scrollToSection("solution")}
+                    >
                       Explore the solution
-                    </a>
-                    <a className="pet-button-secondary" href="#flow">
+                    </ABIAppButton>
+                    <ABIAppButton
+                      version={Version.V2}
+                      variant={AppButtonV2Variant.Primary}
+                      className="bg-blue-500 text-white rounded-lg"
+                      onClick={scrollToSection("flow")}
+                    >
                       See how it works
-                    </a>
-                    <a className="pet-button-secondary" href="#data-availability">
+                    </ABIAppButton>
+                    <ABIAppButton
+                      version={Version.V2}
+                      variant={AppButtonV2Variant.Primary}
+                      className="bg-blue-500 text-white rounded-lg"
+                      onClick={scrollToSection("data-availability")}
+                    >
                       Data Availability
-                    </a>
+                    </ABIAppButton>
                   </div>
                 </div>
 
-                <div className="grid gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-2">
                   {[
                     { label: "Total PET Spend", value: "$356M", delta: "+0.6% YoY" },
                     { label: "Savings Opportunity", value: "$5.0M", delta: "annualized" },
                     { label: "No of Suppliers", value: "8", delta: "active suppliers" },
                     { label: "Market Research Countries", value: "10", delta: "covered" },
-                  ].map((kpi) => (
-                    <div key={kpi.label} className="bg-card p-5">
-                      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                        {kpi.label}
-                      </p>
-                      <p className="mt-2 text-3xl font-light tracking-[-0.03em] text-foreground">
-                        {kpi.value}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">{kpi.delta}</p>
-                    </div>
+                  ].map((kpi, index) => (
+                    <ABICard
+                      key={kpi.label}
+                      id={`kpi-card-${index + 1}`}
+                      size={AppCardSize.Medium}
+                      variant={AppCardVariant.Brand}
+                      tone={AppCardTone.Strong}
+                      elevated={false}
+                      className="!w-full !h-full !max-w-none border border-black p-0"
+                    >
+                      <div className="p-5 text-black">
+                        <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-black/80">
+                          {kpi.label}
+                        </p>
+                        <p className="mt-2 text-3xl font-light tracking-[-0.03em] text-black">
+                          {kpi.value}
+                        </p>
+                        <p className="mt-1 text-xs text-black/80">{kpi.delta}</p>
+                      </div>
+                    </ABICard>
                   ))}
                 </div>
               </div>
@@ -95,17 +257,25 @@ const LandingPage: React.FC = () => {
                     desc: "Compare supplier price against market-implied cost",
                   },
                 ].map((item) => (
-                  <div key={item.step} className="pet-metric-card p-4">
+                  <ABICard
+                    key={item.step}
+                    id={`hero-step-${item.step}`}
+                    size={AppCardSize.Small}
+                    variant={AppCardVariant.Neutral}
+                    tone={AppCardTone.Strong}
+                    elevated={true}
+                    className="!w-full !max-w-none !h-auto p-4"
+                  >
                     <div className="flex items-start gap-3">
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-foreground bg-foreground font-mono text-xs font-bold text-primary-foreground">
                         {item.step}
                       </span>
                       <div>
                         <h4 className="text-sm font-semibold text-foreground">{item.title}</h4>
-                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.desc}</p>
+                        <p className="mt-1 text-xs leading-relaxed text-foreground">{item.desc}</p>
                       </div>
                     </div>
-                  </div>
+                  </ABICard>
                 ))}
               </div>
             </div>
@@ -115,7 +285,7 @@ const LandingPage: React.FC = () => {
             <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground sm:text-2xl">
               What the platform delivers
             </h2>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground sm:text-base">
+            <p className="mt-2 max-w-3xl text-sm text-foreground sm:text-base">
               The goal is not just to visualize prices. It is to create a trusted decision layer for
               monthly visibility, negotiation leverage, and annual sourcing strategy support.
             </p>
@@ -134,20 +304,30 @@ const LandingPage: React.FC = () => {
                   desc: "Run controlled scenarios to support annual sourcing decisions without forcing monthly supplier switching.",
                 },
               ].map((card, index) => (
-                <div key={card.title} className="pet-metric-card p-5">
-                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
-                  <h3 className="mt-3 text-base font-semibold text-foreground">{card.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{card.desc}</p>
-                </div>
+                <ABICard
+                  key={card.title}
+                  id={`solution-card-${index + 1}`}
+                  size={AppCardSize.Medium}
+                  variant={AppCardVariant.Neutral}
+                  tone={AppCardTone.Strong}
+                  elevated={true}
+                  className="!w-full !h-full !max-w-none p-0"
+                >
+                  <div className="p-5">
+                    <span className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <h3 className="mt-3 text-base font-semibold text-foreground">{card.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-foreground">{card.desc}</p>
+                  </div>
+                </ABICard>
               ))}
             </div>
           </section>
 
           <section id="flow" className={cn(SHELL)}>
             <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground sm:text-2xl">How it works</h2>
-            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+            <p className="mt-2 text-sm text-foreground sm:text-base">
               A simple flow from raw inputs to business action.
             </p>
             <div className="mt-6 grid gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-2 lg:grid-cols-5">
@@ -177,7 +357,7 @@ const LandingPage: React.FC = () => {
                     </span>
                     <h4 className="text-sm font-semibold text-foreground">{step.title}</h4>
                   </div>
-                  <p className="text-xs leading-relaxed text-muted-foreground">{step.desc}</p>
+                  <p className="text-xs leading-relaxed text-foreground">{step.desc}</p>
                 </div>
               ))}
             </div>
@@ -186,151 +366,38 @@ const LandingPage: React.FC = () => {
           <div className="grid gap-5">
             <section id="data-availability" className={cn(SHELL)}>
               <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground">Supplier Data Availability</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm text-foreground">
                 Latest month of supplier data available in the frontend by destination and supplier.
               </p>
               <div className="mt-4 overflow-hidden rounded-[10px] border border-border">
-                <table className="pet-data-table w-full border-collapse text-sm">
-                  <thead>
-                    <tr>
-                      <th className="border-b border-border px-3 py-2.5 text-left">Destination Country</th>
-                      <th className="border-b border-border px-3 py-2.5 text-left">Supplier</th>
-                      <th className="border-b border-border px-3 py-2.5 text-left">Latest Month Available</th>
-                      <th className="border-b border-l-2 border-b-border border-l-primary/30 px-3 py-2.5 text-left">Destination Country</th>
-                      <th className="border-b border-border px-3 py-2.5 text-left">Supplier</th>
-                      <th className="border-b border-border px-3 py-2.5 text-left">Latest Month Available</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const data = [
-                        ["Brazil", "Amcor, Cristalpet, Engepack, Valgroup", "YTD June"],
-                        ["Ecuador", "Amcor", "YTD June"],
-                        ["Panama", "Pastiglas", "YTD June"],
-                        ["Colombia", "Amcor", "YTD June"],
-                        ["Peru", "San Miguel Industrias (SMI)", "YTD June"],
-                        ["Argentina", "Amcor", "YTD May"],
-                        ["Dominican Republic", "SMI PET", "YTD June"],
-                        ["Uruguay", "Cristalpet", "YTD June"],
-                        ["El Salvador and Honduras", "Amcor", "YTD June"],
-                        ["Bolivia","Gestora, Administradora e Industrializadora Preformas S.A.","YTD June"]
-                      ];
-                      const rows = [];
-                      for (let i = 0; i < data.length; i += 2) {
-                        const left = data[i];
-                        const right = data[i + 1];
-                        rows.push(
-                          <tr key={i} className="border-b border-border/60">
-                            <td className="px-3 py-2.5 text-foreground">{left[0]}</td>
-                            <td className="px-3 py-2.5 text-foreground">{left[1]}</td>
-                            <td className={cn("px-3 py-2.5 font-semibold", latestMonthToneClass(left[2]))}>
-                              {left[2]}
-                            </td>
-                            {right ? (
-                              <>
-                                <td className="border-l border-l-border px-3 py-2.5 text-foreground">{right[0]}</td>
-                                <td className="px-3 py-2.5 text-foreground">{right[1]}</td>
-                                <td className={cn("px-3 py-2.5 font-semibold", latestMonthToneClass(right[2]))}>
-                                  {right[2]}
-                                </td>
-                              </>
-                            ) : (
-                              <>
-                                <td className="border-l border-l-border px-3 py-2.5" />
-                                <td className="px-3 py-2.5" />
-                                <td className="px-3 py-2.5" />
-                              </>
-                            )}
-                          </tr>
-                        );
-                      }
-                      return rows;
-                    })()}
-                  </tbody>
-                </table>
+                <ABIResponsiveTable
+                  id="supplier-data-availability"
+                  headers={supplierHeaders}
+                  data={supplierRows}
+                  ariaLabel="Supplier data availability table by destination and supplier"
+                  className="!w-full"
+                />
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
+              <p className="mt-3 text-xs text-foreground">
                 Destination countries: Brazil, Panama, Peru, Dominican Republic, El Salvador and Honduras, Ecuador, Colombia, Argentina, Uruguay, Bolivia. Indexes used ICIS FOB China, IHS FOB China, ICIS Asia SE.
               </p>
             </section>
 
             <section className={cn(SHELL)}>
               <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground">Market Research Data Availability</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm text-foreground">
                 Market research TLC data coverage by destination country. All data is for 2026 (Feb–Dec).
               </p>
               <div className="mt-4 overflow-hidden rounded-[10px] border border-border">
-                <table className="pet-data-table w-full border-collapse text-sm">
-                  <thead>
-                    <tr>
-                      <th className="border-b border-border px-3 py-2.5 text-left">Destination Country</th>
-                      <th className="border-b border-l border-b-border border-l-border px-3 py-2.5 text-left">Months Available</th>
-                      <th className="border-b border-border border-l border-l-border px-3 py-2.5 text-left">Destination Country</th>
-                      <th className="border-b border-l border-b-border border-l-border px-3 py-2.5 text-left">Months Available</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const data = [
-                        "Argentina",
-                        "Bolivia",
-                        "Brazil",
-                        "Colombia",
-                        "Dominican Republic",
-                        "Ecuador",
-                        "El Salvador",
-                        "Honduras",
-                        "Panama",
-                        "Peru",
-                        "Uruguay",
-                      ];
-                      const rowCount = Math.ceil(data.length / 2);
-                      const rows = [];
-                      for (let i = 0; i < data.length; i += 2) {
-                        const left = data[i];
-                        const right = data[i + 1];
-                        const isFirstRow = i === 0;
-                        rows.push(
-                          <tr key={i} className="border-b border-border/60">
-                            <td className="px-3 py-2.5 text-foreground">{left}</td>
-                            {isFirstRow ? (
-                              <td
-                                rowSpan={rowCount}
-                                className={cn(
-                                  "border-l border-l-border px-3 py-2.5 text-center align-middle font-semibold",
-                                  latestMonthToneClass("Feb 2026")
-                                )}
-                              >
-                                Feb 2026
-                              </td>
-                            ) : null}
-                            {right ? (
-                              <>
-                                <td className="border-l border-l-border px-3 py-2.5 text-foreground">{right}</td>
-                                {isFirstRow ? (
-                                  <td
-                                    rowSpan={rowCount}
-                                    className={cn(
-                                      "border-l border-l-border px-3 py-2.5 text-center align-middle font-semibold",
-                                      latestMonthToneClass("Feb 2026")
-                                    )}
-                                  >
-                                    Feb 2026
-                                  </td>
-                                ) : null}
-                              </>
-                            ) : (
-                              <td className="border-l border-l-border px-3 py-2.5" />
-                            )}
-                          </tr>
-                        );
-                      }
-                      return rows;
-                    })()}
-                  </tbody>
-                </table>
+                <ABIResponsiveTable
+                  id="market-research-data-availability"
+                  headers={marketResearchHeaders}
+                  data={marketResearchRows}
+                  ariaLabel="Market research data availability by destination"
+                  className="!w-full"
+                />
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
+              <p className="mt-3 text-xs text-foreground">
                 Source countries: China, India, Indonesia, South Korea, Taiwan, Thailand, USA, Vietnam, Argentina, Brazil, Mexico. Indexes used ICIS FOB Mexico, ICIS FOB China, ICIS FOB Asia SE, ICIS FOB India, ICIS FOB South Korea, ICIS FOB Taiwan. 
               </p>
             </section>

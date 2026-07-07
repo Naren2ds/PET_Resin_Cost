@@ -996,7 +996,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <div className="min-w-[220px]">
-                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-foreground">
                       Destination
                     </label>
                     <select
@@ -1076,13 +1076,13 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
               </div>
 
               <div className="-mt-1 rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5">
-                <p className="text-[11px] font-medium text-muted-foreground">
+                <p className="text-[11px] font-medium text-foreground">
                   Estimation are based on Resin Indexes and freight all other constants remains the same
                 </p>
               </div>
 
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-foreground">
                   Market Research Countries
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -1092,7 +1092,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
                       allMarketsSelected
                         ? "border-primary/40 bg-primary/15 text-primary"
-                        : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
+                        : "border-border bg-card/40 text-foreground hover:text-foreground"
                     }`}
                   >
                     Select All
@@ -1100,7 +1100,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                   <button
                     type="button"
                     onClick={() => setSelectedMarketCountries([])}
-                    className="rounded-md border border-border bg-card/40 px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+                    className="rounded-md border border-border bg-card/40 px-2.5 py-1 text-xs font-medium text-foreground transition hover:text-foreground"
                   >
                     Clear
                   </button>
@@ -1117,7 +1117,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                       className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
                         selected
                           ? "border-primary/40 bg-primary/15 text-primary"
-                          : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
+                          : "border-border bg-card/40 text-foreground hover:text-foreground"
                       }`}
                     >
                       <span

@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "@ab-inbev-labs/ux-react-components/dist/index.css";
+@import "@ab-inbev-labs/ux-react-components/dist/style/globals.css";
+@import "@ab-inbev-labs/ux-react-components/dist/style/theme-global.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -157,6 +160,27 @@
   border-bottom: 1px solid var(--ci-border);
 }
 
+.pet-brand-bar .appbar-content {
+  min-height: 58px;
+  padding-bottom: 0 !important;
+  align-items: center;
+}
+
+.pet-brand-bar .actions-container {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* Hide ABI logo and keep title-only app header */
+.pet-brand-bar .brand-logo {
+  display: none !important;
+}
+
+.pet-brand-bar .app-title {
+  margin-left: 0;
+}
+
 .pet-app-topbar {
   display: flex;
   min-height: 58px;
@@ -221,10 +245,16 @@
 }
 
 .pet-page-bg {
-  background:
-    radial-gradient(ellipse 900px 400px at 85% 0%, rgba(231, 76, 60, 0.03), transparent 60%),
-    radial-gradient(ellipse 600px 300px at 5% 100%, rgba(46, 204, 113, 0.03), transparent 60%),
-    var(--ci-bg);
+  background: var(--ci-bg);
+}
+
+/* Landing-only background override */
+.landing-page-plain {
+  background: #ffffff !important;
+}
+
+.landing-page-plain .pet-portal::before {
+  background: transparent !important;
 }
 
 .pet-route-tabs {
@@ -270,6 +300,21 @@
   color: var(--ci-text-faint);
 }
 
+/* Remove default ABITabs framing lines inside top header nav */
+.pet-app-tabs .abi-tab-container,
+.pet-app-tabs .abi-tab-list,
+.pet-app-tabs .abi-tab-list-horizontal,
+.pet-app-tabs .abi-tab-panels,
+.pet-app-tabs .abi-tab-panels-horizontal {
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.pet-app-tabs .abi-tab-panels,
+.pet-app-tabs .abi-tab-panels-horizontal {
+  display: none;
+}
+
 .pet-portal {
   position: relative;
   overflow: hidden;
@@ -285,9 +330,7 @@
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background:
-    radial-gradient(ellipse 900px 400px at 85% 0%, rgba(231, 76, 60, 0.03), transparent 60%),
-    radial-gradient(ellipse 600px 300px at 5% 100%, rgba(46, 204, 113, 0.03), transparent 60%);
+  background: transparent;
 }
 
 .pet-portal > * {
@@ -338,13 +381,29 @@
   display: flex;
   overflow-x: auto;
   border-bottom: 1px solid var(--ci-border);
-  background: var(--ci-bg-raised);
+  background: #ffffff;
 }
 
 .pet-app-tabs {
   margin-right: -32px;
   margin-left: -32px;
   border-top: 1px solid var(--ci-border);
+}
+
+.pet-brand-bar .pet-portal-tabs {
+  border-bottom: 0;
+}
+
+.pet-brand-bar .pet-app-tabs {
+  margin-right: 0;
+  margin-left: 0;
+  border-top: 0;
+  display: flex;
+  align-items: center;
+}
+
+.pet-brand-bar .pet-app-tabs .abi-tab-container {
+  width: auto;
 }
 
 .pet-portal-tab {

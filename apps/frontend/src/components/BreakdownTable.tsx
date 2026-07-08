@@ -281,7 +281,6 @@ const dedupeVendorRows = (rows: VendorBreakdownItem[]) => {
 const BreakdownTable: React.FC<BreakdownTableProps> = ({
   breakdown,
   vendorBreakdown = [],
-  supplierName = "",
 }) => {
   const [showCostDetailTable, setShowCostDetailTable] = useState(true);
 

@@ -997,21 +997,6 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
   const showSupplierMape = !isIcisOrIhsIndexContext;
   const showMrMape = !isMrIcisFobChinaContext;
 
-  const latestActual = useMemo(() => {
-    const actualRows = MONTHS.map((_, index) => supplierEntriesByMonth.get(index))
-      .filter((entry): entry is VendorBreakdownEntry => Boolean(entry) && !dataTypeIsForecast(entry));
-    const latest = actualRows[actualRows.length - 1];
-    return latest ? { entry: latest, value: getSupplierTlc(latest) } : null;
-  }, [supplierEntriesByMonth]);
-
-  const forecastRowsCount = useMemo(
-    () =>
-      MONTHS.map((_, index) => supplierEntriesByMonth.get(index)).filter((entry) =>
-        dataTypeIsForecast(entry)
-      ).length,
-    [supplierEntriesByMonth]
-  );
-
   const toggleMarketCountry = (country: string) => {
     setSelectedMarketCountries((current) =>
       current.includes(country)

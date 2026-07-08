@@ -588,7 +588,7 @@ type TrendForecastRiskInsight = {
  * user sees AI commentary before diving into charts.
  */
 export default function AIInsightPanel({ request, className = "" }: Props) {
-  const { data, loading, error, refresh } = useInsights(request);
+  const { data, loading, error } = useInsights(request);
   const [expanded, setExpanded] = useState(true);
   const [activeView, setActiveView] = useState<"procurement" | "summary">(
     "procurement"
@@ -766,7 +766,7 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
 
         <div className="flex items-center gap-2">
           {/* Refresh button */}
-          {!loading && (
+          {/* {!loading && (
             <button
               onClick={refresh}
               title="Regenerate insights"
@@ -774,17 +774,25 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
             >
               ↺
             </button>
-          )}
+          )} */}
           {/* Collapse / expand */}
           <button
             onClick={() => setExpanded((v) => !v)}
             title={expanded ? "Collapse" : "Expand"}
-            className="text-muted-foreground hover:text-foreground transition-colors text-sm leading-none"
+            className="text-foreground hover:text-foreground transition-colors text-sm leading-none"
           >
             {expanded ? "▲" : "▼"}
           </button>
         </div>
       </CardHeader>
+
+      {!expanded && (
+        <CardContent className="pt-0 pb-3">
+          <p className="text-[11px] text-muted-foreground">
+            AI-generated market signals, cost trends, and sourcing recommendations for the selected context.
+          </p>
+        </CardContent>
+      )}
 
       {expanded && (
         <CardContent className="pt-0">
@@ -826,7 +834,7 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
               ) : null}
 
               {(isTrendsPage || activeView === "procurement") && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {isTrendsPage ? (
                     trendForecastRiskInsights.length ? (
                       trendForecastRiskInsights.map((insight) => (
@@ -843,8 +851,8 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
                       const cardKey = `${record.supplier}-${record.source_country}-${record.location || idx}`;
                       const isOpen = !!expandedCards[cardKey];
                       return (
-                        <div key={cardKey} className="rounded-lg border border-border bg-background/30 p-3">
-                          <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div key={cardKey} className="rounded-xl border border-border/80 bg-white p-4 shadow-sm">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-2">
                             <div>
                               <p className="text-sm font-semibold text-foreground">
                                 {record.supplier} · {record.source_country}
@@ -860,19 +868,19 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
                             </button>
                           </div>
 
-                          <div className="mt-2 grid gap-1.5 text-xs md:grid-cols-2">
+                          <div className="mt-3 grid gap-2 text-xs md:grid-cols-2">
                             <TagLine label="Pricing Opportunity" value={pricingOpportunityLabel(record)} />
-                            <TagLine
+                            {/* <TagLine
                               label="Cost Driver"
                               value={costDriverLabel(record)}
-                            />
+                            /> */}
                             <TagLine label="Gap Driver" value={gapDriverNarrative(record)} />
                             <TagLine label="Forecast Risk" value={forecastRiskLabel(record)} />
                             <TagLine label="Recommended Action" value={record.recommended_action} className="md:col-span-2" />
                           </div>
 
                           {isOpen && (
-                            <div className="mt-3 rounded-md border border-border/70 bg-card/60 p-2.5 text-xs text-muted-foreground">
+                            <div className="mt-3 rounded-lg border border-border/80 bg-[#F8F9FA] p-3 text-xs text-muted-foreground">
                               <p>Supplier TLC: <strong className="text-foreground">{formatCurrency(record.supplier_tlc)}</strong> | Same-source Market TLC: <strong className="text-foreground">{formatCurrency(record.same_source_market_tlc)}</strong> | Best Market TLC: {formatCurrency(record.best_market_tlc)}</p>
                               <p className="mt-1">Market - Supplier gap: <strong className="text-foreground">{formatSignedCurrency(record.gap_abs)} ({formatPct(record.gap_pct)})</strong> | Rank: {record.supplier_rank ?? "N/A"}</p>
                               <p className="mt-1">Supplier forecast trend: {isInsufficient(record.forecast_trend) ? "no data" : stripTrendPercentage(record.forecast_trend)} | Market - Supplier trend: {isInsufficient(record.forecast_gap_trend) ? "no market data" : stripTrendPercentage(record.forecast_gap_trend)}</p>
@@ -889,17 +897,17 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
               )}
 
               {!isTrendsPage && activeView === "summary" && (
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-border bg-background/20 p-3">
+                <div className="space-y-4">
+                  {/* <div className="rounded-lg border border-border bg-background/20 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Overall Pricing</p>
                     <div className="mt-2 grid gap-2 text-sm md:grid-cols-3">
                       <TagLine label="Avg Supplier TLC" value={formatCurrency(overallSummary.avgSupplierTlc)} />
                       <TagLine label="Avg Benchmark TLC" value={formatCurrency(overallSummary.avgBenchmarkTlc)} />
                       <TagLine label="Avg Gap" value={formatSignedCurrency(overallSummary.avgGap)} />
                     </div>
-                  </div>
+                  </div> */}
 
-                  <div className="rounded-lg border border-border bg-background/20 p-3">
+                  <div className="rounded-xl border border-border/80 bg-white p-4 shadow-sm">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Pricing Breakdown Drivers</p>
                     {overallSummary.driverDeviationInsights.length ? (
                       <ul className="mt-2 space-y-1.5 text-sm text-foreground">
@@ -915,7 +923,7 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
                     )}
                   </div>
 
-                  <div className="rounded-lg border border-border bg-background/20 p-3">
+                  {/* <div className="rounded-lg border border-border bg-background/20 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Forecast Outlook</p>
                     <div className="mt-2 grid gap-2 text-sm md:grid-cols-4">
                       <TagLine label="Increasing" value={String(overallSummary.forecastMix.increasing)} />
@@ -923,9 +931,9 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
                       <TagLine label="Decreasing" value={String(overallSummary.forecastMix.decreasing)} />
                       <TagLine label="No Data" value={String(overallSummary.forecastMix.noData)} />
                     </div>
-                  </div>
+                  </div> */}
 
-                  <div className="rounded-lg border border-border bg-background/20 p-3">
+                  {/* <div className="rounded-lg border border-border bg-background/20 p-3">
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recommendations</p>
                     <p className="mt-1 text-sm text-foreground">High-priority negotiations identified: {overallSummary.highPriorityCount}</p>
                     {overallSummary.recommendationLines.length ? (
@@ -940,10 +948,10 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
                     ) : (
                       <p className="mt-1 text-sm text-muted-foreground">No high-priority recommendation lines available.</p>
                     )}
-                  </div>
+                  </div> */}
 
                   {parsedBullets.length ? (
-                    <div className="rounded-lg border border-border bg-background/20 p-3">
+                    <div className="rounded-xl border border-border/80 bg-white p-4 shadow-sm">
                       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">LLM Decision Narrative</p>
                       <ul className="mt-2 space-y-1.5 text-sm text-foreground">
                         {parsedBullets.map((line, idx) => (
@@ -1290,15 +1298,15 @@ const buildTrendForecastRiskInsight = (
 function TrendForecastRiskCard({ insight }: { insight: TrendForecastRiskInsight }) {
   const { record, componentWeights } = insight;
   return (
-    <div className="rounded-lg border border-border bg-background/30 p-3">
-      <div>
+    <div className="rounded-xl border border-border/80 bg-white p-4 shadow-sm">
+      <div className="border-b border-border/70 pb-2">
         <p className="text-sm font-semibold text-foreground">
           {record.supplier} · {record.source_country}
         </p>
         <p className="text-xs text-muted-foreground">{record.destination}{record.location ? ` · ${record.location}` : ""}</p>
       </div>
 
-      <div className="mt-2 grid gap-1.5 text-xs md:grid-cols-2">
+      <div className="mt-3 grid gap-2 text-xs md:grid-cols-2">
         <TagLine label="Forecast Risk" value={forecastRiskLabel(record)} />
         <TagLine label="TLC Component Weightage" value={componentWeightNarrative(componentWeights)} />
         <TagLine label="Forecast Movement" value={insight.forecastMovement} className="md:col-span-2" />
@@ -1378,21 +1386,6 @@ const pricingOpportunityLabel = (record: ProcurementIntelligenceRecord): ReactNo
   return <Critical>At market parity: $0.0 (0.00%) gap</Critical>;
 };
 
-const costDriverLabel = (record: ProcurementIntelligenceRecord): ReactNode => {
-  const primary = record.largest_cost_driver && record.largest_cost_driver !== "Unknown"
-    ? record.largest_cost_driver
-    : "Unknown";
-  const secondary = record.second_largest_cost_driver && record.second_largest_cost_driver !== "Unknown"
-    ? record.second_largest_cost_driver
-    : "";
-  return (
-    <>
-      <Critical>{primary}</Critical>
-      {secondary ? <>, <Critical>{secondary}</Critical></> : null}
-    </>
-  );
-};
-
 const gapDriverNarrative = (record: ProcurementIntelligenceRecord): ReactNode => {
   const primary = record.largest_cost_driver && record.largest_cost_driver !== "Unknown"
     ? record.largest_cost_driver
@@ -1413,7 +1406,7 @@ const gapDriverNarrative = (record: ProcurementIntelligenceRecord): ReactNode =>
   if (gap === null || gap === undefined) {
     return (
       <>
-        Highest gap drivers: <Critical>{primary}</Critical>
+        <Critical>{primary}</Critical>
         {secondary ? <> and <Critical>{secondary}</Critical></> : null}. <Critical>{relationship}</Critical>.
       </>
     );
@@ -1421,7 +1414,7 @@ const gapDriverNarrative = (record: ProcurementIntelligenceRecord): ReactNode =>
 
   return (
     <>
-      Highest gap drivers: <Critical>{primary}</Critical>
+      <Critical>{primary}</Critical>
       {secondary ? <> and <Critical>{secondary}</Critical></> : null}.{" "}
       <Critical>{relationship}</Critical> by{" "}
       <Critical>{formatAbsCurrency(gap)} ({formatPct(record.gap_pct)})</Critical>.
@@ -1522,10 +1515,10 @@ function TagLine({
   className?: string;
 }) {
   return (
-    <p className={`rounded border border-border/50 bg-card/40 px-2 py-1 ${className}`}>
-      <span className="font-semibold text-muted-foreground">{label}: </span>
-      <span className="text-foreground">{value}</span>
-    </p>
+    <div className={`rounded-lg border border-border/70 bg-white px-3 py-2 ${className}`}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
+      <p className="mt-1 text-foreground">{value}</p>
+    </div>
   );
 }
 

@@ -397,12 +397,36 @@ type ForecastWindow = {
 
 const TrendTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
-  const rows = payload.filter((item: any) => item.value !== null && item.value !== undefined);
+  const rawRows = payload.filter((item: any) => item.value !== null && item.value !== undefined);
+  const rowByKey = new Map<string, any>(
+    rawRows.map((item: any) => [String(item.dataKey), item])
+  );
+
+  const rows = rawRows.filter((item: any) => {
+    const key = String(item.dataKey);
+    let actualKey: string | null = null;
+
+    if (key === "supplierForecast") actualKey = "supplierActual";
+    else if (key.endsWith("_forecast")) actualKey = key.replace(/_forecast$/, "_actual");
+
+    if (!actualKey) return true;
+
+    const actualItem = rowByKey.get(actualKey);
+    if (!actualItem) return true;
+
+    const forecastValue = Number(item.value);
+    const actualValue = Number(actualItem.value);
+
+    return !Number.isFinite(forecastValue) ||
+      !Number.isFinite(actualValue) ||
+      Math.abs(forecastValue - actualValue) > 0.0001;
+  });
+
   if (!rows.length) return null;
 
   return (
     <div className="pet-tooltip px-4 py-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-foreground">{label}</p>
       <div className="space-y-3">
         {rows.map((item: any) => {
           const meta = item.payload?.[`${item.dataKey}Meta`] as TlcPoint | undefined;
@@ -415,7 +439,7 @@ const TrendTooltip = ({ active, payload, label }: any) => {
                 <span className="font-bold text-foreground">${formatAmount(item.value)}/MT</span>
               </div>
               {meta ? (
-                <div className="rounded-md bg-secondary px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                <div className="rounded-md bg-secondary px-2.5 py-2 text-[11px] leading-relaxed text-foreground">
                   <p>
                     <span className="font-semibold text-foreground">Index used:</span>{" "}
                     {meta.indexType || "Not specified"}
@@ -444,12 +468,36 @@ const TrendTooltip = ({ active, payload, label }: any) => {
 
 const IndexForecastTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
-  const rows = payload.filter((item: any) => item.value !== null && item.value !== undefined);
+  const rawRows = payload.filter((item: any) => item.value !== null && item.value !== undefined);
+  const rowByKey = new Map<string, any>(
+    rawRows.map((item: any) => [String(item.dataKey), item])
+  );
+
+  const rows = rawRows.filter((item: any) => {
+    const key = String(item.dataKey);
+    let actualKey: string | null = null;
+
+    if (key === "supplierIndexForecast") actualKey = "supplierIndexActual";
+    else if (key.endsWith("_forecast")) actualKey = key.replace(/_forecast$/, "_actual");
+
+    if (!actualKey) return true;
+
+    const actualItem = rowByKey.get(actualKey);
+    if (!actualItem) return true;
+
+    const forecastValue = Number(item.value);
+    const actualValue = Number(actualItem.value);
+
+    return !Number.isFinite(forecastValue) ||
+      !Number.isFinite(actualValue) ||
+      Math.abs(forecastValue - actualValue) > 0.0001;
+  });
+
   if (!rows.length) return null;
 
   return (
     <div className="pet-tooltip px-4 py-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-foreground">{label}</p>
       <div className="space-y-3">
         {rows.map((item: any) => {
           const meta = item.payload?.[`${item.dataKey}Meta`] as IndexPoint | undefined;
@@ -461,7 +509,7 @@ const IndexForecastTooltip = ({ active, payload, label }: any) => {
                 </span>
                 <span className="font-bold text-foreground">${formatAmount(item.value)}/MT</span>
               </div>
-              <div className="rounded-md bg-secondary px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">
+              <div className="rounded-md bg-secondary px-2.5 py-2 text-[11px] leading-relaxed text-foreground">
                 <p>
                   <span className="font-semibold text-foreground">Index used:</span>{" "}
                   {meta?.indexType || "Not specified"}
@@ -985,18 +1033,18 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
     <div className="pet-page-bg min-h-screen px-6 py-6 max-sm:px-4">
       <RevealOnScroll>
         <section className="mx-auto w-full max-w-[1400px] space-y-4">
-          <Card className="border-primary/10 bg-card/80 shadow-lg">
+          <Card className="border-primary/10 bg-white shadow-lg">
             <CardHeader className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <CardTitle className="text-xl">Supplier Actual and Forecast vs Market Research TLC</CardTitle>
+                  <CardTitle className="text-xl">Supplier TLC Benchmark and Market Scenario Outlook</CardTitle>
                   <CardDescription className="mt-1">
                     {selectedDestination || "Destination"} {supplierName || "supplier"} TLC for {selectedSourceCountry || "selected source"} across 2026.
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <div className="min-w-[220px]">
-                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-foreground">
                       Destination
                     </label>
                     <select
@@ -1020,7 +1068,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                   </div>
                   {isBrazilDestination && supplierOptions.length > 1 ? (
                     <div className="min-w-[220px]">
-                      <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-foreground">
                         Supplier / Location
                       </label>
                       <select
@@ -1043,7 +1091,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                 </div>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-3">
+              {/* <div className="grid gap-3 md:grid-cols-3">
                 <div className="rounded-lg border border-border bg-background/30 px-3 py-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Supplier Source
@@ -1073,16 +1121,16 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     </span>
                   </p>
                 </div>
-              </div>
+              </div> */}
 
               <div className="-mt-1 rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5">
-                <p className="text-[11px] font-medium text-muted-foreground">
+                <p className="text-[11px] font-medium text-foreground">
                   Estimation are based on Resin Indexes and freight all other constants remains the same
                 </p>
               </div>
 
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-foreground">
                   Market Research Countries
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -1092,7 +1140,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
                       allMarketsSelected
                         ? "border-primary/40 bg-primary/15 text-primary"
-                        : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
+                        : "border-border bg-card/40 text-foreground hover:text-foreground"
                     }`}
                   >
                     Select All
@@ -1100,7 +1148,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                   <button
                     type="button"
                     onClick={() => setSelectedMarketCountries([])}
-                    className="rounded-md border border-border bg-card/40 px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+                    className="rounded-md border border-border bg-card/40 px-2.5 py-1 text-xs font-medium text-foreground transition hover:text-foreground"
                   >
                     Clear
                   </button>
@@ -1117,7 +1165,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                       className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
                         selected
                           ? "border-primary/40 bg-primary/15 text-primary"
-                          : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
+                          : "border-border bg-card/40 text-foreground hover:text-foreground"
                       }`}
                     >
                       <span
@@ -1199,6 +1247,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                             strokeWidth={2.6}
                             dot={{ r: 2.8, fill: marketSeriesColor(country, index) }}
                             connectNulls
+                            legendType="none"
                           />
                           <Line
                             type="monotone"
@@ -1220,14 +1269,14 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
               <div className="mt-4 rounded-xl border border-border bg-card/40 p-3">
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-bold text-foreground">Index Actual and Forecast used for TLC</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="text-xl font-bold text-foreground">Index Actual and Forecast used for TLC</p>
+                    <p className="mt-1 text-xs text-foreground">
                       Supplier and Market Research resin index values aligned to the TLC chart above.
                     </p>
                   </div>
                   <div className="grid min-w-[280px] gap-2 text-xs md:min-w-[520px] md:grid-cols-2">
                     <div className="rounded-md border border-border/70 bg-background/35 px-2.5 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
                         Supplier index used
                       </p>
                       <p className="mt-1 line-clamp-2 font-semibold text-foreground">
@@ -1235,7 +1284,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                       </p>
                     </div>
                     <div className="rounded-md border border-border/70 bg-background/35 px-2.5 py-2">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
                         MR index used
                       </p>
                       <p className="mt-1 line-clamp-2 font-semibold text-foreground">
@@ -1245,18 +1294,18 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     {!showIcisOnlyCallout ? (
                       <>
                         <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5 md:col-span-1">
-                          <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                          <p className="text-[9px] font-medium uppercase tracking-wide text-foreground/80">
                             Training data
                           </p>
-                          <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                          <p className="mt-0.5 text-[11px] font-medium text-foreground">
                             {MR_INDEX_TRAINING_WINDOW}
                           </p>
                         </div>
                         <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5 md:col-span-1">
-                          <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                          <p className="text-[9px] font-medium uppercase tracking-wide text-foreground/80">
                             Predicted data
                           </p>
-                          <p className="mt-0.5 text-[11px] font-medium text-muted-foreground">
+                          <p className="mt-0.5 text-[11px] font-medium text-foreground">
                             {MR_INDEX_PREDICTED_WINDOW}
                           </p>
                         </div>
@@ -1264,7 +1313,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     ) : null}
                     {showIcisOnlyCallout ? (
                       <div className="rounded-md border border-border/50 bg-background/20 px-2.5 py-1.5 md:col-span-2">
-                        <p className="text-[11px] font-medium text-muted-foreground">
+                        <p className="text-[11px] font-medium text-foreground">
                           ICIS estimates
                         </p>
                       </div>
@@ -1274,7 +1323,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                         <div className="grid gap-2 md:grid-cols-2">
                           {showSupplierMape ? (
                             <div>
-                              <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                              <p className="text-[9px] font-medium uppercase tracking-wide text-foreground/80">
                                 Supplier MAPE score
                               </p>
                               <p className="mt-0.5 text-[11px] font-semibold text-foreground">
@@ -1284,7 +1333,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                           ) : null}
                           {showMrMape ? (
                             <div>
-                              <p className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground/80">
+                              <p className="text-[9px] font-medium uppercase tracking-wide text-foreground/80">
                                 MR MAPE score
                               </p>
                               {marketMapeEntries.length ? (
@@ -1386,7 +1435,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                     </ResponsiveContainer>
                   </div>
                 ) : (
-                  <div className="flex h-[180px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                  <div className="flex h-[180px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-foreground">
                     No resin index trend rows available for the current selection.
                   </div>
                 )}

@@ -1067,12 +1067,38 @@ const supplierEntryScore = (entry: VendorBreakdownEntry, requestedSupplier: stri
 
 const TrendTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
-  const rows = payload.filter((item: any) => item.value !== null && item.value !== undefined);
+  const rawRows = payload.filter((item: any) => item.value !== null && item.value !== undefined);
+  const rowByKey = new Map<string, any>(
+    rawRows.map((item: any) => [String(item.dataKey), item])
+  );
+
+  const rows = rawRows.filter((item: any) => {
+    const key = String(item.dataKey);
+    let actualKey: string | null = null;
+
+    if (key === "supplierForecast") actualKey = "supplierActual";
+    else if (key === "simulatedSupplierForecast") actualKey = "simulatedSupplierActual";
+    else if (key.endsWith("_forecast")) actualKey = key.replace(/_forecast$/, "_actual");
+
+    if (!actualKey) return true;
+
+    const actualItem = rowByKey.get(actualKey);
+    if (!actualItem) return true;
+
+    const forecastValue = Number(item.value);
+    const actualValue = Number(actualItem.value);
+
+    // At forecast transition months (e.g., June), keep only actual in tooltip.
+    return !Number.isFinite(forecastValue) ||
+      !Number.isFinite(actualValue) ||
+      Math.abs(forecastValue - actualValue) > 0.0001;
+  });
+
   if (!rows.length) return null;
 
   return (
     <div className="pet-tooltip px-4 py-3">
-      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-foreground">{label}</p>
       <div className="space-y-3">
         {rows.map((item: any) => {
           const meta = item.payload?.[`${item.dataKey}Meta`] as TlcPoint | undefined;
@@ -1085,7 +1111,7 @@ const TrendTooltip = ({ active, payload, label }: any) => {
                 <span className="font-bold text-foreground">${formatAmount(item.value)}/MT</span>
               </div>
               {meta ? (
-                <div className="rounded-md bg-secondary px-2.5 py-2 text-[11px] leading-relaxed text-muted-foreground">
+                <div className="rounded-md bg-secondary px-2.5 py-2 text-[11px] leading-relaxed text-foreground">
                   <p>
                     <span className="font-semibold text-foreground">Index used:</span>{" "}
                     {meta.indexType || "Not specified"}
@@ -1364,20 +1390,23 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
     marketCountryOptions.length > 0 &&
     marketCountryOptions.every((country) => selectedMarketCountries.includes(country));
   const supplierLegendName = supplierName || "Supplier";
+  const supplierLegendNameWithCountry = selectedDestination
+    ? `${supplierLegendName} - ${selectedDestination}`
+    : supplierLegendName;
 
   return (
     <div className="pet-page-bg min-h-screen px-6 py-6 max-sm:px-4">
       <section className="mx-auto w-full max-w-[1400px] space-y-4">
         <RevealOnScroll>
-          <Card className="border-primary/10 bg-card/80 shadow-lg backdrop-blur">
+          <Card className="border-primary/10 bg-white shadow-lg">
             <CardContent className="p-6 max-sm:p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground">
                 Scenario Planning
               </p>
               <h1 className="mt-2 text-xl font-extrabold text-foreground">
                 Simulation Workspace
               </h1>
-              <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+              <p className="mt-2 max-w-6xl text-sm text-foreground">
                 Experiment with percentage-based adjustments on Supplier TLC and compare the result against
                 the same Supplier Actual and Forecast vs Market Research TLC view used in Trends.
               </p>
@@ -1392,16 +1421,16 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
               <CardDescription>Adjust Supplier TLC and view the impact on the Trends-style graph.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_160px] xl:items-end">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Simulation target</label>
-                  <div className="flex h-11 w-full items-center rounded-xl border border-border bg-secondary px-3 text-sm text-foreground">
+              <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_160px] xl:items-stretch">
+                <div className="h-full rounded-xl border border-border bg-white p-4">
+                  <label className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground">Simulation target</label>
+                  <div className="mt-2 flex h-11 w-full items-center rounded-xl border border-border bg-secondary px-3 text-sm text-foreground">
                     Supplier TLC
                   </div>
                 </div>
-                <div className="rounded-xl border border-border bg-card/40 p-4">
+                <div className="h-full rounded-xl border border-border bg-white p-4">
                   <div className="flex items-center justify-between gap-4">
-                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">Percentage change</label>
+                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground">Percentage change</label>
                     <Badge variant="secondary">{simulationPercent > 0 ? "+" : ""}{simulationPercent}%</Badge>
                   </div>
                   <input
@@ -1417,7 +1446,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                 <button
                   type="button"
                   onClick={() => setSimulationPercent(0)}
-                  className="h-11 rounded-xl border border-border bg-card px-4 text-sm font-semibold text-foreground transition hover:bg-secondary"
+                  className="h-full min-h-[92px] rounded-xl border border-[#D4C100] bg-[#F2DC00] px-4 text-md font-semibold text-black transition hover:bg-[#E3CF00]"
                 >
                   Reset
                 </button>
@@ -1427,18 +1456,18 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
         </RevealOnScroll>
 
         <RevealOnScroll delay={0.05}>
-          <Card className="border-primary/10 bg-card/80 shadow-lg">
+          <Card className="border-primary/10 bg-white shadow-lg">
             <CardHeader className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <CardTitle className="text-xl">Supplier Actual and Forecast vs Market Research TLC</CardTitle>
+                  <CardTitle className="text-xl">Supplier TLC Benchmark and Market Scenario Outlook</CardTitle>
                   <CardDescription className="mt-1">
                     {selectedDestination || "Destination"} {supplierName || "supplier"} TLC for {selectedSourceCountry || "selected source"} across 2026.
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-3">
                   <div className="min-w-[220px]">
-                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-foreground">
                       Destination
                     </label>
                     <select
@@ -1462,7 +1491,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                   </div>
                   {isBrazilDestination && supplierOptions.length > 1 ? (
                     <div className="min-w-[220px]">
-                      <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-foreground">
                         Supplier / Location
                       </label>
                       <select
@@ -1486,7 +1515,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-lg border border-border bg-background/30 px-3 py-2">
+                {/* <div className="rounded-lg border border-border bg-background/30 px-3 py-2">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     Supplier Source
                   </p>
@@ -1514,11 +1543,11 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                       {forecastRowsCount} forecast months
                     </span>
                   </p>
-                </div>
+                </div> */}
               </div>
 
               <div>
-                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-foreground">
                   Market Research Countries
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -1528,7 +1557,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                     className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
                       allMarketsSelected
                         ? "border-primary/40 bg-primary/15 text-primary"
-                        : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
+                        : "border-border bg-card/40 text-foreground hover:text-foreground"
                     }`}
                   >
                     Select All
@@ -1536,7 +1565,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                   <button
                     type="button"
                     onClick={() => setSelectedMarketCountries([])}
-                    className="rounded-md border border-border bg-card/40 px-2.5 py-1 text-xs font-medium text-muted-foreground transition hover:text-foreground"
+                    className="rounded-md border border-border bg-card/40 px-2.5 py-1 text-xs font-medium text-foreground transition hover:text-foreground"
                   >
                     Clear
                   </button>
@@ -1551,7 +1580,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                         className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
                           selected
                             ? "border-primary/40 bg-primary/15 text-primary"
-                            : "border-border bg-card/40 text-muted-foreground hover:text-foreground"
+                            : "border-border bg-card/40 text-foreground hover:text-foreground"
                         }`}
                       >
                         <span
@@ -1605,7 +1634,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                       <Line
                         type="monotone"
                         dataKey="supplierActual"
-                        name={supplierLegendName}
+                        name={supplierLegendNameWithCountry}
                         stroke={SUPPLIER_ACTUAL_COLOR}
                         strokeWidth={3}
                         dot={{ r: 3, fill: SUPPLIER_ACTUAL_COLOR }}
@@ -1614,7 +1643,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                       <Line
                         type="monotone"
                         dataKey="supplierForecast"
-                        name={`Fcst - ${supplierLegendName}`}
+                        name={`Fcst - ${supplierLegendNameWithCountry}`}
                         stroke={SUPPLIER_FORECAST_COLOR}
                         strokeWidth={3}
                         strokeDasharray="7 5"
@@ -1627,7 +1656,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                           <Line
                             type="monotone"
                             dataKey="simulatedSupplierActual"
-                            name={`Simulated - ${supplierLegendName}`}
+                            name={`Simulated - ${supplierLegendNameWithCountry}`}
                             stroke={SIMULATED_SUPPLIER_COLOR}
                             strokeWidth={3}
                             dot={{ r: 3, fill: SIMULATED_SUPPLIER_COLOR }}
@@ -1636,7 +1665,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                           <Line
                             type="monotone"
                             dataKey="simulatedSupplierForecast"
-                            name={`Sim Fcst - ${supplierLegendName}`}
+                            name={`Sim Fcst - ${supplierLegendNameWithCountry}`}
                             stroke={SIMULATED_SUPPLIER_COLOR}
                             strokeWidth={3}
                             strokeDasharray="7 5"
@@ -1656,6 +1685,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                             strokeWidth={2.6}
                             dot={{ r: 2.8, fill: marketSeriesColor(country, index) }}
                             connectNulls
+                            legendType="none"
                           />
                           <Line
                             type="monotone"

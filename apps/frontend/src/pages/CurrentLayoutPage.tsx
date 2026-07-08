@@ -310,7 +310,7 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground mb-1">
                   Selected Source
                 </p>
-                <h2 className="text-xl font-extrabold pet-gradient-heading pet-deep-dive-heading bg-clip-text text-transparent">
+                <h2 className="text-xl font-extrabold text-foreground">
                   {activeCountry?.country ?? "—"}
                 </h2>
                 {selectedSupplierName ? (
@@ -323,10 +323,10 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
                 ) : null}
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-3 max-lg:grid-cols-2">
-                <div className="rounded-xl border border-border bg-card/30 p-3">
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-border bg-white p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Market Research (Delloite) TLC
+                    Market Research (Delloite) vPET
                   </p>
                   <p className="mt-1 text-base font-extrabold text-primary">
                     {formatTlc(marketTlc)}
@@ -341,7 +341,7 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
                   }`}
                 >
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Market Research TLC - Supplier TLC
+                    Market Research vPET - Supplier vPET
                   </p>
                   <p
                     className={`mt-1 text-base font-extrabold ${
@@ -350,37 +350,6 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
                   >
                     {diffDisplay}
                   </p>
-                </div>
-
-                <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/3 p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Supplier TLC
-                  </p>
-                  {selectedSupplierName ? (
-                    <p className="mt-0.5 truncate text-[11px] font-semibold text-foreground">
-                      {selectedSupplierName}
-                    </p>
-                  ) : null}
-                  <p className="mt-1 text-base font-extrabold text-primary">
-                    {formatTlc(supplierTlc)}
-                  </p>
-                  {isArgentinaApril2026View(
-                    selectedDestination,
-                    selectedMonth,
-                    selectedYear
-                  ) ? (
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Resin index (Excel): {ARGENTINA_APRIL_2026_RESIN_VENDOR_LABEL}
-                    </p>
-                  ) : isBrazilApril2026View(
-                    selectedDestination,
-                    selectedMonth,
-                    selectedYear
-                  ) && selectedVendorEntry && entrySupplierSlot(selectedVendorEntry) === "amcor" ? (
-                    <p className="mt-1 text-[11px] text-muted-foreground">
-                      Amcor resin index (Excel): {BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}
-                    </p>
-                  ) : null}
                 </div>
 
               </div>
@@ -392,12 +361,42 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                 Selected Destination
               </p>
-              <h3 className="text-xl font-extrabold pet-gradient-heading pet-deep-dive-heading bg-clip-text text-transparent">
+              <h3 className="text-xl font-extrabold text-foreground">
                 {selectedDestination}
               </h3>
-              <p className="mt-3 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-muted-foreground">
                 Period: {selectedMonth} {selectedYear}
               </p>
+              <div className="mt-3 rounded-xl border border-primary/20 bg-gradient-to-br from-primary/10 to-primary/3 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Supplier vPET
+                </p>
+                {selectedSupplierName ? (
+                  <p className="mt-0.5 truncate text-[11px] font-semibold text-foreground">
+                    {selectedSupplierName}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-base font-extrabold text-primary">
+                  {formatTlc(supplierTlc)}
+                </p>
+                {isArgentinaApril2026View(
+                  selectedDestination,
+                  selectedMonth,
+                  selectedYear
+                ) ? (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Resin index (Excel): {ARGENTINA_APRIL_2026_RESIN_VENDOR_LABEL}
+                  </p>
+                ) : isBrazilApril2026View(
+                  selectedDestination,
+                  selectedMonth,
+                  selectedYear
+                ) && selectedVendorEntry && entrySupplierSlot(selectedVendorEntry) === "amcor" ? (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Amcor resin index (Excel): {BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}
+                  </p>
+                ) : null}
+              </div>
             </CardContent>
           </Card>
           </section>

@@ -20,7 +20,7 @@ const INITIAL_DATA: SectionQuestions[] = [
     ],
   },
   {
-    section: "Source Country Deep Dive",
+    section: "Source Country Supplier Analysis",
     questions: [
       { id: "d1", text: "Do we need the unified cost component comparison?", priority: "none" },
       { id: "d2", text: "Can we share mapping to confirm if we got this right?", priority: "none" },

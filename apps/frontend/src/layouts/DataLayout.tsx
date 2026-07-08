@@ -60,12 +60,20 @@ const DataLayout: React.FC = () => {
           path={LEGACY_OVERVIEW_PATH}
           element={<Navigate to={viewTlcsRoute} replace />}
         />
-        <Route path="/deep-dive" element={<CurrentLayoutPage data={data} />} />
+        <Route path="/supplier-analysis" element={<CurrentLayoutPage data={data} />} />
         <Route path="/trends" element={<TrendsPage data={data} />} />
         <Route path="/cost-components" element={<CostComponentsPage data={data} />} />
         <Route path="/simulation" element={<SimulationPage data={data} />} />
         <Route path="*" element={<Navigate to={viewTlcsRoute} replace />} />
       </Routes>
+      <footer className="border-t border-border bg-white">
+        <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-8 py-2.5 max-sm:flex-col max-sm:items-start max-sm:px-5">
+          <img src="/logo_one_footer.svg" alt="AB InBev" className="h-8 w-auto" />
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Anheuser-Busch InBev. Internal use only.
+          </p>
+        </div>
+      </footer>
     </>
   );
 };

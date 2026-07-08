@@ -160,7 +160,7 @@ const costSharePercent = (value: number, total: number) => {
 const differenceClass = (value: number) => {
   if (value < 0) return "text-destructive";
   if (value > 0) return "text-success";
-  return "text-muted-foreground";
+  return "text-foreground";
 };
 
 const mappedSupplierComponent = (item: VendorBreakdownItem) => {
@@ -224,7 +224,7 @@ const AmountWithShare = ({
   <span className="inline-flex items-baseline justify-end gap-1.5 whitespace-nowrap">
     <span>{formatMetricTon(value)}</span>
     {share !== null ? (
-      <span className="text-[11px] font-medium text-muted-foreground/75">
+      <span className="text-[11px] font-medium text-foreground/75">
         ({share}%)
       </span>
     ) : null}
@@ -233,7 +233,7 @@ const AmountWithShare = ({
 
 const detailCellRows = (rows: DetailCellRow[], emptyText: string) => {
   if (!rows.length) {
-    return <span className="text-sm text-muted-foreground">{emptyText}</span>;
+    return <span className="text-sm text-foreground">{emptyText}</span>;
   }
 
   return (
@@ -248,12 +248,12 @@ const detailCellRows = (rows: DetailCellRow[], emptyText: string) => {
               {row.label}
             </p>
             {row.isReference ? (
-              <span className="mt-1 inline-block rounded-sm border border-border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className="mt-1 inline-block rounded-sm border border-border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground">
                 Reference
               </span>
             ) : null}
           </div>
-          <span className="text-right text-sm tabular-nums text-muted-foreground">
+          <span className="text-right text-sm tabular-nums text-foreground">
             {formatMetricTon(row.amount)}
           </span>
         </div>
@@ -400,42 +400,31 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
         <CardDescription>
           Market Research and Supplier values mapped to common components, shown as $ per Metric Ton.
         </CardDescription>
-        {supplierName ? (
-          <div className="mt-2 inline-flex w-fit max-w-full items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs text-muted-foreground">
-            <span className="font-semibold uppercase tracking-wider">Supplier</span>
-            <span className="truncate font-bold text-foreground">{supplierName}</span>
-          </div>
-        ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="overflow-hidden rounded-lg border border-border">
           <Table className="table-fixed">
             <TableHeader>
-              <TableRow className="border-b-2 border-primary/80 bg-primary hover:bg-primary">
-                <TableHead className="w-[42px] text-center text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+              <TableRow className="border-b-2 border-primary/80 bg-[#EEF2F5] hover:bg-[#EEF2F5]">
+                <TableHead className="w-[42px] text-center text-[12px] font-bold uppercase tracking-widest text-black">
                   #
                 </TableHead>
-                <TableHead className="text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+                <TableHead className="text-[12px] font-bold uppercase tracking-widest text-black">
                   Common Component
                 </TableHead>
-                <TableHead className="w-[180px] text-right text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+                <TableHead className="w-[180px] text-right text-[12px] font-bold uppercase tracking-widest text-black">
                   Market Research
                   <span className="block text-[9px] font-semibold normal-case tracking-normal opacity-80">
                     $ per Metric Ton
                   </span>
                 </TableHead>
-                <TableHead className="w-[180px] text-right text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+                <TableHead className="w-[180px] text-right text-[12px] font-bold uppercase tracking-widest text-black">
                   Supplier
-                  {supplierName ? (
-                    <span className="block truncate text-[9px] font-semibold normal-case tracking-normal opacity-90">
-                      {supplierName}
-                    </span>
-                  ) : null}
                   <span className="block text-[9px] font-semibold normal-case tracking-normal opacity-80">
                     $ per Metric Ton
                   </span>
                 </TableHead>
-                <TableHead className="w-[190px] text-right text-[10px] font-bold uppercase tracking-widest text-primary-foreground">
+                <TableHead className="w-[190px] text-right text-[12px] font-bold uppercase tracking-widest text-black">
                   Difference
                   <span className="block text-[9px] font-semibold normal-case tracking-normal opacity-80">
                     Market - Supplier
@@ -446,14 +435,14 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
             <TableBody>
               {comparisonRows.map((row, idx) => (
                 <TableRow key={row.component} className="h-10">
-                  <TableCell className="text-center text-[11px] text-muted-foreground">
+                  <TableCell className="text-center text-[11px] text-foreground">
                     {idx + 1}
                   </TableCell>
                   <TableCell className="font-medium">{row.component}</TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                  <TableCell className="text-right tabular-nums text-foreground">
                     <AmountWithShare value={row.marketValue} share={row.marketShare} />
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                  <TableCell className="text-right tabular-nums text-foreground">
                     <AmountWithShare value={row.supplierValue} share={row.supplierShare} />
                   </TableCell>
                   <TableCell className={`text-right tabular-nums font-semibold ${differenceClass(row.differenceValue)}`}>
@@ -465,7 +454,7 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
           </Table>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-border">
+        <div className="overflow-hidden rounded-lg border border-border bg-[#EEF2F5]">
           <button
             type="button"
             onClick={() => setShowCostDetailTable((prev) => !prev)}
@@ -487,18 +476,10 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
                       Common Component
                     </TableHead>
                     <TableHead className="w-[39%] whitespace-normal break-words">
-                      Market Research Column
-                      <span className="block text-xs font-normal text-muted-foreground">
-                        Raw cost breakdown and $ per Metric Ton
-                      </span>
+                      Market Research Breakdown
                     </TableHead>
                     <TableHead className="w-[39%] whitespace-normal break-words">
                       Supplier Raw Cost Breakdown
-                      {supplierName ? (
-                        <span className="block text-xs font-normal text-muted-foreground">
-                          ({supplierName}) and $ per Metric Ton
-                        </span>
-                      ) : null}
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -507,7 +488,7 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
                     <TableRow key={row.component}>
                       <TableCell className="align-top">
                         <div className="flex gap-2">
-                          <span className="mt-0.5 text-[11px] text-muted-foreground">
+                          <span className="mt-0.5 text-[11px] text-foreground">
                             {idx + 1}
                           </span>
                           <span className="whitespace-normal break-words font-semibold leading-snug text-foreground">
@@ -527,16 +508,16 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
                     <TableRow>
                       <TableCell className="align-top">
                         <div className="flex gap-2">
-                          <span className="mt-0.5 text-[11px] text-muted-foreground">
+                          <span className="mt-0.5 text-[11px] text-foreground">
                             {combinedDetailRows.length + 1}
                           </span>
                           <span className="font-semibold text-foreground">TLC Formulae</span>
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-normal break-words align-top text-xs leading-relaxed text-muted-foreground">
+                      <TableCell className="whitespace-normal break-words align-top text-xs leading-relaxed text-foreground">
                         {marketTlcFormula || "No Market Research formula available."}
                       </TableCell>
-                      <TableCell className="whitespace-normal break-words align-top text-xs leading-relaxed text-muted-foreground">
+                      <TableCell className="whitespace-normal break-words align-top text-xs leading-relaxed text-foreground">
                         {supplierTlcFormula || "No supplier formula available."}
                       </TableCell>
                     </TableRow>

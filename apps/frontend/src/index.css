@@ -4,7 +4,7 @@
 
 /* —— Contract Intelligence Engine palette (ported from Contract_Intel/frontend/index.html) —— */
 :root {
-  --ci-bg: #ffffff;
+  --ci-bg: #F4F5F6;
   --ci-bg-card: #ffffff;
   --ci-bg-raised: #fafaf5;
   --ci-border: #d8d8cf;
@@ -200,12 +200,12 @@
 
 /* Data tables — Contract Intel table strip */
 .pet-data-table thead th {
-  background: var(--ci-bg-raised);
-  color: var(--ci-text-muted);
-  font-weight: 600;
+  background: #EEF2F5;
+  color: black;
+  font-weight: 800;
   font-size: 0.75rem;
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  
 }
 
 .pet-data-table tbody tr:hover td {
@@ -221,10 +221,7 @@
 }
 
 .pet-page-bg {
-  background:
-    radial-gradient(ellipse 900px 400px at 85% 0%, rgba(231, 76, 60, 0.03), transparent 60%),
-    radial-gradient(ellipse 600px 300px at 5% 100%, rgba(46, 204, 113, 0.03), transparent 60%),
-    var(--ci-bg);
+  background: #F4F5F6;
 }
 
 .pet-route-tabs {
@@ -338,7 +335,7 @@
   display: flex;
   overflow-x: auto;
   border-bottom: 1px solid var(--ci-border);
-  background: var(--ci-bg-raised);
+  background: #F6F6F6;
 }
 
 .pet-app-tabs {
@@ -350,7 +347,7 @@
 .pet-portal-tab {
   padding: 12px 22px;
   border-bottom: 2px solid transparent;
-  color: var(--ci-text-faint);
+  color: black;
   font-family: var(--ci-mono);
   font-size: 11px;
   font-weight: 500;
@@ -416,14 +413,21 @@
 }
 
 .pet-button-secondary {
-  border: 1px solid var(--ci-border-strong);
-  background: transparent;
-  color: var(--ci-text);
+  min-height: 52px;
+  border: 1px solid #e0c900;
+  border-radius: 999px;
+  background: #f2dc00;
+  color: #000000;
+  font-family: var(--ci-sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 
 .pet-button-secondary:hover {
-  border-color: var(--ci-text-faint);
-  background: var(--ci-bg-raised);
+  border-color: #cfbc00;
+  background: #e8d200;
 }
 
 .pet-tooltip {

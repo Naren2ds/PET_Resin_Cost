@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { ApiResponse, VendorBreakdownEntry } from "../types";
 import RevealOnScroll from "../components/RevealOnScroll";
@@ -32,6 +32,7 @@ import {
 } from "../lib/supplierDisplay";
 import { formatAmount, formatDeltaVersusMarketForCompany } from "../types";
 import AIInsightPanel from "../components/AIInsightPanel";
+import CostComponentChart from "../components/CostComponentChart";
 
 type HomePageProps = {
   data: ApiResponse;
@@ -127,6 +128,13 @@ function getDestinationFixedSuppliers(destination: string): readonly string[] | 
 }
 
 function pickHighestDeviation(deviations: SupplierDeviation[]): SupplierDeviation | null {
+  const negativeDeviations = deviations.filter((entry) => entry.delta < 0);
+  if (negativeDeviations.length) {
+    return negativeDeviations.reduce<SupplierDeviation>((mostNegative, current) =>
+      current.delta < mostNegative.delta ? current : mostNegative,
+    negativeDeviations[0]);
+  }
+
   const positiveDeviations = deviations.filter((entry) => entry.delta > 0);
   if (positiveDeviations.length) {
     return positiveDeviations.reduce<SupplierDeviation>((leastPositive, current) =>
@@ -134,10 +142,7 @@ function pickHighestDeviation(deviations: SupplierDeviation[]): SupplierDeviatio
     positiveDeviations[0]);
   }
 
-  return deviations.reduce<SupplierDeviation | null>((highest, current) => {
-    if (!highest) return current;
-    return Math.abs(current.delta) > Math.abs(highest.delta) ? current : highest;
-  }, null);
+  return deviations[0] ?? null;
 }
 
 function actualSupplierNames(matches: VendorBreakdownEntry[]): string[] {
@@ -186,6 +191,7 @@ const VIEW_SHELL_CLASS =
 
 const HomePage: React.FC<HomePageProps> = ({ data }) => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [costChartOpen, setCostChartOpen] = useState(false);
   const paramDestinationRaw = searchParams.get("destination") ?? "";
   const paramDestination = normalizeDestinationForUi(paramDestinationRaw);
 
@@ -642,12 +648,34 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
     `$${formatAmount(value ?? 0)}/MT`;
 
   const deltaClass = (delta: number | null) => {
-    if (delta === null || delta === 0) return "text-muted-foreground";
+    if (delta === null || delta === 0) return "text-foreground";
     return delta < 0 ? "text-destructive" : "text-success";
   };
 
   const formatDeltaDisplay = (delta: number | null) =>
     delta === null ? "$0/MT" : formatDeltaVersusMarketForCompany(delta);
+
+  const handleHeaderSort = (column: SortKey) => {
+    const next = new URLSearchParams(searchParams);
+    if (sortBy === column) {
+      next.set("sortOrder", sortOrder === "desc" ? "asc" : "desc");
+    } else {
+      next.set("sortBy", column);
+      next.set("sortOrder", "desc");
+    }
+    setSearchParams(next);
+  };
+
+  const getSortIndicator = (column: SortKey) => {
+    if (sortBy !== column) return "";
+    return sortOrder === "desc" ? " ↓" : " ↑";
+  };
+
+  const getGapLabel = (delta: number | null, lowerCase = false) => {
+    const positiveLabel = lowerCase ? "Smallest gap vs market" : "Smallest Gap vs Market";
+    const negativeLabel = lowerCase ? "Largest gap vs market" : "Largest Gap vs Market";
+    return delta !== null && delta > 0 ? positiveLabel : negativeLabel;
+  };
 
   return (
     <div className="pet-page-bg min-h-screen">
@@ -656,7 +684,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
           <section className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Destination</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-foreground mb-1">Destination</label>
               <select
                 value={selectedDestination}
                 onChange={(e) => {
@@ -672,7 +700,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Month</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-foreground mb-1">Month</label>
               <select
                 value={selectedMonth}
                 onChange={(e) => {
@@ -688,7 +716,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Year</label>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-foreground mb-1">Year</label>
               <select
                 value={selectedYear}
                 onChange={(e) => {
@@ -707,80 +735,54 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                 }}
                 className="h-9 rounded-md bg-secondary border border-border px-3 text-sm text-foreground outline-none focus:ring-1 focus:ring-primary"
               >
-                {yearOptions.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
+                <option value="2026">2026</option>
+                <option value="2027" disabled className="text-foreground opacity-40" title="Data Not Available">2027</option>
               </select>
             </div>
-            <div className="ml-auto flex items-end gap-2">
-              <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Sort by</label>
-                <select
-                  value={sortBy}
-                  onChange={(event) => {
-                    const next = new URLSearchParams(searchParams);
-                    next.set("sortBy", event.target.value);
-                    setSearchParams(next);
-                  }}
-                  className="h-9 rounded-md border border-border bg-card px-2.5 text-sm text-foreground"
-                >
-                  <option value="tlc">Market Research TLC</option>
-                  <option value="supplierTlc">Supplier TLC</option>
-                  <option value="delta">Delta</option>
-                </select>
-              </div>
-              <select
-                value={sortOrder}
-                onChange={(event) => {
-                  const next = new URLSearchParams(searchParams);
-                  next.set("sortOrder", event.target.value);
-                  setSearchParams(next);
-                }}
-                className="h-9 rounded-md border border-border bg-card px-2.5 text-sm text-foreground"
-              >
-                <option value="desc">High to Low</option>
-                <option value="asc">Low to High</option>
-              </select>
+            <div className="ml-auto max-w-[420px] rounded-md border border-border bg-card px-3 py-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
+                Data Scope
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-foreground">
+                Actuals are till June 2026. Future data are predictions based on Resin Index and Freights.
+              </p>
             </div>
           </div>
 
           <div className={`${VIEW_SHELL_CLASS} overflow-hidden border-2 border-border/80`}>
               <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-border/80 bg-background/40 px-4 py-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-foreground">Table Overview</span>
+                  <span className="text-md font-semibold text-foreground">Market Pricing Snapshot</span>
                   <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
                     {selectedDestination || "Destination"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <div className="flex items-center gap-2 text-[11px] text-foreground">
                   <span className="rounded-full border border-border px-2 py-0.5">{tableRows.length} markets</span>
                   <span className="rounded-full border border-border px-2 py-0.5">{supplierBenchmarks.length} suppliers</span>
                 </div>
               </div>
               {consolidatedSupplier ? (
-                <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(180px,0.45fr)_minmax(180px,0.45fr)] gap-3 border-b-2 border-border/80 bg-card/35 p-4 max-md:grid-cols-1">
+                <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(180px,0.45fr)_minmax(180px,0.45fr)] gap-3 border-b-2 border-border/80 bg-white p-4 max-md:grid-cols-1">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
                       Supplier benchmark
                     </p>
                     <h3 className="mt-1 truncate text-xl font-extrabold text-foreground">
                       {consolidatedSupplier.name}
                     </h3>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      One supplier quote compared across {consolidatedSupplier.marketCount} market research countries.
-                    </p>
                   </div>
                   <div className="rounded-lg border border-primary/25 bg-primary/10 px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Supplier TLC
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
+                      Supplier vPET
                     </p>
                     <p className="mt-1 text-lg font-extrabold text-primary">
                       {formatTlcDisplay(consolidatedSupplier.supplierTlc)}
                     </p>
                   </div>
                   <div className="rounded-lg border border-border bg-background/30 px-4 py-3">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                      Highest Deviation
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
+                      {getGapLabel(consolidatedSupplier.highestDeviation?.delta ?? null)}
                     </p>
                     <p
                       className={`mt-1 text-lg font-extrabold ${deltaClass(
@@ -789,7 +791,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                     >
                       {formatDeltaDisplay(consolidatedSupplier.highestDeviation?.delta ?? null)}
                       {consolidatedSupplier.highestDeviation ? (
-                        <span className="ml-1 text-[11px] font-semibold text-muted-foreground">
+                        <span className="ml-1 text-[11px] font-semibold text-foreground">
                           ({consolidatedSupplier.highestDeviation.marketCountry})
                         </span>
                       ) : null}
@@ -797,7 +799,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                   </div>
                 </div>
               ) : supplierBenchmarks.length > 1 ? (
-                <div className="grid gap-3 border-b-2 border-border/80 bg-card/35 p-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-3 border-b-2 border-border/80 bg-white p-4 md:grid-cols-2 xl:grid-cols-4">
                   {supplierBenchmarks.map((supplier) => (
                     <div
                       key={`${supplier.name}-${supplier.supplierTlc ?? 0}`}
@@ -806,12 +808,12 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                       <p className="truncate text-sm font-bold text-foreground">{supplier.name}</p>
                       <div className="mt-2 flex items-end justify-between gap-3">
                         <div>
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">TLC</p>
+                          <p className="text-[10px] uppercase tracking-wider text-foreground">TLC</p>
                           <p className="font-extrabold text-primary">{formatTlcDisplay(supplier.supplierTlc)}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                            Highest deviation
+                          <p className="text-[10px] uppercase tracking-wider text-foreground">
+                            {getGapLabel(supplier.highestDeviation?.delta ?? null, true)}
                           </p>
                           <p
                             className={`font-bold ${deltaClass(
@@ -820,7 +822,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                           >
                             {formatDeltaDisplay(supplier.highestDeviation?.delta ?? null)}
                             {supplier.highestDeviation ? (
-                              <span className="ml-1 text-[10px] font-semibold text-muted-foreground">
+                              <span className="ml-1 text-[10px] font-semibold text-foreground">
                                 ({supplier.highestDeviation.marketCountry})
                               </span>
                             ) : null}
@@ -840,32 +842,50 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                   <thead className="sticky top-0 z-10">
                     {consolidatedSupplier ? (
                       <tr className="bg-secondary/80 backdrop-blur">
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Market Research Country
+                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-bold tracking-wider text-foreground">
+                          Sourcing Countries
                         </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Market Research TLC
+                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-bold tracking-wider text-foreground">
+                          <button
+                            type="button"
+                            onClick={() => handleHeaderSort("tlc")}
+                            className="cursor-pointer select-none text-left"
+                          >
+                            Market Research vPET{getSortIndicator("tlc")}
+                          </button>
                         </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Delta (Market - Supplier)
+                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-bold tracking-wider text-foreground">
+                          <button
+                            type="button"
+                            onClick={() => handleHeaderSort("delta")}
+                            className="cursor-pointer select-none text-left"
+                          >
+                            Delta (Market - Supplier){getSortIndicator("delta")}
+                          </button>
                         </th>
                       </tr>
                     ) : (
                       <tr className="bg-secondary/80 backdrop-blur">
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Market Research Country
+                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-bold tracking-wider text-foreground">
+                          Sourcing Countries
                         </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Market Research TLC
+                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-bold  tracking-wider">
+                          <button
+                            type="button"
+                            onClick={() => handleHeaderSort("tlc")}
+                            className="cursor-pointer select-none text-left"
+                          >
+                            Market Research vPET{getSortIndicator("tlc")}
+                          </button>
                         </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-bold tracking-wider text-foreground">
                           <span className="block">Supplier</span>
                           {isArgentinaApril2026View(
                             selectedDestination,
                             selectedMonth,
                             selectedYear
                           ) ? (
-                            <span className="mt-0.5 block normal-case font-normal text-[10px] text-muted-foreground/90">
+                            <span className="mt-0.5 block normal-case font-normal text-[10px] text-foreground/90">
                               Resin (Excel): {ARGENTINA_APRIL_2026_RESIN_VENDOR_LABEL}
                             </span>
                           ) : isBrazilApril2026View(
@@ -873,16 +893,28 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                             selectedMonth,
                             selectedYear
                           ) ? (
-                            <span className="mt-0.5 block normal-case font-normal text-[10px] text-muted-foreground/90">
+                            <span className="mt-0.5 block normal-case font-normal text-[10px] text-foreground/90">
                               Amcor resin (Excel): {BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}
                             </span>
                           ) : null}
                         </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Supplier TLC
+                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-foreground">
+                          <button
+                            type="button"
+                            onClick={() => handleHeaderSort("supplierTlc")}
+                            className="cursor-pointer select-none text-left"
+                          >
+                            Supplier vPET{getSortIndicator("supplierTlc")}
+                          </button>
                         </th>
-                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                          Delta
+                        <th className="border-b border-border px-4 py-3 text-left text-[11px] font-semibold tracking-wider text-foreground">
+                          <button
+                            type="button"
+                            onClick={() => handleHeaderSort("delta")}
+                            className="cursor-pointer select-none text-left"
+                          >
+                            Delta{getSortIndicator("delta")}
+                          </button>
                         </th>
                       </tr>
                     )}
@@ -975,9 +1007,9 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                                 <td className="border-r-2 border-border/70 px-4 py-3 font-semibold text-primary">
                                   {formatTlcDisplay(row.marketTlc)}
                                 </td>
-                                <td className="px-4 py-2.5 text-muted-foreground">No supplier data</td>
+                                <td className="px-4 py-2.5 text-foreground">No supplier data</td>
                                 <td className="px-4 py-2.5 font-semibold text-primary">$0/MT</td>
-                                <td className="px-4 py-2.5 font-semibold text-muted-foreground">$0/MT</td>
+                                <td className="px-4 py-2.5 font-semibold text-foreground">$0/MT</td>
                               </tr>
                             );
                           }
@@ -1029,7 +1061,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                                     selectedMonth,
                                     selectedYear
                                   ) ? (
-                                    <span className="text-[10px] text-muted-foreground">
+                                    <span className="text-[10px] text-foreground">
                                       {ARGENTINA_APRIL_2026_RESIN_VENDOR_LABEL}
                                     </span>
                                   ) : isBrazilApril2026View(
@@ -1038,7 +1070,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                                     selectedYear
                                   ) &&
                                   supplier.name.trim().toLowerCase().startsWith("amcor") ? (
-                                    <span className="text-[10px] text-muted-foreground">
+                                    <span className="text-[10px] text-foreground">
                                       {BRAZIL_APRIL_2026_AMCOR_RESIN_VENDOR_LABEL}
                                     </span>
                                   ) : isBrazilApril2026View(
@@ -1047,7 +1079,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                                     selectedYear
                                   ) &&
                                   supplier.name.trim().toLowerCase() === "valgroup" ? (
-                                    <span className="text-[10px] text-muted-foreground">
+                                    <span className="text-[10px] text-foreground">
                                       {BRAZIL_APRIL_2026_VALGROUP_VENDOR_LABEL}
                                     </span>
                                   ) : isBrazilApril2026View(
@@ -1056,7 +1088,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                                     selectedYear
                                   ) &&
                                   supplier.name.trim().toLowerCase() === "cristalpet" ? (
-                                    <span className="text-[10px] text-muted-foreground">
+                                    <span className="text-[10px] text-foreground">
                                       {BRAZIL_APRIL_2026_CRISTALPET_VENDOR_LABEL}
                                     </span>
                                   ) : isBrazilApril2026View(
@@ -1065,7 +1097,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                                     selectedYear
                                   ) &&
                                   supplier.name.trim().toLowerCase() === "engepack" ? (
-                                    <span className="text-[10px] text-muted-foreground">
+                                    <span className="text-[10px] text-foreground">
                                       {BRAZIL_APRIL_2026_ENGEPACK_VENDOR_LABEL}
                                     </span>
                                   ) : null}
@@ -1087,6 +1119,42 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
               </div>
             </div>
           </section>
+        </RevealOnScroll>
+         <RevealOnScroll>
+          <div className="rounded-[10px] border border-border bg-card shadow-sm">
+            <button
+              type="button"
+              onClick={() => setCostChartOpen((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 px-6 py-3 text-left"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-primary text-base" aria-hidden>✦</span>
+                <span className="text-sm font-semibold text-foreground">Cost Component Mix</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {selectedMonth} {selectedYear} · {selectedDestination}
+                </span>
+              </div>
+              <span className="text-foreground text-sm">{costChartOpen ? "▲" : "▼"}</span>
+            </button>
+            {!costChartOpen && (
+              <p className="px-6 pb-3 text-[11px] text-muted-foreground">
+                USD/MT cost breakdown by component across Market Research countries and suppliers.
+              </p>
+            )}
+            {costChartOpen && (
+              <div className="border-t border-border px-4 pb-4 pt-3">
+                <p className="mb-3 text-xs text-muted-foreground">
+                  Stacked cost breakdown by component (USD/MT) across Market Research countries and suppliers for the selected context.
+                </p>
+                <CostComponentChart
+                  data={data}
+                  destination={selectedDestination}
+                  month={selectedMonth}
+                  year={selectedYear}
+                />
+              </div>
+            )}
+          </div>
         </RevealOnScroll>
          <RevealOnScroll>
           <AIInsightPanel

@@ -3,6 +3,7 @@ import { ScrollProgressBar } from "../components/ScrollProgressBar";
 import { cn } from "@/lib/utils";
 
 const SHELL = "pet-app-surface p-6 sm:p-8";
+const ANCHOR_TARGET = "scroll-mt-24";
 const LATEST_MONTH_TARGET = "YTD June";
 
 const latestMonthToneClass = (value: string) =>
@@ -19,9 +20,9 @@ const LandingPage: React.FC = () => {
             <div className="pet-portal-topbar max-md:flex-col max-md:items-start">
               <div className="pet-portal-brand">
                 <span className="pet-portal-brand-mark" aria-hidden />
-                PET Resin Sourcing Intelligence
+                PET vPET Intelligence
                 <span className="h-4 w-px bg-border" aria-hidden />
-                <small className="text-[10px] font-normal tracking-[0.16em] text-muted-foreground">
+                <small className="text-[10px] font-normal tracking-[0.16em] text-foreground">
                   Market-driven / Monthly refresh
                 </small>
               </div>
@@ -32,13 +33,10 @@ const LandingPage: React.FC = () => {
             <div className="pet-portal-body">
               <div className="grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-start">
                 <div>
-                  <p className="pet-section-kicker">
-                    PET Resin Sourcing Intelligence / Market-driven / Monthly refresh
-                  </p>
                   <h1 className="mt-3 max-w-4xl text-3xl font-semibold leading-tight tracking-[-0.02em] sm:text-4xl lg:text-5xl">
                     From supplier-led pricing to market-led sourcing decisions.
                   </h1>
-                  <p className="mt-4 max-w-3xl text-sm text-muted-foreground sm:text-base">
+                  <p className="mt-4 max-w-3xl text-sm text-foreground sm:text-base">
                     A transparent procurement cockpit that digitizes the Total Landed Cost model,
                     reconciles supplier prices against market-implied cost, and equips the business to
                     negotiate, challenge, and plan sourcing with confidence.
@@ -65,19 +63,19 @@ const LandingPage: React.FC = () => {
                     { label: "Market Research Countries", value: "10", delta: "covered" },
                   ].map((kpi) => (
                     <div key={kpi.label} className="bg-card p-5">
-                      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground">
                         {kpi.label}
                       </p>
                       <p className="mt-2 text-3xl font-light tracking-[-0.03em] text-foreground">
                         {kpi.value}
                       </p>
-                      <p className="mt-1 text-xs text-muted-foreground">{kpi.delta}</p>
+                      <p className="mt-1 text-xs text-foreground">{kpi.delta}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="mt-8 grid gap-3 md:grid-cols-3">
+              {/* <div className="mt-8 grid gap-3 md:grid-cols-3">
                 {[
                   {
                     step: "1",
@@ -107,47 +105,54 @@ const LandingPage: React.FC = () => {
                     </div>
                   </div>
                 ))}
-              </div>
+              </div> */}
             </div>
           </section>
 
-          <section id="solution" className={cn(SHELL)}>
+          <section id="solution" className={cn(SHELL, ANCHOR_TARGET)}>
             <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground sm:text-2xl">
-              What the platform delivers
+              Platform Tabs at a glance
             </h2>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground sm:text-base">
-              The goal is not just to visualize prices. It is to create a trusted decision layer for
-              monthly visibility, negotiation leverage, and annual sourcing strategy support.
+            <p className="mt-2 text-sm text-foreground sm:text-base">
+              A quick summary of each tab and the decision support it provides.
             </p>
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               {[
                 {
-                  title: "Monthly market visibility",
-                  desc: "Track how resin, freight, and taxes move over time and see their direct effect on Total Landed Cost.",
+                  title: "Home",
+                  desc: "Landing hub that summarizes scope, data status, and how to navigate the platform.",
                 },
                 {
-                  title: "Supplier challenge & negotiation",
-                  desc: "Compare supplier quotes to market-implied landed cost and isolate where the gaps create leverage.",
+                  title: "View TLCs",
+                  desc: "Compare supplier TLC against market-implied TLC by destination, source, and supplier.",
                 },
                 {
-                  title: "Strategic sourcing support",
-                  desc: "Run controlled scenarios to support annual sourcing decisions without forcing monthly supplier switching.",
+                  title: "Supplier Analysis",
+                  desc: "Deep dive into supplier breakdowns to identify component-level cost differences and negotiation points.",
+                },
+                {
+                  title: "Trends",
+                  desc: "Track monthly actuals and forecast trajectories for supplier and market benchmarks across 2026.",
+                },
+                {
+                  title: "Simulation",
+                  desc: "Run what-if percentage scenarios on supplier TLC and evaluate impact versus market outlook.",
                 },
               ].map((card, index) => (
                 <div key={card.title} className="pet-metric-card p-5">
-                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  <span className="font-mono text-xs font-semibold uppercase tracking-[0.14em] text-foreground">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <h3 className="mt-3 text-base font-semibold text-foreground">{card.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{card.desc}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-foreground">{card.desc}</p>
                 </div>
               ))}
             </div>
           </section>
 
-          <section id="flow" className={cn(SHELL)}>
+          <section id="flow" className={cn(SHELL, ANCHOR_TARGET)}>
             <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground sm:text-2xl">How it works</h2>
-            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+            <p className="mt-2 text-sm text-foreground sm:text-base">
               A simple flow from raw inputs to business action.
             </p>
             <div className="mt-6 grid gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-2 lg:grid-cols-5">
@@ -177,16 +182,16 @@ const LandingPage: React.FC = () => {
                     </span>
                     <h4 className="text-sm font-semibold text-foreground">{step.title}</h4>
                   </div>
-                  <p className="text-xs leading-relaxed text-muted-foreground">{step.desc}</p>
+                  <p className="text-xs leading-relaxed text-foreground">{step.desc}</p>
                 </div>
               ))}
             </div>
           </section>
 
           <div className="grid gap-5">
-            <section id="data-availability" className={cn(SHELL)}>
+            <section id="data-availability" className={cn(SHELL, ANCHOR_TARGET)}>
               <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground">Supplier Data Availability</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
+              <p className="mt-2 text-sm text-foreground">
                 Latest month of supplier data available in the frontend by destination and supplier.
               </p>
               <div className="mt-4 overflow-hidden rounded-[10px] border border-border">
@@ -249,89 +254,18 @@ const LandingPage: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Destination countries: Brazil, Panama, Peru, Dominican Republic, El Salvador and Honduras, Ecuador, Colombia, Argentina, Uruguay, Bolivia. Indexes used ICIS FOB China, IHS FOB China, ICIS Asia SE.
+              <p className="mt-3 text-xs text-foreground">
+                Indexes used ICIS FOB China, IHS FOB China, ICIS Asia SE.
               </p>
             </section>
 
             <section className={cn(SHELL)}>
               <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground">Market Research Data Availability</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Market research TLC data coverage by destination country. All data is for 2026 (Feb–Dec).
+              <p className="mt-2 text-sm text-foreground">
+                Market research vPET data is currently available for <span className="font-semibold text-warning">Feb 2026</span> only.
               </p>
-              <div className="mt-4 overflow-hidden rounded-[10px] border border-border">
-                <table className="pet-data-table w-full border-collapse text-sm">
-                  <thead>
-                    <tr>
-                      <th className="border-b border-border px-3 py-2.5 text-left">Destination Country</th>
-                      <th className="border-b border-l border-b-border border-l-border px-3 py-2.5 text-left">Months Available</th>
-                      <th className="border-b border-border border-l border-l-border px-3 py-2.5 text-left">Destination Country</th>
-                      <th className="border-b border-l border-b-border border-l-border px-3 py-2.5 text-left">Months Available</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(() => {
-                      const data = [
-                        "Argentina",
-                        "Bolivia",
-                        "Brazil",
-                        "Colombia",
-                        "Dominican Republic",
-                        "Ecuador",
-                        "El Salvador",
-                        "Honduras",
-                        "Panama",
-                        "Peru",
-                        "Uruguay",
-                      ];
-                      const rowCount = Math.ceil(data.length / 2);
-                      const rows = [];
-                      for (let i = 0; i < data.length; i += 2) {
-                        const left = data[i];
-                        const right = data[i + 1];
-                        const isFirstRow = i === 0;
-                        rows.push(
-                          <tr key={i} className="border-b border-border/60">
-                            <td className="px-3 py-2.5 text-foreground">{left}</td>
-                            {isFirstRow ? (
-                              <td
-                                rowSpan={rowCount}
-                                className={cn(
-                                  "border-l border-l-border px-3 py-2.5 text-center align-middle font-semibold",
-                                  latestMonthToneClass("Feb 2026")
-                                )}
-                              >
-                                Feb 2026
-                              </td>
-                            ) : null}
-                            {right ? (
-                              <>
-                                <td className="border-l border-l-border px-3 py-2.5 text-foreground">{right}</td>
-                                {isFirstRow ? (
-                                  <td
-                                    rowSpan={rowCount}
-                                    className={cn(
-                                      "border-l border-l-border px-3 py-2.5 text-center align-middle font-semibold",
-                                      latestMonthToneClass("Feb 2026")
-                                    )}
-                                  >
-                                    Feb 2026
-                                  </td>
-                                ) : null}
-                              </>
-                            ) : (
-                              <td className="border-l border-l-border px-3 py-2.5" />
-                            )}
-                          </tr>
-                        );
-                      }
-                      return rows;
-                    })()}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-3 text-xs text-muted-foreground">
-                Source countries: China, India, Indonesia, South Korea, Taiwan, Thailand, USA, Vietnam, Argentina, Brazil, Mexico. Indexes used ICIS FOB Mexico, ICIS FOB China, ICIS FOB Asia SE, ICIS FOB India, ICIS FOB South Korea, ICIS FOB Taiwan. 
+              <p className="mt-3 text-xs text-foreground">
+                Indexes used: ICIS FOB Mexico, ICIS FOB China, ICIS FOB Asia SE, ICIS FOB India, ICIS FOB South Korea, ICIS FOB Taiwan.
               </p>
             </section>
           </div>
@@ -339,6 +273,14 @@ const LandingPage: React.FC = () => {
 
         </main>
       </div>
+      <footer className="border-t border-border bg-white">
+        <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-8 py-2.5 max-sm:flex-col max-sm:items-start max-sm:px-5">
+          <img src="/logo_one_footer.svg" alt="AB InBev" className="h-8 w-auto" />
+          <p className="text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Anheuser-Busch InBev. Internal use only.
+          </p>
+        </div>
+      </footer>
     </>
   );
 };

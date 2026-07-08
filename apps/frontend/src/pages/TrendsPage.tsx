@@ -1037,9 +1037,9 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
             <CardHeader className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <CardTitle className="text-xl">Supplier TLC Benchmark and Market Scenario Outlook</CardTitle>
+                  <CardTitle className="text-xl">Supplier vPET Benchmark and Market Scenario Outlook</CardTitle>
                   <CardDescription className="mt-1">
-                    {selectedDestination || "Destination"} {supplierName || "supplier"} TLC for {selectedSourceCountry || "selected source"} across 2026.
+                    {selectedDestination || "Destination"} {supplierName || "supplier"} vPET for {selectedSourceCountry || "selected source"} across 2026.
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-3">

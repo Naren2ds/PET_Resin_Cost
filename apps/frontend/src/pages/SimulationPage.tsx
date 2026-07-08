@@ -1407,8 +1407,8 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                 Simulation Workspace
               </h1>
               <p className="mt-2 max-w-6xl text-sm text-foreground">
-                Experiment with percentage-based adjustments on Supplier TLC and compare the result against
-                the same Supplier Actual and Forecast vs Market Research TLC view used in Trends.
+                Experiment with percentage-based adjustments on Supplier vPET and compare the result against
+                the same Supplier Actual and Forecast vs Market Research vPET view used in Trends.
               </p>
             </CardContent>
           </Card>
@@ -1418,14 +1418,14 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle className="text-xl">Simulation</CardTitle>
-              <CardDescription>Adjust Supplier TLC and view the impact on the Trends-style graph.</CardDescription>
+              <CardDescription>Adjust Supplier vPET and view the impact on the Trends-style graph.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_160px] xl:items-stretch">
                 <div className="h-full rounded-xl border border-border bg-white p-4">
                   <label className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground">Simulation target</label>
                   <div className="mt-2 flex h-11 w-full items-center rounded-xl border border-border bg-secondary px-3 text-sm text-foreground">
-                    Supplier TLC
+                    Supplier vPET
                   </div>
                 </div>
                 <div className="h-full rounded-xl border border-border bg-white p-4">
@@ -1460,9 +1460,9 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
             <CardHeader className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <CardTitle className="text-xl">Supplier TLC Benchmark and Market Scenario Outlook</CardTitle>
+                  <CardTitle className="text-xl">Supplier vPET Benchmark and Market Scenario Outlook</CardTitle>
                   <CardDescription className="mt-1">
-                    {selectedDestination || "Destination"} {supplierName || "supplier"} TLC for {selectedSourceCountry || "selected source"} across 2026.
+                    {selectedDestination || "Destination"} {supplierName || "supplier"} vPET for {selectedSourceCountry || "selected source"} across 2026.
                   </CardDescription>
                 </div>
                 <div className="flex flex-wrap gap-3">

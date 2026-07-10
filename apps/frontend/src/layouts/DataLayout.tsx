@@ -68,7 +68,7 @@ const DataLayout: React.FC = () => {
       </Routes>
       <footer className="border-t border-border bg-white">
         <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-8 py-2.5 max-sm:flex-col max-sm:items-start max-sm:px-5">
-          <img src="/logo_one_footer.svg" alt="AB InBev" className="h-8 w-auto" />
+          <img src="/connect_one_color.svg" alt="AB InBev" className="h-8 w-auto" />
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Anheuser-Busch InBev. Internal use only.
           </p>

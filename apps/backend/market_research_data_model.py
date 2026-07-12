@@ -67,6 +67,7 @@ MARKET_RESEARCH_COMMON_COST_MAPPING = {
 }
 
 
+
 def _market_research_data_version() -> tuple[float | None, float | None]:
     def file_mtime(path: Path) -> float | None:
         try:

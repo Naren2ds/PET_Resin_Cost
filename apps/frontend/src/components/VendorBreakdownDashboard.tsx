@@ -81,7 +81,7 @@ const ABI_GOLD = "#FFB81C";
 const ABI_DARK_NAVY = "#001F3F";
 const ABI_NEUTRAL = "#94A3B8";
 
-const TREND_COMPONENT_SERIES = [
+const BASE_TREND_COMPONENT_SERIES = [
   { key: "Resin Index", color: ABI_PRIMARY_BLUE },
   { key: "Resin Financing cost", color: ABI_LIGHT_BLUE },
   { key: "Resin Freight cost (Reg)", color: ABI_GOLD },
@@ -89,18 +89,16 @@ const TREND_COMPONENT_SERIES = [
   { key: "Others", color: ABI_NEUTRAL },
 ] as const;
 
-const NUMERIC_SERIES = [
-  "Resin Index",
-  "Resin Financing cost",
-  "Resin Freight cost (Reg)",
-  "Resin Freight cost (Inc)",
-  "CIF(Incremental)",
-  "CIF(Regular)",
-  "Others",
-  "Total Resing Price ABI Formulae",
-  "Final Price with Resin Freight Adjustment",
-  "Final Price",
-] as const;
+const FALLBACK_SERIES_COLORS = [
+  "#60A5FA",
+  "#F97316",
+  "#22C55E",
+  "#A855F7",
+  "#EC4899",
+  "#14B8A6",
+  "#F59E0B",
+  "#94A3B8",
+];
 
 const parseNumericAmount = (value: string | number | null | undefined) => {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -111,6 +109,49 @@ const parseNumericAmount = (value: string | number | null | undefined) => {
   }
   const numeric = Number(trimmed.replace(/,/g, ""));
   return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const normalizeKey = (value: string | undefined) => (value ?? "").trim().toLowerCase();
+
+const resolveTrendComponentLabel = (row: VendorBreakdownEntry["rows"][number]) => {
+  const mappedByLabel = LABEL_MAPPING[row.label];
+  if (mappedByLabel) return mappedByLabel;
+
+  const mappingKey = normalizeKey(row.mappingColumn);
+  const commonKey = normalizeKey(row.commonComponent);
+  const rawLabel = (row.rawLabel || row.label || "").trim();
+
+  if (mappingKey === "total landing cost" || mappingKey === "total landing cost (lc)") {
+    return "Total Resing Price ABI Formulae";
+  }
+  if (
+    mappingKey === "resin index vpet" ||
+    mappingKey === "index" ||
+    commonKey === "resin index"
+  ) {
+    return "Resin Index";
+  }
+  if (mappingKey === "finance" || commonKey === "finance") {
+    return "Resin Financing cost";
+  }
+  if (mappingKey === "freight" || commonKey === "freight") {
+    const labelKey = normalizeKey(rawLabel);
+    return labelKey.includes("inc") || labelKey.includes("incremental")
+      ? "Resin Freight cost (Inc)"
+      : "Resin Freight cost (Reg)";
+  }
+  if (
+    mappingKey === "others" ||
+    mappingKey === "tax" ||
+    mappingKey === "discount" ||
+    mappingKey === "fx" ||
+    commonKey === "others" ||
+    commonKey === "tax"
+  ) {
+    return "Others";
+  }
+
+  return rawLabel || row.mappingColumn || row.commonComponent || "Other Component";
 };
 
 const buildMonthlyPeriods = () => {
@@ -169,29 +210,16 @@ const buildTrendData = (entries: VendorBreakdownEntry[]) => {
       destination: entry.destination,
     } as Record<string, string | number>;
 
-    let others = 0;
-
     entry.rows.forEach((row) => {
-      const mapped = LABEL_MAPPING[row.label];
+      const mapped = resolveTrendComponentLabel(row);
       if (!mapped) return;
       if (mapped === "Month") {
         base[mapped] = typeof row.amount === "string" ? row.amount : String(row.amount ?? "");
         return;
       }
       const numericValue = parseNumericAmount(row.amount);
-      if (mapped === "Others") {
-        others += numericValue;
-        return;
-      }
-      base[mapped] = numericValue;
-    });
-
-    base["Others"] = others;
-
-    NUMERIC_SERIES.forEach((key) => {
-      if (typeof base[key] !== "number") {
-        base[key] = 0;
-      }
+      const existing = typeof base[mapped] === "number" ? (base[mapped] as number) : 0;
+      base[mapped] = existing + numericValue;
     });
 
     return base;
@@ -272,6 +300,37 @@ const VendorBreakdownDashboard: React.FC<VendorBreakdownDashboardProps> = ({
     [baseTrendData]
   );
 
+  const componentSeries = useMemo(() => {
+    const reserved = new Set(["period", "month", "year", "sourceCountry", "destination"]);
+    const keys = new Set<string>();
+    trendData.forEach((row) => {
+      Object.entries(row).forEach(([key, value]) => {
+        if (reserved.has(key)) return;
+        if (typeof value !== "number") return;
+        keys.add(key);
+      });
+    });
+
+    const preferredOrder = BASE_TREND_COMPONENT_SERIES.map((item) => item.key);
+    const sortedKeys = Array.from(keys).sort((a, b) => {
+      const aIndex = preferredOrder.indexOf(a);
+      const bIndex = preferredOrder.indexOf(b);
+      const aRank = aIndex === -1 ? Number.MAX_SAFE_INTEGER : aIndex;
+      const bRank = bIndex === -1 ? Number.MAX_SAFE_INTEGER : bIndex;
+      if (aRank !== bRank) return aRank - bRank;
+      return a.localeCompare(b);
+    });
+
+    let fallbackIndex = 0;
+    return sortedKeys.map((key) => {
+      const known = BASE_TREND_COMPONENT_SERIES.find((item) => item.key === key);
+      if (known) return known;
+      const color = FALLBACK_SERIES_COLORS[fallbackIndex % FALLBACK_SERIES_COLORS.length];
+      fallbackIndex += 1;
+      return { key, color };
+    });
+  }, [trendData]);
+
   const sortedVendorTimeline = useMemo(() => sortBreakdowns(filteredEntries), [filteredEntries]);
   const latestVendorEntry = sortedVendorTimeline[sortedVendorTimeline.length - 1];
   const previousVendorEntry = sortedVendorTimeline[sortedVendorTimeline.length - 2];
@@ -304,14 +363,14 @@ const VendorBreakdownDashboard: React.FC<VendorBreakdownDashboardProps> = ({
     () =>
       trendData.map((row) => {
         const styledRow: Record<string, string | number | null> = { ...row };
-        TREND_COMPONENT_SERIES.forEach((series) => {
-          const value = row[series.key] as number;
+        componentSeries.forEach((series) => {
+          const value = typeof row[series.key] === "number" ? (row[series.key] as number) : 0;
           styledRow[`${series.key}Solid`] = value;
           styledRow[`${series.key}Dotted`] = null;
         });
         return styledRow;
       }),
-    [trendData]
+    [componentSeries, trendData]
   );
 
   const averageMonthlyTlcData = useMemo(() => {
@@ -578,8 +637,8 @@ const VendorBreakdownDashboard: React.FC<VendorBreakdownDashboardProps> = ({
           <CardHeader>
             <CardTitle className="text-xl">Supplier cost components breakdown</CardTitle>
             <CardDescription>
-              Resin index, financing, freight (regular/incremental), and others across months from backend supplier rows.
-              Missing values remain zero.
+              Component trends are generated directly from supplier rows in the standardized data model.
+              All mapped components for the selected destination/source are shown.
             </CardDescription>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
@@ -593,7 +652,7 @@ const VendorBreakdownDashboard: React.FC<VendorBreakdownDashboardProps> = ({
               >
                 All
               </button>
-              {TREND_COMPONENT_SERIES.map((series) => (
+              {componentSeries.map((series) => (
                 <button
                   key={series.key}
                   type="button"
@@ -629,7 +688,7 @@ const VendorBreakdownDashboard: React.FC<VendorBreakdownDashboardProps> = ({
                     <YAxis tick={{ fontSize: 12, fill: "#a1a1aa" }} tickLine={false} axisLine={false} width={48} />
                     <Tooltip content={<TrendTooltip />} />
                     <Legend wrapperStyle={{ fontSize: "12px", color: "#cbd5e1" }} />
-                    {TREND_COMPONENT_SERIES
+                    {componentSeries
                       .filter(
                         (series) =>
                           selectedTrendSeries === "all" || selectedTrendSeries === series.key

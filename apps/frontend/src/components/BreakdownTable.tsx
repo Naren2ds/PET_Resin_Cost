@@ -69,6 +69,10 @@ const COMMON_COMPONENT_ORDER = [
 
 const SUPPLIER_MAPPING: Record<string, string> = {
   "icis china mid (n-1)": "Resin Index",
+  "resin price index": "Resin Index",
+  "resin with assumptions": "Resin Index",
+  "icis asia se low (n-1)": "Resin Index",
+  "icis asia se low (m-2)": "Resin Index",
   finance: "Insurance",
   "freight china-buenaventura (regular)": "Freight",
   "freight china-buenaventura (incremental)": "Freight",
@@ -76,15 +80,29 @@ const SUPPLIER_MAPPING: Record<string, string> = {
   "landed factor 8%": "Local Taxes & Fees",
   "zf legislation change": "Local Taxes & Fees",
   "sur charge alpek br": "Logistics & Other Costs",
+  "additional cost index china": "Duty & Import Taxes",
+  "taxes (vat/import)": "Duty & Import Taxes",
   "total resin price abi virgin formula": "Total Landed Cost (PET Resin)",
 };
 
 const DESTINATION_INPUTS_FINAL_SUPPLIER_MAPPING: Record<string, string> = {
   "resin index vpet": "Resin Index",
   freight: "Freight",
-  tax: "Duty & Import Taxes",
+  tax: "Local Taxes & Fees",
   insurance: "Insurance",
+  others: "Logistics & Other Costs",
+  discount: "Logistics & Other Costs",
+  fx: "Logistics & Other Costs",
+  index: "Resin Index",
+  "total landing cost": "Total Landed Cost (PET Resin)",
+  "total landing cost (lc)": "Total Landed Cost (PET Resin)",
 };
+
+const HIDDEN_SUPPLIER_COMPARISON_LABELS = new Set([
+  "sub total (with incremental freight)",
+  "sub total (with regular freight)",
+  "sub total (cif)",
+]);
 
 const MARKET_COLUMN_MAPPING: Record<string, string> = {
   "resin index vpet": "Resin Index",
@@ -165,13 +183,57 @@ const differenceClass = (value: number) => {
 
 const mappedSupplierComponent = (item: VendorBreakdownItem) => {
   const key = normalize(item.label);
+  const rawKey = normalize(item.rawLabel);
+  const mappingKey = normalize(item.mappingColumn);
+  const commonKey = normalize(item.commonComponent);
+
+  if (
+    mappingKey.includes("total landing cost") ||
+    key.includes("total resin price abi virgin formula") ||
+    key.includes("total landing cost") ||
+    rawKey.includes("total resin price abi virgin formula") ||
+    rawKey.includes("total landing cost")
+  ) {
+    return "Total Landed Cost (PET Resin)";
+  }
+
+  // Prefer explicit bucket mappings first to avoid leaking raw component names.
+  const mapped =
+    SUPPLIER_MAPPING[rawKey] ||
+    SUPPLIER_MAPPING[key] ||
+    DESTINATION_INPUTS_FINAL_SUPPLIER_MAPPING[mappingKey] ||
+    DESTINATION_INPUTS_FINAL_SUPPLIER_MAPPING[key] ||
+    DESTINATION_INPUTS_FINAL_SUPPLIER_MAPPING[commonKey];
+  if (mapped) return mapped;
+
+  if (mappingKey === "freight" || commonKey === "freight") return "Freight";
+  if (mappingKey === "insurance" || commonKey === "insurance") return "Insurance";
+  if (mappingKey === "resin index vpet" || mappingKey === "index" || commonKey === "resin index") {
+    return "Resin Index";
+  }
+  if (mappingKey === "tax" || commonKey === "tax") return "Local Taxes & Fees";
+  if (
+    mappingKey === "others" ||
+    mappingKey === "discount" ||
+    mappingKey === "fx" ||
+    commonKey === "others"
+  ) {
+    return "Logistics & Other Costs";
+  }
+
   return (
     item.commonComponent ||
-    SUPPLIER_MAPPING[key] ||
-    DESTINATION_INPUTS_FINAL_SUPPLIER_MAPPING[key] ||
     item.mappingColumn ||
     item.label
   );
+};
+
+const isSupplierComparisonRow = (item: VendorBreakdownItem) => {
+  const labelKey = normalize(item.label);
+  const mappingKey = normalize(item.mappingColumn);
+  if (HIDDEN_SUPPLIER_COMPARISON_LABELS.has(labelKey)) return false;
+  if (mappingKey === "sub total (cif)") return false;
+  return true;
 };
 
 const mappedMarketComponent = (item: BreakdownItem) => {
@@ -299,7 +361,7 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       marketSums.set(mapped, (marketSums.get(mapped) ?? 0) + (toNumber(item.amount) ?? 0));
     });
 
-    compactVendorBreakdown.forEach((item) => {
+    compactVendorBreakdown.filter(isSupplierComparisonRow).forEach((item) => {
       const mapped = mappedSupplierComponent(item);
       if (!mapped) return;
       supplierSums.set(mapped, (supplierSums.get(mapped) ?? 0) + (toNumber(item.amount) ?? 0));
@@ -342,7 +404,7 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
         marketGroups.set(component, rows);
       });
 
-    compactVendorBreakdown.forEach((item) => {
+    compactVendorBreakdown.filter(isSupplierComparisonRow).forEach((item) => {
       const component = mappedSupplierComponent(item);
       if (!component) return;
       const rows = supplierGroups.get(component) ?? [];

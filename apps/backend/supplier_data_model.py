@@ -336,31 +336,28 @@ def rows_for_selected_scenario(rows: list[dict[str, Any]]) -> list[dict[str, Any
     if not total_row:
         return []
 
-    # Row order is not guaranteed in the standardized workbook after merges.
-    # Select best non-total row per component, then append the chosen TLC row.
-    def component_key(row: dict[str, Any]) -> str:
-        mapping = clean_text(row.get("Mapping Columns"))
-        if mapping:
-            return normalized_key(mapping)
-        return normalized_key(row.get("Raw Cost Breakdown"))
+    # Keep all required non-total rows so destinations like Colombia preserve
+    # multiple freight/tax component rows (regular + incremental, landed factor,
+    # ZF, etc.). Only collapse exact duplicates and force a single TLC row.
+    def dedupe_key(row: dict[str, Any]) -> tuple[str, str, str, str]:
+        return (
+            normalized_key(row.get("Raw Cost Breakdown")),
+            normalized_key(row.get("Mapping Columns")),
+            clean_text(row.get("Value")),
+            clean_text(row.get("TLC Formula")),
+        )
 
-    def row_score(row: dict[str, Any]) -> tuple[int, int, int]:
-        value = as_float(row.get("Value"))
-        has_value = 1 if value is not None else 0
-        non_zero = 1 if value is not None and value != 0 else 0
-        preferred = 1 if is_preferred_total_landing_cost(row) else 0
-        return has_value, non_zero, preferred
-
-    selected_by_component: dict[str, dict[str, Any]] = {}
+    selected: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str]] = set()
     for row in required_rows:
         if is_total_landing_cost(row):
             continue
-        key = component_key(row)
-        existing = selected_by_component.get(key)
-        if existing is None or row_score(row) >= row_score(existing):
-            selected_by_component[key] = row
+        key = dedupe_key(row)
+        if key in seen:
+            continue
+        seen.add(key)
+        selected.append(row)
 
-    selected = list(selected_by_component.values())
     selected.append(total_row)
     return selected
 

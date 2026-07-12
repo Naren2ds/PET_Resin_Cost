@@ -214,7 +214,7 @@ const LandingPage: React.FC = () => {
                         ["Panama", "Pastiglas", "YTD June"],
                         ["Colombia", "Amcor", "YTD June"],
                         ["Peru", "San Miguel Industrias (SMI)", "YTD June"],
-                        ["Argentina", "Amcor", "YTD May"],
+                        ["Argentina", "Amcor", "YTD June"],
                         ["Dominican Republic", "SMI PET", "YTD June"],
                         ["Uruguay", "Cristalpet", "YTD June"],
                         ["El Salvador and Honduras", "Amcor", "YTD June"],

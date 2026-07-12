@@ -82,6 +82,8 @@ const SUPPLIER_MAPPING: Record<string, string> = {
   "sur charge alpek br": "Logistics & Other Costs",
   "additional cost index china": "Duty & Import Taxes",
   "taxes (vat/import)": "Duty & Import Taxes",
+  // Brazil Amcor SUAPE / MANAUS — raw label from standardized workbook
+  duties: "Duty & Import Taxes",
   "total resin price abi virgin formula": "Total Landed Cost (PET Resin)",
 };
 

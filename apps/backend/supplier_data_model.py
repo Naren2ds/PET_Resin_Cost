@@ -336,9 +336,62 @@ def rows_for_selected_scenario(rows: list[dict[str, Any]]) -> list[dict[str, Any
     if not total_row:
         return []
 
-    # Keep all required non-total rows so destinations like Colombia preserve
-    # multiple freight/tax component rows (regular + incremental, landed factor,
-    # ZF, etc.). Only collapse exact duplicates and force a single TLC row.
+    # Some destination-month sheets contain multiple complete scenarios in a
+    # single block (e.g., repeated FOB/Freight/Tax/DDP sets). Pick the
+    # component block immediately preceding the chosen TLC row so components
+    # reconcile to that TLC while still preserving multi-line detail rows
+    # within the selected scenario (e.g., Colombia incremental/regular freight).
+    total_indices = [
+        index for index, row in enumerate(required_rows) if is_total_landing_cost(row)
+    ]
+    chosen_total_index = next(
+        (index for index, row in enumerate(required_rows) if row is total_row),
+        -1,
+    )
+    if chosen_total_index < 0:
+        return []
+
+    previous_total_index = -1
+    for index in total_indices:
+        if index < chosen_total_index:
+            previous_total_index = index
+        else:
+            break
+
+    next_total_index = len(required_rows)
+    for index in total_indices:
+        if index > chosen_total_index:
+            next_total_index = index
+            break
+
+    scenario_rows = required_rows[previous_total_index + 1 : chosen_total_index]
+
+    # Handle sheets where two TLC rows are adjacent (for example local-currency TLC
+    # followed by USD TLC). In that case, the selected TLC block can be empty;
+    # fallback to the nearest previous non-empty component block.
+    if not scenario_rows and previous_total_index >= 0:
+        earlier_total_index = -1
+        for index in total_indices:
+            if index < previous_total_index:
+                earlier_total_index = index
+            else:
+                break
+        scenario_rows = required_rows[earlier_total_index + 1 : previous_total_index]
+
+    # Some files place a component row after TLC. Include only post-TLC rows
+    # that add a missing component mapping to avoid pulling in another scenario.
+    seen_mapping_keys = {
+        normalized_key(row.get("Mapping Columns")) or normalized_key(row.get("Raw Cost Breakdown"))
+        for row in scenario_rows
+    }
+    for row in required_rows[chosen_total_index + 1 : next_total_index]:
+        key = normalized_key(row.get("Mapping Columns")) or normalized_key(row.get("Raw Cost Breakdown"))
+        if key in seen_mapping_keys:
+            continue
+        seen_mapping_keys.add(key)
+        scenario_rows.append(row)
+
+    # Keep rows in workbook order and drop only exact duplicates.
     def dedupe_key(row: dict[str, Any]) -> tuple[str, str, str, str]:
         return (
             normalized_key(row.get("Raw Cost Breakdown")),
@@ -349,9 +402,7 @@ def rows_for_selected_scenario(rows: list[dict[str, Any]]) -> list[dict[str, Any
 
     selected: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str, str]] = set()
-    for row in required_rows:
-        if is_total_landing_cost(row):
-            continue
+    for row in scenario_rows:
         key = dedupe_key(row)
         if key in seen:
             continue

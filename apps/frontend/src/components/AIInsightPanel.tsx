@@ -1394,24 +1394,6 @@ const gapDriverNarrative = (record: ProcurementIntelligenceRecord): ReactNode =>
   const secondary = record.second_largest_cost_driver && record.second_largest_cost_driver !== "Unknown"
     ? record.second_largest_cost_driver
     : null;
-  const gap = record.gap_abs;
-  const relationship = gap === null || gap === undefined
-    ? "Benchmark unavailable"
-    : gap < 0
-      ? "Supplier TLC is above Market TLC"
-      : gap > 0
-        ? "Supplier TLC is below Market TLC"
-        : "Supplier TLC is at Market TLC";
-
-  if (gap === null || gap === undefined) {
-    return (
-      <>
-        <Critical>{primary}</Critical>
-        {secondary ? <> and <Critical>{secondary}</Critical></> : null}.
-      </>
-    );
-  }
-
   return (
     <>
       <Critical>{primary}</Critical>

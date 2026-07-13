@@ -1406,7 +1406,7 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
               <CardDescription>Adjust Supplier vPET and view the impact on the Trends-style graph.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <div className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_160px] xl:items-stretch">
+              <div className="grid gap-4 xl:grid-cols-[240px_minmax(360px,600px)_120px] xl:items-stretch xl:justify-start">
                 <div className="h-full rounded-xl border border-border bg-white p-4">
                   <label className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground">Simulation target</label>
                   <div className="mt-2 flex h-11 w-full items-center rounded-xl border border-border bg-secondary px-3 text-sm text-foreground">

@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import type { BreakdownItem } from "../types";
-import { formatAmount } from "../types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -166,11 +165,17 @@ const toNumber = (value: string | number | null | undefined) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
+const formatBreakdownAmount = (value: number) =>
+  new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+
 const formatMetricTon = (value: string | number | null | undefined) =>
-  `$${formatAmount(toNumber(value) ?? 0)}`;
+  `$${formatBreakdownAmount(toNumber(value) ?? 0)}`;
 
 const formatDifference = (value: number) =>
-  `${value > 0 ? "+" : ""}$${formatAmount(value)}`;
+  `${value > 0 ? "+" : ""}$${formatBreakdownAmount(value)}`;
 
 const costSharePercent = (value: number, total: number) => {
   if (!Number.isFinite(value) || !Number.isFinite(total) || total === 0) return null;
@@ -257,6 +262,9 @@ const isMarketResearchComparisonRow = (item: BreakdownItem) => {
 };
 
 const componentSortIndex = (component: string) => {
+  if (normalize(component) === "internalization") {
+    return COMMON_COMPONENT_ORDER.indexOf("Total Landed Cost (PET Resin)") - 0.5;
+  }
   const index = COMMON_COMPONENT_ORDER.indexOf(component);
   return index >= 0 ? index : COMMON_COMPONENT_ORDER.length;
 };

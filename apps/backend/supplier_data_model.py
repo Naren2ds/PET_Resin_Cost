@@ -380,12 +380,16 @@ def rows_for_selected_scenario(rows: list[dict[str, Any]]) -> list[dict[str, Any
 
     # Some files place a component row after TLC. Include only post-TLC rows
     # that add a missing component mapping to avoid pulling in another scenario.
+    # Use Raw Cost Breakdown as the primary dedup key (more specific than Mapping
+    # Columns) so that distinct items like "ZF Legislation Change" are not
+    # incorrectly skipped just because they share a category (e.g. "Tax") with
+    # another already-seen row.
     seen_mapping_keys = {
-        normalized_key(row.get("Mapping Columns")) or normalized_key(row.get("Raw Cost Breakdown"))
+        normalized_key(row.get("Raw Cost Breakdown")) or normalized_key(row.get("Mapping Columns"))
         for row in scenario_rows
     }
     for row in required_rows[chosen_total_index + 1 : next_total_index]:
-        key = normalized_key(row.get("Mapping Columns")) or normalized_key(row.get("Raw Cost Breakdown"))
+        key = normalized_key(row.get("Raw Cost Breakdown")) or normalized_key(row.get("Mapping Columns"))
         if key in seen_mapping_keys:
             continue
         seen_mapping_keys.add(key)

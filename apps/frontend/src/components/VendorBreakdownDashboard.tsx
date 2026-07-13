@@ -311,7 +311,7 @@ const VendorBreakdownDashboard: React.FC<VendorBreakdownDashboardProps> = ({
       });
     });
 
-    const preferredOrder = BASE_TREND_COMPONENT_SERIES.map((item) => item.key);
+    const preferredOrder: string[] = BASE_TREND_COMPONENT_SERIES.map((item) => item.key);
     const sortedKeys = Array.from(keys).sort((a, b) => {
       const aIndex = preferredOrder.indexOf(a);
       const bIndex = preferredOrder.indexOf(b);

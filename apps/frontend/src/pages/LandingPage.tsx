@@ -262,7 +262,7 @@ const LandingPage: React.FC = () => {
             <section className={cn(SHELL)}>
               <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground">Market Research Data Availability</h2>
               <p className="mt-2 text-sm text-foreground">
-                Market research vPET data is currently available for <span className="font-semibold text-warning">June 2026</span> only.
+                Market research vPET data is currently available for <span className="font-semibold text-success">June 2026</span> only.
               </p>
               <p className="mt-2 text-sm text-foreground">
                Formula and the calculation are based on the Market Research study done by Delloite

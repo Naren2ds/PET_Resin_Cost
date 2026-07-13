@@ -58,7 +58,7 @@ const LandingPage: React.FC = () => {
                 <div className="grid gap-px overflow-hidden rounded-[10px] border border-border bg-border sm:grid-cols-2">
                   {[
                     { label: "Total PET Spend", value: "$356M", delta: "+0.6% YoY" },
-                    { label: "Savings Opportunity", value: "$5.0M", delta: "annualized" },
+                    { label: "Savings Opportunity", value: "TBD" },
                     { label: "No of Suppliers", value: "8", delta: "active suppliers" },
                     { label: "Market Research Countries", value: "10", delta: "covered" },
                   ].map((kpi) => (
@@ -127,7 +127,7 @@ const LandingPage: React.FC = () => {
                   desc: "Compare supplier TLC against market-implied TLC by destination, source, and supplier.",
                 },
                 {
-                  title: "Supplier Analysis",
+                  title: "TLC Breakdown",
                   desc: "Deep dive into supplier breakdowns to identify component-level cost differences and negotiation points.",
                 },
                 {
@@ -262,7 +262,10 @@ const LandingPage: React.FC = () => {
             <section className={cn(SHELL)}>
               <h2 className="text-xl font-semibold tracking-[-0.01em] text-foreground">Market Research Data Availability</h2>
               <p className="mt-2 text-sm text-foreground">
-                Market research vPET data is currently available for <span className="font-semibold text-warning">Feb 2026</span> only.
+                Market research vPET data is currently available for <span className="font-semibold text-warning">June 2026</span> only.
+              </p>
+              <p className="mt-2 text-sm text-foreground">
+               Formula and the calculation are based on the Market Research study done by Delloite
               </p>
               <p className="mt-3 text-xs text-foreground">
                 Indexes used: ICIS FOB Mexico, ICIS FOB China, ICIS FOB Asia SE, ICIS FOB India, ICIS FOB South Korea, ICIS FOB Taiwan.

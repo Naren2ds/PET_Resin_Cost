@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import re
 from collections import defaultdict
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
@@ -98,9 +99,9 @@ def normalize_resin_index_type(
         market_index_by_source = {
             "china": "ICIS FOB China",
             "mexico": "ICIS FOB Mexico",
-            "vietnam": "ICIS FOB Asia SE",
-            "indonesia": "ICIS FOB Asia SE",
-            "thailand": "ICIS FOB Asia SE",
+            "vietnam": "ICIS Asia SE Low (M-1)",
+            "indonesia": "ICIS Asia SE Low (M-1)",
+            "thailand": "ICIS Asia SE Low (M-1)",
             "india": "ICIS FOB India",
             "south korea": "ICIS FOB South Korea",
             "taiwan": "ICIS FOB Taiwan",
@@ -127,10 +128,10 @@ def normalize_resin_index_type(
     lag_value = lag[1] if lag else 1
 
     if "asia se" in normalized and "low" in normalized:
-        # Peru supplier formulas use Asia SE with an M-2 reference.
-        # Normalize to M-2 to avoid showing/applying M-1 in Deep Dive.
-        if destination_key == "peru":
-            return "ICIS Asia SE Low (M-2)"
+        # Display the agreed supplier index label for these destinations.
+        # This changes presentation only; the underlying workbook value is untouched.
+        if destination_key in {"peru", "dominican republic", "panama"}:
+            return "ICIS Asia SE Low (M-1)"
         return f"ICIS Asia SE Low ({lag_prefix}-{lag_value})"
 
     if "ihs" in normalized:
@@ -265,15 +266,25 @@ def month_year_from_row(row: dict[str, Any]) -> tuple[str, str] | None:
     month_number = int(raw_month) if isinstance(raw_month, (int, float)) else None
 
     if not year or not month_number:
-        period = clean_text(row.get("Time_Period"))
-        parts = period.split()
-        if len(parts) >= 2:
-            month_name = parts[0]
-            try:
-                month_number = MONTHS.index(month_name) + 1
-                year = int(parts[-1])
-            except (ValueError, TypeError):
-                pass
+        period_value = row.get("Time_Period")
+        if isinstance(period_value, (date, datetime)):
+            year = period_value.year
+            month_number = period_value.month
+        else:
+            period = clean_text(period_value)
+            iso_period = re.match(r"^(\d{4})-(\d{1,2})(?:-\d{1,2})?(?:[ T].*)?$", period)
+            if iso_period:
+                year = int(iso_period.group(1))
+                month_number = int(iso_period.group(2))
+            else:
+                parts = period.split()
+                if len(parts) >= 2:
+                    month_name = parts[0].casefold()
+                    try:
+                        month_number = [month.casefold() for month in MONTHS].index(month_name) + 1
+                        year = int(parts[-1])
+                    except (ValueError, TypeError):
+                        pass
 
     if not year or not month_number or month_number < 1 or month_number > 12:
         return None
@@ -358,11 +369,27 @@ def rows_for_selected_scenario(rows: list[dict[str, Any]]) -> list[dict[str, Any
         else:
             break
 
+    def total_signature(row: dict[str, Any]) -> tuple[str, str, str]:
+        return (
+            normalized_key(row.get("Raw Cost Breakdown")),
+            clean_text(row.get("Value")),
+            clean_text(row.get("TLC Formula")),
+        )
+
     next_total_index = len(required_rows)
+    previous_duplicate_index = chosen_total_index
+    chosen_total_signature = total_signature(total_row)
     for index in total_indices:
-        if index > chosen_total_index:
-            next_total_index = index
-            break
+        if index <= chosen_total_index:
+            continue
+        if (
+            index == previous_duplicate_index + 1
+            and total_signature(required_rows[index]) == chosen_total_signature
+        ):
+            previous_duplicate_index = index
+            continue
+        next_total_index = index
+        break
 
     scenario_rows = required_rows[previous_total_index + 1 : chosen_total_index]
 
@@ -389,6 +416,8 @@ def rows_for_selected_scenario(rows: list[dict[str, Any]]) -> list[dict[str, Any
         for row in scenario_rows
     }
     for row in required_rows[chosen_total_index + 1 : next_total_index]:
+        if is_total_landing_cost(row):
+            continue
         key = normalized_key(row.get("Raw Cost Breakdown")) or normalized_key(row.get("Mapping Columns"))
         if key in seen_mapping_keys:
             continue

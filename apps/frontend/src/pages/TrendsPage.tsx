@@ -1397,7 +1397,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
                             <Line
                               type="monotone"
                               dataKey={`marketIndex_${index}_actual`}
-                              name={`MR Index - ${marketIndexDisplayNameByCountry.get(country) ?? marketIndexDisplayName}`}
+                              name={`${marketIndexDisplayNameByCountry.get(country) ?? marketIndexDisplayName}`}
                               stroke={marketSeriesColor(country, index)}
                               strokeWidth={2.6}
                               dot={{ r: 2.8, fill: marketSeriesColor(country, index) }}

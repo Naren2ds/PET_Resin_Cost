@@ -998,9 +998,7 @@ const dataTypeIsActual = (entry: { dataType?: string } | undefined) =>
 type TlcPoint = {
   value: number;
   isForecast: boolean;
-  formulaReference: string;
   indexType: string;
-  estimationNote: string;
 };
 
 const supplierTlcPoint = (entry: VendorBreakdownEntry): TlcPoint | null => {
@@ -1011,14 +1009,10 @@ const supplierTlcPoint = (entry: VendorBreakdownEntry): TlcPoint | null => {
   return {
     value,
     isForecast,
-    formulaReference: row.formulaReference || "",
     indexType:
       row.forecastResinIndexType ||
       row.resinIndexType ||
       "Supplier resin index",
-    estimationNote: isForecast
-      ? "Supplier TLC forecast is calculated from the forecast resin index plus the supplier pipeline assumptions."
-      : "Supplier TLC actual comes from the standardized supplier row selected for the current supplier, destination, and month.",
   };
 };
 
@@ -1029,15 +1023,11 @@ const marketTlcPoint = (entry: MarketResearchTrendEntry): TlcPoint | null => {
   return {
     value,
     isForecast,
-    formulaReference: entry.formulaReference || "",
     indexType:
       (isForecast ? entry.forecastResinIndexType : entry.resinIndexType) ||
       entry.resinIndexType ||
       entry.forecastResinIndexType ||
       "Market Research resin index",
-    estimationNote: isForecast
-      ? "Market Research TLC forecast is calculated from the forecast resin index and the required freight, insurance, duty/import tax, and fee components in the MR TLC formula."
-      : "Market Research TLC actual comes from the standardized MR total landed cost row for the selected country and month.",
   };
 };
 
@@ -1047,7 +1037,6 @@ const simulatedPoint = (point: TlcPoint | null, simulationPercent: number): TlcP
   return {
     ...point,
     value: Number((point.value * multiplier).toFixed(1)),
-    estimationNote: `${point.estimationNote} Simulation applies a ${simulationPercent > 0 ? "+" : ""}${simulationPercent}% adjustment to Supplier TLC.`,
   };
 };
 
@@ -1116,16 +1105,6 @@ const TrendTooltip = ({ active, payload, label }: any) => {
                     <span className="font-semibold text-foreground">Index used:</span>{" "}
                     {meta.indexType || "Not specified"}
                   </p>
-                  <p>
-                    <span className="font-semibold text-foreground">Estimation:</span>{" "}
-                    {meta.estimationNote}
-                  </p>
-                  {meta.formulaReference ? (
-                    <p>
-                      <span className="font-semibold text-foreground">TLC formula:</span>{" "}
-                      {meta.formulaReference}
-                    </p>
-                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -1382,23 +1361,6 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
   return (
     <div className="pet-page-bg min-h-screen px-6 py-6 max-sm:px-4">
       <section className="mx-auto w-full max-w-[1400px] space-y-4">
-        <RevealOnScroll>
-          <Card className="border-primary/10 bg-white shadow-lg">
-            <CardContent className="p-6 max-sm:p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground">
-                Scenario Planning
-              </p>
-              <h1 className="mt-2 text-xl font-extrabold text-foreground">
-                Simulation Workspace
-              </h1>
-              <p className="mt-2 max-w-6xl text-sm text-foreground">
-                Experiment with percentage-based adjustments on Supplier vPET and compare the result against
-                the same Supplier Actual and Forecast vs Market Research vPET view used in Trends.
-              </p>
-            </CardContent>
-          </Card>
-        </RevealOnScroll>
-
         <RevealOnScroll delay={0.03}>
           <Card className="border-primary/10 bg-white shadow-lg">
             <CardHeader className="space-y-4">

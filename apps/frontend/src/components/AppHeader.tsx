@@ -12,7 +12,7 @@ const AppHeader: React.FC = () => {
           <div className="flex min-w-0 items-center gap-3">
             <Link to="/" className="shrink-0 no-underline hover:opacity-90" aria-label="Back to landing page">
               <span className="truncate text-[1rem] font-bold tracking-[-0.01em] text-foreground">
-                PET vPET Intelligence
+                PET Intelligence
               </span>
             </Link>
           </div>

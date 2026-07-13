@@ -259,13 +259,31 @@ const CostMixTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-const AxisTick = ({ x = 0, y = 0, payload }: any) => (
-  <g transform={`translate(${x},${y})`}>
-    <text x={0} y={0} dy={12} textAnchor="end" transform="rotate(-36)" fill="#5a5a5a" fontSize={11}>
-      {payload?.value ?? ""}
-    </text>
-  </g>
-);
+const AxisTick = ({ x = 0, y = 0, payload, kindByLabel }: any) => {
+  const kind = (kindByLabel as Map<string, string> | undefined)?.get(payload?.value ?? "");
+  const isMR = kind === "Market Research";
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={12} textAnchor="end" transform="rotate(-36)" fill="#5a5a5a" fontSize={11}>
+        {payload?.value ?? ""}
+      </text>
+      {kind ? (
+        <text
+          x={0}
+          y={18}
+          dy={8}
+          textAnchor="end"
+          transform="rotate(-36)"
+          fill={isMR ? "#0ea5e9" : "#f59e0b"}
+          fontSize={9}
+          fontWeight={700}
+        >
+          {isMR ? "Market Research" : "Supplier"}
+        </text>
+      ) : null}
+    </g>
+  );
+};
 
 type Props = {
   data: ApiResponse;
@@ -286,8 +304,8 @@ const CostComponentChart: React.FC<Props> = ({ data, destination, month, year })
       .map((country) =>
         buildCostMixDatum({
           id: `market-${country.country}`,
-          label: `MR ${country.country}`,
-          axisLabel: `MR ${country.country}`,
+          label: country.country,
+          axisLabel: country.country,
           kind: "Market Research",
           rows: country.breakdown,
           fallbackTotal: country.amount,
@@ -321,6 +339,12 @@ const CostComponentChart: React.FC<Props> = ({ data, destination, month, year })
 
   const componentDefinitions = useMemo(() => buildComponentDefinitions(chartRows), [chartRows]);
 
+  const kindByLabel = useMemo(() => {
+    const map = new Map<string, string>();
+    chartRows.forEach((row) => map.set(row.axisLabel, row.kind));
+    return map;
+  }, [chartRows]);
+
   if (!chartRows.length) {
     return (
       <div className="flex h-[260px] items-center justify-center rounded-xl border border-dashed border-border bg-card/40 text-sm text-muted-foreground">
@@ -340,7 +364,7 @@ const CostComponentChart: React.FC<Props> = ({ data, destination, month, year })
               interval={0}
               minTickGap={0}
               height={112}
-              tick={<AxisTick />}
+              tick={<AxisTick kindByLabel={kindByLabel} />}
               tickLine={false}
               axisLine={false}
             />

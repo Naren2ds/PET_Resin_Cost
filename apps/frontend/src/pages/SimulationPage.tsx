@@ -1400,47 +1400,6 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
         </RevealOnScroll>
 
         <RevealOnScroll delay={0.03}>
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-xl">Simulation</CardTitle>
-              <CardDescription>Adjust Supplier vPET and view the impact on the Trends-style graph.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="grid gap-4 xl:grid-cols-[240px_minmax(360px,600px)_120px] xl:items-stretch xl:justify-start">
-                <div className="h-full rounded-xl border border-border bg-white p-4">
-                  <label className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground">Simulation target</label>
-                  <div className="mt-2 flex h-11 w-full items-center rounded-xl border border-border bg-secondary px-3 text-sm text-foreground">
-                    Supplier vPET
-                  </div>
-                </div>
-                <div className="h-full rounded-xl border border-border bg-white p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <label className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground">Percentage change</label>
-                    <Badge variant="secondary">{simulationPercent > 0 ? "+" : ""}{simulationPercent}%</Badge>
-                  </div>
-                  <input
-                    type="range"
-                    min={-30}
-                    max={30}
-                    step={1}
-                    value={simulationPercent}
-                    onChange={(event) => setSimulationPercent(Number(event.target.value))}
-                    className="mt-4 h-2 w-full cursor-pointer appearance-none rounded-lg bg-secondary accent-primary"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setSimulationPercent(0)}
-                  className="h-full min-h-[92px] rounded-xl border border-[#D4C100] bg-[#F2DC00] px-4 text-md font-semibold text-black transition hover:bg-[#E3CF00]"
-                >
-                  Reset
-                </button>
-              </div>
-            </CardContent>
-          </Card>
-        </RevealOnScroll>
-
-        <RevealOnScroll delay={0.05}>
           <Card className="border-primary/10 bg-white shadow-lg">
             <CardHeader className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-4">
@@ -1450,8 +1409,43 @@ const SimulationPage: React.FC<SimulationPageProps> = ({ data }) => {
                     {selectedDestination || "Destination"} {supplierName || "supplier"} vPET for {selectedSourceCountry || "selected source"} across 2026.
                   </CardDescription>
                 </div>
-                <div className="flex flex-wrap gap-3">
-                  <div className="min-w-[220px]">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex min-w-[160px] flex-col">
+                    <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-foreground">
+                      Simulation Target
+                    </label>
+                    <div className="flex h-10 items-center rounded-md border border-border bg-secondary px-3 text-sm text-foreground">
+                      Supplier vPET
+                    </div>
+                  </div>
+                  <div className="flex min-w-[260px] flex-col">
+                    <div className="mb-1 flex items-center justify-between gap-3">
+                      <label className="text-[10px] font-semibold uppercase tracking-wider text-foreground">Percentage Change</label>
+                      <Badge variant="secondary">{simulationPercent > 0 ? "+" : ""}{simulationPercent}%</Badge>
+                    </div>
+                    <div className="flex h-10 items-center rounded-md border border-border bg-card px-3">
+                      <input
+                        type="range"
+                        min={-30}
+                        max={30}
+                        step={1}
+                        value={simulationPercent}
+                        onChange={(event) => setSimulationPercent(Number(event.target.value))}
+                        className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-secondary accent-primary"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="mb-1 block text-[10px] opacity-0 select-none">Reset</span>
+                    <button
+                      type="button"
+                      onClick={() => setSimulationPercent(0)}
+                      className="h-10 rounded-md border border-[#D4C100] bg-[#F2DC00] px-5 text-sm font-semibold text-black transition hover:bg-[#E3CF00]"
+                    >
+                      Reset
+                    </button>
+                  </div>
+                  <div className="flex min-w-[220px] flex-col">
                     <label className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-foreground">
                       Destination
                     </label>

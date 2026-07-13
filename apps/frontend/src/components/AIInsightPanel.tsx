@@ -1407,7 +1407,7 @@ const gapDriverNarrative = (record: ProcurementIntelligenceRecord): ReactNode =>
     return (
       <>
         <Critical>{primary}</Critical>
-        {secondary ? <> and <Critical>{secondary}</Critical></> : null}. <Critical>{relationship}</Critical>.
+        {secondary ? <> and <Critical>{secondary}</Critical></> : null}.
       </>
     );
   }
@@ -1415,9 +1415,7 @@ const gapDriverNarrative = (record: ProcurementIntelligenceRecord): ReactNode =>
   return (
     <>
       <Critical>{primary}</Critical>
-      {secondary ? <> and <Critical>{secondary}</Critical></> : null}.{" "}
-      <Critical>{relationship}</Critical> by{" "}
-      <Critical>{formatAbsCurrency(gap)} ({formatPct(record.gap_pct)})</Critical>.
+      {secondary ? <> and <Critical>{secondary}</Critical></> : null}.
     </>
   );
 };

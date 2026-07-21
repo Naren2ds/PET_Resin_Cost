@@ -13,6 +13,7 @@ import {
 type VendorBreakdownItem = {
   label: string;
   amount: string | number | null | undefined;
+  valueFormat?: "currency" | "percentage";
   formulaReference?: string;
   commonComponent?: string;
   mappingColumn?: string;
@@ -34,6 +35,7 @@ type DetailCellRow = {
   label: string;
   amount: string | number | null | undefined;
   isReference?: boolean;
+  valueFormat?: "currency" | "percentage";
 };
 
 type CombinedDetailRow = {
@@ -81,7 +83,7 @@ const SUPPLIER_MAPPING: Record<string, string> = {
   "sur charge alpek br": "Logistics & Other Costs",
   "additional cost index china": "Duty & Import Taxes",
   "taxes (vat/import)": "Duty & Import Taxes",
-  // Brazil Amcor SUAPE / MANAUS — raw label from standardized workbook
+  // Brazil Amcor SUAPE / MANAUS â€” raw label from standardized workbook
   duties: "Duty & Import Taxes",
   "total resin price abi virgin formula": "Total Landed Cost (PET Resin)",
 };
@@ -173,6 +175,14 @@ const formatBreakdownAmount = (value: number) =>
 
 const formatMetricTon = (value: string | number | null | undefined) =>
   `$${formatBreakdownAmount(toNumber(value) ?? 0)}`;
+
+const formatDetailAmount = (row: DetailCellRow) => {
+  const value = toNumber(row.amount) ?? 0;
+  if (row.valueFormat === "percentage") {
+    return `${formatBreakdownAmount(value * 100).replace(/\.00$/, "")}%`;
+  }
+  return `$${formatBreakdownAmount(value)}`;
+};
 
 const formatDifference = (value: number) =>
   `${value > 0 ? "+" : ""}$${formatBreakdownAmount(value)}`;
@@ -326,7 +336,7 @@ const detailCellRows = (rows: DetailCellRow[], emptyText: string) => {
             ) : null}
           </div>
           <span className="text-right text-sm tabular-nums text-foreground">
-            {formatMetricTon(row.amount)}
+            {formatDetailAmount(row)}
           </span>
         </div>
       ))}
@@ -364,6 +374,7 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
   const comparisonRows = useMemo(() => {
     const marketSums = new Map<string, number>();
     const supplierSums = new Map<string, number>();
+    const supplierRates = new Map<string, number[]>();
 
     breakdown.filter(isMarketResearchComparisonRow).forEach((item) => {
       const mapped = mappedMarketComponent(item);
@@ -374,7 +385,14 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
     compactVendorBreakdown.filter(isSupplierComparisonRow).forEach((item) => {
       const mapped = mappedSupplierComponent(item);
       if (!mapped) return;
-      supplierSums.set(mapped, (supplierSums.get(mapped) ?? 0) + (toNumber(item.amount) ?? 0));
+      const value = toNumber(item.amount) ?? 0;
+      if (item.valueFormat === "percentage") {
+        const rates = supplierRates.get(mapped) ?? [];
+        rates.push(value * 100);
+        supplierRates.set(mapped, rates);
+        return;
+      }
+      supplierSums.set(mapped, (supplierSums.get(mapped) ?? 0) + value);
     });
 
     const marketTotal = marketSums.get("Total Landed Cost (PET Resin)") ?? 0;
@@ -387,6 +405,8 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
         component,
         marketValue,
         supplierValue,
+        supplierRates: supplierRates.get(component) ?? [],
+        supplierHasCurrency: supplierSums.has(component),
         marketShare: costSharePercent(marketValue, marketTotal),
         supplierShare: costSharePercent(supplierValue, supplierTotal),
         differenceValue: marketValue - supplierValue,
@@ -409,6 +429,8 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
         rows.push({
           label: detailDisplayLabel(item, component),
           amount: item.amount,
+
+
           isReference: normalize(item.columnRequiredForCalculation) === "no",
         });
         marketGroups.set(component, rows);
@@ -421,6 +443,8 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       rows.push({
         label: detailDisplayLabel(item, component),
         amount: item.amount,
+        valueFormat: item.valueFormat,
+
       });
       supplierGroups.set(component, rows);
     });
@@ -513,11 +537,26 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
                   <TableCell className="text-right tabular-nums text-foreground">
                     <AmountWithShare value={row.marketValue} share={row.marketShare} />
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-foreground">
-                    <AmountWithShare value={row.supplierValue} share={row.supplierShare} />
+<TableCell className="text-right tabular-nums text-foreground">
+                    {row.supplierHasCurrency ? (
+                      <span className="inline-flex flex-col items-end gap-0.5">
+                        <AmountWithShare value={row.supplierValue} share={row.supplierShare} />
+                        {row.supplierRates.length ? (
+                          <span className="text-[11px] text-foreground/75">
+                            Rate: {row.supplierRates.map((rate) => `${formatBreakdownAmount(rate).replace(/\.00$/, "")}%`).join(" + ")}
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : row.supplierRates.length ? (
+                      <span>{row.supplierRates.map((rate) => `${formatBreakdownAmount(rate).replace(/\.00$/, "")}%`).join(" + ")}</span>
+                    ) : (
+                      <AmountWithShare value={row.supplierValue} share={row.supplierShare} />
+                    )}
                   </TableCell>
                   <TableCell className={`text-right tabular-nums font-semibold ${differenceClass(row.differenceValue)}`}>
-                    {formatDifference(row.differenceValue)}
+                    {row.supplierRates.length && !row.supplierHasCurrency
+                      ? "N/A"
+                      : formatDifference(row.differenceValue)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -604,3 +643,5 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
 };
 
 export default BreakdownTable;
+
+

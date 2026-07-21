@@ -825,11 +825,11 @@ export default function AIInsightPanel({ request, className = "" }: Props) {
                     onClick={() => setActiveView("procurement")}
                     label="Procurement Intelligence"
                   />
-                  <TabButton
+                  {/* <TabButton
                     active={activeView === "summary"}
                     onClick={() => setActiveView("summary")}
                     label="Overall Summary"
-                  />
+                  /> */}
                 </div>
               ) : null}
 

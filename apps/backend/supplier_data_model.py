@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import csv
 import re
@@ -453,6 +453,24 @@ def api_label_for_row(row: dict[str, Any]) -> str:
     return mapping_column or clean_text(row.get("Raw Cost Breakdown")) or "Unknown Cost"
 
 
+PERCENTAGE_RAW_LABELS_BY_SUPPLIER = {
+    "valgroup": {"discount", "import tax", "importation"},
+    "cristalpet": {"tax"},
+}
+
+
+def supplier_value_format(row: dict[str, Any]) -> str:
+    """Identify formula-rate inputs that should be displayed as percentages."""
+    if normalized_key(row.get("Destination Country")) != "brazil":
+        return "currency"
+    supplier = normalized_key(row.get("Supplier Name"))
+    raw_label = normalized_key(row.get("Raw Cost Breakdown"))
+    return (
+        "percentage"
+        if raw_label in PERCENTAGE_RAW_LABELS_BY_SUPPLIER.get(supplier, set())
+        else "currency"
+    )
+
 def to_api_row(row: dict[str, Any], common_mapping: dict[str, str]) -> dict[str, Any]:
     mapping_column = clean_text(row.get("Mapping Columns"))
     raw_label = clean_text(row.get("Raw Cost Breakdown"))
@@ -461,6 +479,7 @@ def to_api_row(row: dict[str, Any], common_mapping: dict[str, str]) -> dict[str,
     return {
         "label": api_label_for_row(row),
         "amount": parse_number(row.get("Value")),
+        "valueFormat": supplier_value_format(row),
         "formulaReference": clean_text(row.get("TLC Formula")),
         "commonComponent": common_component,
         "mappingColumn": mapping_column,
@@ -618,3 +637,4 @@ def supplier_price_for(
             continue
         return int(value) if value.is_integer() else round(value, 1)
     return 0
+

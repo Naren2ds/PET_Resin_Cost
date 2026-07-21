@@ -1,4 +1,4 @@
-export type BreakdownItem = {
+﻿export type BreakdownItem = {
   label: string;
   amount: number | string | null;
   formulaReference: string;
@@ -24,6 +24,7 @@ export type CountryCost = {
 export type VendorBreakdownRow = {
   label: string;
   amount: string | number | null;
+  valueFormat?: "currency" | "percentage";
   formulaReference?: string;
   commonComponent?: string;
   mappingColumn?: string;
@@ -166,3 +167,4 @@ export type InsightsResult = {
     procurement_intelligence?: ProcurementIntelligence;
   };
 };
+

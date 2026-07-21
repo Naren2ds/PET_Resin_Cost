@@ -66,6 +66,7 @@ class CountryCost(BaseModel):
 class VendorBreakdownRow(BaseModel):
     label: str
     amount: Union[float, int, str, None]
+    valueFormat: str = "currency"
     formulaReference: str = ""
     commonComponent: str = ""
     mappingColumn: str = ""

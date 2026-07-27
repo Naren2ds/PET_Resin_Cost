@@ -36,6 +36,7 @@ type DetailCellRow = {
   amount: string | number | null | undefined;
   isReference?: boolean;
   valueFormat?: "currency" | "percentage";
+  percentageRate?: number;
 };
 
 type CombinedDetailRow = {
@@ -82,6 +83,7 @@ const SUPPLIER_MAPPING: Record<string, string> = {
   "zf legislation change": "Local Taxes & Fees",
   "sur charge alpek br": "Logistics & Other Costs",
   "additional cost index china": "Duty & Import Taxes",
+  "internalization cost": "Logistics & Other Costs",
   "taxes (vat/import)": "Duty & Import Taxes",
   // Brazil Amcor SUAPE / MANAUS â€” raw label from standardized workbook
   duties: "Duty & Import Taxes",
@@ -178,6 +180,10 @@ const formatMetricTon = (value: string | number | null | undefined) =>
 
 const formatDetailAmount = (row: DetailCellRow) => {
   const value = toNumber(row.amount) ?? 0;
+  if (row.percentageRate !== undefined) {
+    const rate = formatBreakdownAmount(row.percentageRate).replace(/\.00$/, "");
+    return `$${formatBreakdownAmount(value)} (${rate}%)`;
+  }
   if (row.valueFormat === "percentage") {
     return `${formatBreakdownAmount(value * 100).replace(/\.00$/, "")}%`;
   }
@@ -323,7 +329,7 @@ const detailCellRows = (rows: DetailCellRow[], emptyText: string) => {
       {rows.map((row, index) => (
         <div
           key={`${row.label}-${String(row.amount ?? "")}-${index}`}
-          className="grid grid-cols-[minmax(0,1fr)_96px] items-start gap-3 rounded-md border border-border/60 bg-background/30 px-2.5 py-2"
+          className="grid grid-cols-[minmax(0,1fr)_130px] items-start gap-3 rounded-md border border-border/60 bg-background/30 px-2.5 py-2"
         >
           <div className="min-w-0">
             <p className="whitespace-normal break-words text-sm font-medium leading-snug text-foreground">
@@ -363,6 +369,7 @@ const dedupeVendorRows = (rows: VendorBreakdownItem[]) => {
 const BreakdownTable: React.FC<BreakdownTableProps> = ({
   breakdown,
   vendorBreakdown = [],
+  supplierName,
 }) => {
   const [showCostDetailTable, setShowCostDetailTable] = useState(true);
 
@@ -375,6 +382,18 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
     const marketSums = new Map<string, number>();
     const supplierSums = new Map<string, number>();
     const supplierRates = new Map<string, number[]>();
+    const valgroupRates = { discount: 0, importation: 0, importTax: 0 };
+    const isValgroup = normalize(supplierName) === "valgroup";
+    const isCristalpet = normalize(supplierName) === "cristalpet";
+    const isUruguayCristalpet = isCristalpet && compactVendorBreakdown.some(
+      (item) => normalize(item.rawLabel || item.label) === "gasto de internacion y puesta en silos"
+    );
+    const isBoliviaGestora =
+      normalize(supplierName) ===
+      "gestora, administradora e industrializadora preformas s.a.";
+    let cristalpetTaxRate = 0;
+    let uruguayCristalpetBase = 0;
+    let boliviaOtherCostRate = 0;
 
     breakdown.filter(isMarketResearchComparisonRow).forEach((item) => {
       const mapped = mappedMarketComponent(item);
@@ -386,6 +405,25 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       const mapped = mappedSupplierComponent(item);
       if (!mapped) return;
       const value = toNumber(item.amount) ?? 0;
+      const rawLabel = normalize(item.rawLabel || item.label);
+      if (isUruguayCristalpet && rawLabel === "precio base de materia prima") {
+        uruguayCristalpetBase = value;
+        return;
+      }
+      if (isValgroup && item.valueFormat === "percentage") {
+        if (rawLabel === "discount") valgroupRates.discount = value;
+        if (rawLabel === "importation") valgroupRates.importation = value;
+        if (rawLabel === "import tax") valgroupRates.importTax = value;
+      }
+      if (
+        isCristalpet && item.valueFormat === "percentage" &&
+        (rawLabel === "tax" || rawLabel === "gasto de internacion y puesta en silos")
+      ) {
+        cristalpetTaxRate = value;
+      }
+      if (isBoliviaGestora && item.valueFormat === "percentage") {
+        boliviaOtherCostRate += value;
+      }
       if (item.valueFormat === "percentage") {
         const rates = supplierRates.get(mapped) ?? [];
         rates.push(value * 100);
@@ -394,6 +432,36 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       }
       supplierSums.set(mapped, (supplierSums.get(mapped) ?? 0) + value);
     });
+
+    if (isValgroup) {
+      const resin = supplierSums.get("Resin Index") ?? 0;
+      const freight = supplierSums.get("Freight") ?? 0;
+      const discountImpact = -(resin * valgroupRates.discount);
+      const taxBase = resin + discountImpact + freight;
+      const taxImpact = taxBase * (valgroupRates.importation + valgroupRates.importTax);
+      const existingLogistics = supplierSums.get("Logistics & Other Costs") ?? 0;
+
+      supplierSums.set("Local Taxes & Fees", taxImpact);
+      supplierSums.set("Logistics & Other Costs", existingLogistics + discountImpact);
+      supplierRates.clear();
+    }
+
+    if (isCristalpet) {
+      const resin = supplierSums.get("Resin Index") ?? 0;
+      const freight = supplierSums.get("Freight") ?? 0;
+      const taxBase = isUruguayCristalpet ? uruguayCristalpetBase : resin + freight;
+      const taxImpact = taxBase * cristalpetTaxRate;
+      supplierSums.set("Local Taxes & Fees", taxImpact);
+      supplierRates.clear();
+    }
+
+    if (isBoliviaGestora) {
+      const resin = supplierSums.get("Resin Index") ?? 0;
+      const freight = supplierSums.get("Freight") ?? 0;
+      const otherCostImpact = (resin + freight) * boliviaOtherCostRate;
+      supplierSums.set("Duty & Import Taxes", otherCostImpact);
+      supplierRates.clear();
+    }
 
     const marketTotal = marketSums.get("Total Landed Cost (PET Resin)") ?? 0;
     const supplierTotal = supplierSums.get("Total Landed Cost (PET Resin)") ?? 0;
@@ -412,11 +480,42 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
         differenceValue: marketValue - supplierValue,
       };
     });
-  }, [breakdown, compactVendorBreakdown]);
+  }, [breakdown, compactVendorBreakdown, supplierName]);
 
   const combinedDetailRows = useMemo<CombinedDetailRow[]>(() => {
     const marketGroups = new Map<string, DetailCellRow[]>();
     const supplierGroups = new Map<string, DetailCellRow[]>();
+    const isValgroupDetail = normalize(supplierName) === "valgroup";
+    const valgroupValue = (rawLabel: string) =>
+      toNumber(compactVendorBreakdown.find((item) => normalize(item.rawLabel) === rawLabel)?.amount) ?? 0;
+    const valgroupDetailResin = valgroupValue("resin with assumptions");
+    const valgroupDetailDiscount = valgroupValue("discount");
+    const valgroupDetailFreight = valgroupValue("drewry (t-1) with discount");
+    const valgroupDetailTaxBase =
+      valgroupDetailResin * (1 - valgroupDetailDiscount) + valgroupDetailFreight;
+    const isCristalpetDetail = normalize(supplierName) === "cristalpet";
+    const cristalpetDetailResin =
+      toNumber(compactVendorBreakdown.find((item) => mappedSupplierComponent(item) === "Resin Index")?.amount) ?? 0;
+    const cristalpetDetailFreight =
+      toNumber(compactVendorBreakdown.find((item) => mappedSupplierComponent(item) === "Freight")?.amount) ?? 0;
+    const isUruguayCristalpetDetail = isCristalpetDetail && compactVendorBreakdown.some(
+      (item) => normalize(item.rawLabel || item.label) === "gasto de internacion y puesta en silos"
+    );
+    const uruguayCristalpetDetailBase =
+      toNumber(compactVendorBreakdown.find(
+        (item) => normalize(item.rawLabel || item.label) === "precio base de materia prima"
+      )?.amount) ?? 0;
+    const cristalpetDetailTaxBase = isUruguayCristalpetDetail
+      ? uruguayCristalpetDetailBase
+      : cristalpetDetailResin + cristalpetDetailFreight;
+    const isBoliviaGestoraDetail =
+      normalize(supplierName) ===
+      "gestora, administradora e industrializadora preformas s.a.";
+    const boliviaDetailResin =
+      toNumber(compactVendorBreakdown.find((item) => mappedSupplierComponent(item) === "Resin Index")?.amount) ?? 0;
+    const boliviaDetailFreight =
+      toNumber(compactVendorBreakdown.find((item) => mappedSupplierComponent(item) === "Freight")?.amount) ?? 0;
+    const boliviaDetailRateBase = boliviaDetailResin + boliviaDetailFreight;
 
     breakdown
       .filter(
@@ -437,13 +536,43 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       });
 
     compactVendorBreakdown.filter(isSupplierComparisonRow).forEach((item) => {
-      const component = mappedSupplierComponent(item);
+      let component = mappedSupplierComponent(item);
+      if (isBoliviaGestoraDetail && item.valueFormat === "percentage") {
+        component = "Duty & Import Taxes";
+      }
       if (!component) return;
       const rows = supplierGroups.get(component) ?? [];
+      const rawLabel = normalize(item.rawLabel || item.label);
+      const rate = toNumber(item.amount) ?? 0;
+      let detailAmount = item.amount;
+      let detailValueFormat = item.valueFormat;
+      let percentageRate: number | undefined;
+      if (isValgroupDetail && item.valueFormat === "percentage") {
+        if (rawLabel === "discount") detailAmount = -(valgroupDetailResin * rate);
+        if (rawLabel === "importation" || rawLabel === "import tax") {
+          detailAmount = valgroupDetailTaxBase * rate;
+        }
+        detailValueFormat = "currency";
+        percentageRate = rate * 100;
+      }
+      if (
+        isCristalpetDetail && item.valueFormat === "percentage" &&
+        (rawLabel === "tax" || rawLabel === "gasto de internacion y puesta en silos")
+      ) {
+        detailAmount = cristalpetDetailTaxBase * rate;
+        detailValueFormat = "currency";
+        percentageRate = rate * 100;
+      }
+      if (isBoliviaGestoraDetail && item.valueFormat === "percentage") {
+        detailAmount = boliviaDetailRateBase * rate;
+        detailValueFormat = "currency";
+        percentageRate = rate * 100;
+      }
       rows.push({
         label: detailDisplayLabel(item, component),
-        amount: item.amount,
-        valueFormat: item.valueFormat,
+        amount: detailAmount,
+        valueFormat: detailValueFormat,
+        percentageRate,
 
       });
       supplierGroups.set(component, rows);
@@ -471,7 +600,7 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       marketRows: dedupeDetailRows(marketGroups.get(component) ?? []),
       supplierRows: dedupeDetailRows(supplierGroups.get(component) ?? []),
     }));
-  }, [breakdown, compactVendorBreakdown]);
+  }, [breakdown, compactVendorBreakdown, supplierName]);
 
   const marketTlcFormula = useMemo(() => {
     const formula = breakdown

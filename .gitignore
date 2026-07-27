@@ -17,9 +17,13 @@ data/archive/
 data/processed/current/**/*.csv
 data/processed/current/**/*.json
 data/processed/current/indexes/
+data/processed/current/**/*.backup_*.xlsx
 pipelines/**/artifacts/
 pipelines/**/Estimation/
 pipelines/market_research/data_exploration/outputs/
+
+# Local validation scripts and generated test reports
+testing_scripts/
 
 # Local documentation/source workbook drafts
 README_legacy.md
@@ -28,3 +32,11 @@ docs/**/*.xlsx
 
 # Local npm auth config
 apps/frontend/.npmrc
+# Local refresh materials and one-off data correction scripts
+docs/automation_refresh/
+pipelines/market_research/tlc_model/add_argentina_processing_fee.py
+pipelines/market_research/tlc_model/add_brazil_automated_clearance_fee.py
+pipelines/market_research/tlc_model/update_argentina_m2_indices.py
+pipelines/market_research/tlc_model/update_colombia_m2_indices.py
+pipelines/suppliers/update_argentina_forecast_china_m2.py
+pipelines/suppliers/update_colombia_forecast_china_m2.py

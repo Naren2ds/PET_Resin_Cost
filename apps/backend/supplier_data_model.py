@@ -455,13 +455,18 @@ def api_label_for_row(row: dict[str, Any]) -> str:
 
 PERCENTAGE_RAW_LABELS_BY_SUPPLIER = {
     "valgroup": {"discount", "import tax", "importation"},
-    "cristalpet": {"tax"},
+    "cristalpet": {"tax", "gasto de internacion y puesta en silos"},
+    "gestora, administradora e industrializadora preformas s.a.": {
+        "other cost ( cdp)",
+        "other cost (bank fee)",
+    },
 }
 
 
 def supplier_value_format(row: dict[str, Any]) -> str:
     """Identify formula-rate inputs that should be displayed as percentages."""
-    if normalized_key(row.get("Destination Country")) != "brazil":
+    destination = normalized_key(row.get("Destination Country"))
+    if destination not in {"brazil", "bolivia", "uruguay"}:
         return "currency"
     supplier = normalized_key(row.get("Supplier Name"))
     raw_label = normalized_key(row.get("Raw Cost Breakdown"))

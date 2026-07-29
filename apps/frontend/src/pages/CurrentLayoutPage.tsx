@@ -116,10 +116,12 @@ const CurrentLayoutPage: React.FC<CurrentLayoutPageProps> = ({ data }) => {
 
   const destinationOptions = useMemo(() => {
     const apiDestination = data.destination;
-    return Array.from(new Set([apiDestination, ...DEFAULT_DESTINATIONS])).filter(
+    return Array.from(
+      new Set([apiDestination, ...(data.availableDestinations ?? []), ...DEFAULT_DESTINATIONS])
+    ).filter(
       Boolean
     );
-  }, [data.destination]);
+  }, [data.availableDestinations, data.destination]);
 
   const yearOptions = useMemo(() => getYearOptions(), []);
 

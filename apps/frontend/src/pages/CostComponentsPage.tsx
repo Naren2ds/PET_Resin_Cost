@@ -652,13 +652,16 @@ const CostComponentsPage: React.FC<CostComponentsPageProps> = ({ data }) => {
     : monthOptions[0] ?? requestedMonth;
 
   const destinationOptions = useMemo(() => {
-    const options = new Set<string>(DEFAULT_DESTINATIONS);
+    const options = new Set<string>([
+      ...DEFAULT_DESTINATIONS,
+      ...(data.availableDestinations ?? []),
+    ]);
     if (data.destination) options.add(data.destination);
     data.vendorBreakdowns.forEach((entry) => {
       if (entry.destination) options.add(entry.destination);
     });
     return Array.from(options).filter(Boolean).sort((a, b) => a.localeCompare(b));
-  }, [data.destination, data.vendorBreakdowns]);
+  }, [data.availableDestinations, data.destination, data.vendorBreakdowns]);
 
   useEffect(() => {
     const missingDestination = !searchParams.get("destination");

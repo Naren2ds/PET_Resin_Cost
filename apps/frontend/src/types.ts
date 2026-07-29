@@ -76,6 +76,7 @@ export type ApiResponse = {
   countries: CountryCost[];
   vendorBreakdowns: VendorBreakdownEntry[];
   marketResearchTrends?: MarketResearchTrendEntry[];
+  availableDestinations?: string[];
 };
 
 export const formatAmount = (value: number | string | null | undefined) => {

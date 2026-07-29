@@ -197,11 +197,13 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
 
   const destinationOptions = useMemo(() => {
     const apiDestination = normalizeDestinationForUi(data.destination);
-    return Array.from(new Set([apiDestination, ...DEFAULT_DESTINATIONS])).filter(
+    return Array.from(
+      new Set([apiDestination, ...(data.availableDestinations ?? []), ...DEFAULT_DESTINATIONS])
+    ).filter(
       (destination): destination is string =>
         Boolean(destination) && destination !== COMBINED_EL_SALVADOR_HONDURAS
     );
-  }, [data.destination]);
+  }, [data.availableDestinations, data.destination]);
 
   const yearOptions = useMemo(() => getYearOptions(), []);
 

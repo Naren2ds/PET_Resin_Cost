@@ -538,7 +538,9 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
   >(data.marketResearchTrends ?? []);
 
   const destinationOptions = useMemo(() => {
-    const options = new Set<string>();
+    const options = new Set<string>(
+      (data.availableDestinations ?? []).map(destinationDisplayName)
+    );
     if (data.destination) options.add(destinationDisplayName(data.destination));
     data.vendorBreakdowns.forEach((entry) => {
       if (entry.destination) options.add(destinationDisplayName(entry.destination));
@@ -546,7 +548,7 @@ const TrendsPage: React.FC<TrendsPageProps> = ({ data }) => {
     return Array.from(options)
       .filter((destination) => destination !== COMBINED_EL_SALVADOR_HONDURAS)
       .sort((a, b) => a.localeCompare(b));
-  }, [data.destination, data.vendorBreakdowns]);
+  }, [data.availableDestinations, data.destination, data.vendorBreakdowns]);
 
   useEffect(() => {
     const url = createApiUrl("/market-research-trends");

@@ -23,7 +23,7 @@ pipelines/**/Estimation/
 pipelines/market_research/data_exploration/outputs/
 
 # Local validation scripts and generated test reports
-testing_scripts/
+testing_scripts/*.xlsx
 
 # Local documentation/source workbook drafts
 README_legacy.md
@@ -40,3 +40,4 @@ pipelines/market_research/tlc_model/update_argentina_m2_indices.py
 pipelines/market_research/tlc_model/update_colombia_m2_indices.py
 pipelines/suppliers/update_argentina_forecast_china_m2.py
 pipelines/suppliers/update_colombia_forecast_china_m2.py
+pipelines/market_research/tlc_model/build_market_research_front_end_data_model.py

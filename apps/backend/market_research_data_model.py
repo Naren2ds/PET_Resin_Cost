@@ -66,6 +66,21 @@ MARKET_RESEARCH_COMMON_COST_MAPPING = {
     "Total Landing Cost": "Total Landed Cost (PET Resin)",
 }
 
+REFERENCE_TAX_LABELS_BY_DESTINATION = {
+    "brazil": {"ipi", "pis", "confins", "cofins"},
+    "peru": {
+        "impuesto general a las ventas (igv & ipm)",
+        "percepción igv",
+        "percepcion igv",
+    },
+}
+
+
+def is_destination_reference_tax(row: dict[str, Any]) -> bool:
+    destination = normalized_key(row.get("Destination Country"))
+    raw_label = normalized_key(row.get("Raw Cost Breakdown"))
+    return raw_label in REFERENCE_TAX_LABELS_BY_DESTINATION.get(destination, set())
+
 
 
 def _market_research_data_version() -> tuple[float | None, float | None]:
@@ -176,8 +191,10 @@ def market_research_api_row(row: dict[str, Any]) -> dict[str, Any]:
             source_country=source_country,
             market_context=True,
         ),
-        "columnRequiredForCalculation": clean_text(
-            row.get("Column Required for Calculation")
+        "columnRequiredForCalculation": (
+            "No"
+            if is_destination_reference_tax(row)
+            else clean_text(row.get("Column Required for Calculation"))
         ),
     }
 

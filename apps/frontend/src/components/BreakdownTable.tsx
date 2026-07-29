@@ -45,6 +45,40 @@ type CombinedDetailRow = {
   supplierRows: DetailCellRow[];
 };
 
+const FORMULA_EXCLUSION_NOTE_MARKERS = [
+  "IPI, PIS, COFINS",
+  "IGV/IPM, Percepcion IGV",
+  "IGV/IPM, Percepción IGV",
+  "Additional VAT, income tax perception",
+];
+
+const formulaWithBoldExclusionNote = (
+  formula: string,
+  fallback: string,
+) => {
+  if (!formula) return fallback;
+
+  const normalizedFormula = formula.toLocaleLowerCase();
+  const noteStart = FORMULA_EXCLUSION_NOTE_MARKERS
+    .map((marker) => normalizedFormula.indexOf(marker.toLocaleLowerCase()))
+    .filter((index) => index >= 0)
+    .sort((left, right) => left - right)[0];
+
+  if (noteStart === undefined) return formula;
+
+  const formulaText = formula.slice(0, noteStart).trim();
+  const exclusionNote = formula.slice(noteStart).trim();
+
+  return (
+    <>
+      {formulaText}
+      <span className="mt-1 block font-bold text-foreground">
+        Note: {exclusionNote}
+      </span>
+    </>
+  );
+};
+
 const dedupeDetailRows = (rows: DetailCellRow[]) => {
   const seen = new Set<string>();
   return rows.filter((row) => {
@@ -259,6 +293,17 @@ const isSupplierComparisonRow = (item: VendorBreakdownItem) => {
   return true;
 };
 
+const isMaxiquimMmeRow = (item: VendorBreakdownItem) =>
+  normalize(item.rawLabel || item.label) === "maxiquim mme (m-1)";
+
+const isBrazilEngepackMaxiquimRow = (
+  item: VendorBreakdownItem,
+  supplierName: string | undefined,
+) =>
+  normalize(supplierName) === "engepack" &&
+  normalize(item.location) === "brazil" &&
+  isMaxiquimMmeRow(item);
+
 const mappedMarketComponent = (item: BreakdownItem) => {
   const labelKey = normalize(item.label);
   const rawLabelKey = normalize(item.rawLabel);
@@ -401,7 +446,13 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       marketSums.set(mapped, (marketSums.get(mapped) ?? 0) + (toNumber(item.amount) ?? 0));
     });
 
-    compactVendorBreakdown.filter(isSupplierComparisonRow).forEach((item) => {
+    compactVendorBreakdown
+      .filter(
+        (item) =>
+          isSupplierComparisonRow(item) &&
+          !isBrazilEngepackMaxiquimRow(item, supplierName)
+      )
+      .forEach((item) => {
       const mapped = mappedSupplierComponent(item);
       if (!mapped) return;
       const value = toNumber(item.amount) ?? 0;
@@ -535,7 +586,13 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
         marketGroups.set(component, rows);
       });
 
-    compactVendorBreakdown.filter(isSupplierComparisonRow).forEach((item) => {
+    compactVendorBreakdown
+      .filter(
+        (item) =>
+          isSupplierComparisonRow(item) &&
+          !isBrazilEngepackMaxiquimRow(item, supplierName)
+      )
+      .forEach((item) => {
       let component = mappedSupplierComponent(item);
       if (isBoliviaGestoraDetail && item.valueFormat === "percentage") {
         component = "Duty & Import Taxes";
@@ -616,6 +673,13 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       .find((value): value is string => Boolean(value));
     return formula ?? "";
   }, [compactVendorBreakdown]);
+
+  const engepackMaxiquimValue = useMemo(() => {
+    const maxiquimRow = compactVendorBreakdown.find((item) =>
+      isBrazilEngepackMaxiquimRow(item, supplierName)
+    );
+    return maxiquimRow ? toNumber(maxiquimRow.amount) : null;
+  }, [compactVendorBreakdown, supplierName]);
 
   return (
     <Card className="animate-fade-in-up shadow-lg">
@@ -754,10 +818,23 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
                         </div>
                       </TableCell>
                       <TableCell className="whitespace-normal break-words align-top text-xs leading-relaxed text-foreground">
-                        {marketTlcFormula || "No Market Research formula available."}
+                        {formulaWithBoldExclusionNote(
+                          marketTlcFormula,
+                          "No Market Research formula available.",
+                        )}
                       </TableCell>
                       <TableCell className="whitespace-normal break-words align-top text-xs leading-relaxed text-foreground">
-                        {supplierTlcFormula || "No supplier formula available."}
+                        {formulaWithBoldExclusionNote(
+                          supplierTlcFormula,
+                          "No supplier formula available.",
+                        )}
+                        {engepackMaxiquimValue !== null ? (
+                          <span className="mt-1 block font-bold text-foreground">
+                            Note: Maxiquim MME (M-1) is not shown on the UI because it is not
+                            used in the TLC calculation. Reference value:{" "}
+                            {formatMetricTon(engepackMaxiquimValue)}.
+                          </span>
+                        ) : null}
                       </TableCell>
                     </TableRow>
                   ) : null}

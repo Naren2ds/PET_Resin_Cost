@@ -37,6 +37,7 @@ type DetailCellRow = {
   isReference?: boolean;
   valueFormat?: "currency" | "percentage";
   percentageRate?: number;
+  percentageBasis?: string;
 };
 
 type CombinedDetailRow = {
@@ -232,6 +233,15 @@ const costSharePercent = (value: number, total: number) => {
   return Math.round((value / total) * 100);
 };
 
+const derivedPercentageRate = (value: number, base: number) => {
+  if (!Number.isFinite(value) || !Number.isFinite(base) || base === 0) return undefined;
+  const calculatedRate = (value / base) * 100;
+  const knownRate = [5, 8, 10].find(
+    (candidate) => Math.abs(calculatedRate - candidate) <= 0.2
+  );
+  return knownRate ?? calculatedRate;
+};
+
 const differenceClass = (value: number) => {
   if (value < 0) return "text-destructive";
   if (value > 0) return "text-success";
@@ -380,6 +390,11 @@ const detailCellRows = (rows: DetailCellRow[], emptyText: string) => {
             <p className="whitespace-normal break-words text-sm font-medium leading-snug text-foreground">
               {row.label}
             </p>
+            {row.percentageBasis ? (
+              <p className="mt-1 text-xs font-bold leading-snug text-foreground">
+                Percentage basis: {row.percentageBasis}
+              </p>
+            ) : null}
             {row.isReference ? (
               <span className="mt-1 inline-block rounded-sm border border-border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-foreground">
                 Reference
@@ -567,6 +582,19 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
     const boliviaDetailFreight =
       toNumber(compactVendorBreakdown.find((item) => mappedSupplierComponent(item) === "Freight")?.amount) ?? 0;
     const boliviaDetailRateBase = boliviaDetailResin + boliviaDetailFreight;
+    const isColombiaAmcorDetail =
+      normalize(supplierName) === "amcor" &&
+      compactVendorBreakdown.some(
+        (item) => normalize(item.rawLabel || item.label) === "duty 5% (change according to regulation)"
+      );
+    const colombiaSubtotalIncremental =
+      toNumber(compactVendorBreakdown.find(
+        (item) => normalize(item.rawLabel || item.label) === "sub total (with incremental freight)"
+      )?.amount) ?? 0;
+    const colombiaSubtotalRegular =
+      toNumber(compactVendorBreakdown.find(
+        (item) => normalize(item.rawLabel || item.label) === "sub total (with regular freight)"
+      )?.amount) ?? 0;
 
     breakdown
       .filter(
@@ -604,10 +632,15 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
       let detailAmount = item.amount;
       let detailValueFormat = item.valueFormat;
       let percentageRate: number | undefined;
+      let percentageBasis: string | undefined;
       if (isValgroupDetail && item.valueFormat === "percentage") {
-        if (rawLabel === "discount") detailAmount = -(valgroupDetailResin * rate);
+        if (rawLabel === "discount") {
+          detailAmount = -(valgroupDetailResin * rate);
+          percentageBasis = "Resin with assumptions";
+        }
         if (rawLabel === "importation" || rawLabel === "import tax") {
           detailAmount = valgroupDetailTaxBase * rate;
+          percentageBasis = "discounted resin + freight";
         }
         detailValueFormat = "currency";
         percentageRate = rate * 100;
@@ -619,17 +652,30 @@ const BreakdownTable: React.FC<BreakdownTableProps> = ({
         detailAmount = cristalpetDetailTaxBase * rate;
         detailValueFormat = "currency";
         percentageRate = rate * 100;
+        percentageBasis = isUruguayCristalpetDetail
+          ? "Precio base de materia prima"
+          : "resin index + freight";
       }
       if (isBoliviaGestoraDetail && item.valueFormat === "percentage") {
         detailAmount = boliviaDetailRateBase * rate;
         detailValueFormat = "currency";
         percentageRate = rate * 100;
+        percentageBasis = "resin index + freight";
+      }
+      if (isColombiaAmcorDetail && rawLabel === "duty 5% (change according to regulation)") {
+        percentageRate = derivedPercentageRate(rate, colombiaSubtotalIncremental);
+        percentageBasis = "Sub Total (with Incremental Freight)";
+      }
+      if (isColombiaAmcorDetail && rawLabel === "landed factor 8%") {
+        percentageRate = derivedPercentageRate(rate, colombiaSubtotalRegular);
+        percentageBasis = "Sub Total (with Regular Freight)";
       }
       rows.push({
         label: detailDisplayLabel(item, component),
         amount: detailAmount,
         valueFormat: detailValueFormat,
         percentageRate,
+        percentageBasis,
 
       });
       supplierGroups.set(component, rows);

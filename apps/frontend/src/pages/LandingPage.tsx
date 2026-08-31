@@ -37,7 +37,7 @@ const navigationCards = [
 const statusItems = [
   { label: "Supplier coverage", value: "10 destinations", detail: "8 active suppliers" },
   { label: "Market research", value: "10 destinations", detail: "Multiple sourcing markets" },
-  { label: "Latest actuals", value: "June 2026", detail: "Monthly refresh" },
+  { label: "Latest actuals", value: "August 2026", detail: "Monthly refresh" },
 ];
 
 const LandingPage: React.FC = () => {

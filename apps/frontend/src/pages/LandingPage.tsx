@@ -96,7 +96,7 @@ const LandingPage: React.FC = () => {
                 </div>
                 <div className="mt-3 flex items-center gap-2 rounded-xl border border-success/25 bg-success/5 px-3 py-2.5 text-xs text-foreground">
                   <span className="h-2 w-2 rounded-full bg-success" />
-                  Actuals available through June 2026
+                  Actuals available through August 2026
                 </div>
               </div>
             </div>

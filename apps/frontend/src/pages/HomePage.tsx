@@ -746,7 +746,7 @@ const HomePage: React.FC<HomePageProps> = ({ data }) => {
                 Data Scope
               </p>
               <p className="mt-1 text-xs leading-relaxed text-foreground">
-                Actuals are till June 2026. Future data are predictions based on Resin Index and Freights.
+                Actuals are till August 2026. Future data are predictions based on Resin Index and Freights.
               </p>
             </div>
           </div>

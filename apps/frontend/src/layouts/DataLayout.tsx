@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 import type { ApiResponse } from "../types";
 import HomePage from "../pages/HomePage";
 import CurrentLayoutPage from "../pages/CurrentLayoutPage";
 import TrendsPage from "../pages/TrendsPage";
 import CostComponentsPage from "../pages/CostComponentsPage";
 import SimulationPage from "../pages/SimulationPage";
+import OpportunityPage from "../pages/OpportunityPage";
 import AppHeader from "../components/AppHeader";
 import { ScrollProgressBar } from "../components/ScrollProgressBar";
 import { createApiUrl } from "../lib/api";
@@ -14,8 +15,11 @@ import { LEGACY_OVERVIEW_PATH, VIEW_TLCS_PATH } from "../lib/navigation";
 const DataLayout: React.FC = () => {
   const [data, setData] = useState<ApiResponse | null>(null);
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const requiresCountryData = location.pathname !== "/opportunity";
 
   useEffect(() => {
+    if (!requiresCountryData) return;
     const paramsString = searchParams.toString();
     const url = createApiUrl("/countries");
     if (paramsString) {
@@ -30,9 +34,9 @@ const DataLayout: React.FC = () => {
       .then((payload: ApiResponse) => {
         setData(payload);
       });
-  }, [searchParams.toString()]);
+  }, [requiresCountryData, searchParams.toString()]);
 
-  if (!data) {
+  if (requiresCountryData && !data) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-5 bg-background">
         <ScrollProgressBar />
@@ -43,6 +47,8 @@ const DataLayout: React.FC = () => {
       </div>
     );
   }
+
+  const countryData = data as ApiResponse;
 
   const routeSearch = searchParams.toString();
   const viewTlcsRoute = {
@@ -55,15 +61,16 @@ const DataLayout: React.FC = () => {
       <ScrollProgressBar />
       <AppHeader />
       <Routes>
-        <Route path={VIEW_TLCS_PATH} element={<HomePage data={data} />} />
+        <Route path={VIEW_TLCS_PATH} element={<HomePage data={countryData} />} />
         <Route
           path={LEGACY_OVERVIEW_PATH}
           element={<Navigate to={viewTlcsRoute} replace />}
         />
-        <Route path="/supplier-analysis" element={<CurrentLayoutPage data={data} />} />
-        <Route path="/trends" element={<TrendsPage data={data} />} />
-        <Route path="/cost-components" element={<CostComponentsPage data={data} />} />
-        <Route path="/simulation" element={<SimulationPage data={data} />} />
+        <Route path="/supplier-analysis" element={<CurrentLayoutPage data={countryData} />} />
+        <Route path="/trends" element={<TrendsPage data={countryData} />} />
+        <Route path="/cost-components" element={<CostComponentsPage data={countryData} />} />
+        <Route path="/simulation" element={<SimulationPage data={countryData} />} />
+        <Route path="/opportunity" element={<OpportunityPage />} />
         <Route path="*" element={<Navigate to={viewTlcsRoute} replace />} />
       </Routes>
       <footer className="border-t border-border bg-white">

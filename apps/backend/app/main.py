@@ -20,6 +20,7 @@ from .data.supplier import (
     build_vendor_breakdowns,
     supplier_price_for,
 )
+from .data.opportunity import opportunity_data, opportunity_workbook_path
 from .services.insights import (
     analytics_home,
     analytics_trends,
@@ -133,6 +134,37 @@ class MarketResearchTrendsResponse(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/opportunities")
+def opportunities():
+    """Return the stakeholder opportunity summary and component breakdown."""
+    try:
+        return opportunity_data()
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail="Opportunity calculation workbook not found",
+        ) from exc
+
+
+@app.get("/opportunities/download", response_class=FileResponse)
+def download_opportunity_calculations():
+    """Download the complete opportunity calculation workbook."""
+    try:
+        workbook_path = opportunity_workbook_path()
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail="Opportunity calculation workbook not found",
+        ) from exc
+    return FileResponse(
+        path=workbook_path,
+        filename="PET_Quantification_Breakdown_By_Destination.xlsx",
+        media_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+    )
 
 
 @app.get("/countries", response_model=CountriesResponse)

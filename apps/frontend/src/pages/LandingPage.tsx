@@ -1,4 +1,4 @@
-import { ArrowRight, BarChart3, Calculator, Database, Layers3, TrendingUp } from "lucide-react";
+import { ArrowRight, BarChart3, Calculator, CircleDollarSign, Database, Layers3, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { ScrollProgressBar } from "../components/ScrollProgressBar";
@@ -31,6 +31,13 @@ const navigationCards = [
     path: "/simulation",
     icon: Calculator,
     accent: "bg-[#F3E6FA]",
+  },
+  {
+    title: "Prioritize opportunity",
+    description: "Quantify TLC gaps, identify negotiation drivers and track the path from validation to captured value.",
+    path: "/opportunity",
+    icon: CircleDollarSign,
+    accent: "bg-[#FEFAC4]",
   },
 ];
 
@@ -111,7 +118,7 @@ const LandingPage: React.FC = () => {
               <p className="max-w-md text-sm leading-6 text-muted-foreground">Choose a workspace based on the question you are answering.</p>
             </div>
 
-            <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="mt-7 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
               {navigationCards.map(({ title, description, path, icon: Icon, accent }) => (
                 <Link key={title} to={path} className="group flex min-h-[240px] flex-col rounded-2xl border border-border bg-white p-6 shadow-[0_5px_24px_rgba(0,0,0,0.035)] transition duration-300 hover:-translate-y-1 hover:border-foreground/30 hover:shadow-[0_18px_45px_rgba(0,0,0,0.08)]">
                   <span className={`grid h-11 w-11 place-items-center rounded-xl ${accent}`}>

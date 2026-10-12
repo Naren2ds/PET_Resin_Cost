@@ -7,4 +7,5 @@ export const ROUTE_TABS = [
   { label: "TLC Breakdown", path: "/supplier-analysis" },
   { label: "Trends", path: "/trends" },
   { label: "Simulation", path: "/simulation" },
+  { label: "Opportunity", path: "/opportunity" },
 ];

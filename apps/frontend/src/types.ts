@@ -79,6 +79,62 @@ export type ApiResponse = {
   availableDestinations?: string[];
 };
 
+export type OpportunityMetrics = {
+  destinationCount: number;
+  positiveDestinationCount: number;
+  assessedVolume: number;
+  opportunityLow: number;
+  opportunityHigh: number;
+  period: string;
+  brazilScenarioNote: string;
+};
+
+export type OpportunitySummaryEntry = {
+  destination: string;
+  supplierLocation: string;
+  volume: number;
+  supplierPeriod: string;
+  supplierDataType: string;
+  supplierTlc: number;
+  alternativeSource: string;
+  marketPeriod: string;
+  marketDataType: string;
+  marketTlc: number;
+  marketMinusSupplierDelta: number;
+  currentSpend: number;
+  alternativeSpend: number;
+  estimatedOpportunity: number;
+  status: string;
+  routeSelectionRule: string;
+  primaryCostDriver: string;
+  supplierDriverCost: number;
+  marketDriverCost: number;
+  driverGap: number;
+  driverInterpretation: string;
+};
+
+export type OpportunityBreakdownEntry = {
+  destination: string;
+  supplierLocation: string;
+  volume: number;
+  alternativeSource: string;
+  component: string;
+  marketCost: number;
+  supplierCost: number;
+  marketMinusSupplierDifference: number;
+  calculation: string;
+  marketImpact: number;
+  savingsContribution: number;
+  interpretation: string;
+};
+
+export type OpportunityResponse = {
+  sourceFile: string;
+  metrics: OpportunityMetrics;
+  summary: OpportunitySummaryEntry[];
+  breakdowns: OpportunityBreakdownEntry[];
+};
+
 export const formatAmount = (value: number | string | null | undefined) => {
   if (value === null || value === undefined || value === "") return "N/A";
   if (typeof value === "number") {

@@ -44,7 +44,7 @@ const navigationCards = [
 const statusItems = [
   { label: "Supplier coverage", value: "10 destinations", detail: "8 active suppliers" },
   { label: "Market research", value: "10 destinations", detail: "Multiple sourcing markets" },
-  { label: "Latest actuals", value: "August 2026", detail: "Monthly refresh" },
+  { label: "Latest actuals", value: "October 2026", detail: "Monthly refresh" },
 ];
 
 const LandingPage: React.FC = () => {
@@ -103,7 +103,7 @@ const LandingPage: React.FC = () => {
                 </div>
                 <div className="mt-3 flex items-center gap-2 rounded-xl border border-success/25 bg-success/5 px-3 py-2.5 text-xs text-foreground">
                   <span className="h-2 w-2 rounded-full bg-success" />
-                  Actuals available through August 2026
+                  Actuals available through October 2026
                 </div>
               </div>
             </div>

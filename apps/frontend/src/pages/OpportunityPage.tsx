@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   CircleDollarSign,
   ClipboardCheck,
+  ChevronDown,
   Download,
   Factory,
   Handshake,
@@ -97,6 +98,7 @@ const OpportunityPage: React.FC = () => {
   const [selectedStage, setSelectedStage] = useState(0);
   const [selectedKey, setSelectedKey] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "savings" | "increase">("all");
+  const [driverFilters, setDriverFilters] = useState<string[]>([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -140,16 +142,36 @@ const OpportunityPage: React.FC = () => {
     );
   }, [data, selectedSummary]);
 
+  const driverOptions = useMemo(() => {
+    if (!data) return [];
+    return Array.from(
+      new Set(data.summary.map((item) => item.primaryCostDriver).filter(Boolean))
+    ).sort((left, right) => left.localeCompare(right));
+  }, [data]);
+
   const filteredSummary = useMemo(() => {
     if (!data) return [];
-    if (statusFilter === "savings") {
-      return data.summary.filter((item) => item.estimatedOpportunity > 0);
+    return data.summary.filter((item) => {
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "savings" && item.estimatedOpportunity > 0) ||
+        (statusFilter === "increase" && item.estimatedOpportunity <= 0);
+      const matchesDriver =
+        driverFilters.length === 0 || driverFilters.includes(item.primaryCostDriver);
+      return matchesStatus && matchesDriver;
+    });
+  }, [data, driverFilters, statusFilter]);
+
+  useEffect(() => {
+    if (filteredSummary.length === 0) return;
+    const selectedIsVisible = filteredSummary.some(
+      (item) => `${item.destination}|${item.supplierLocation}` === selectedKey
+    );
+    if (!selectedIsVisible) {
+      const first = filteredSummary[0];
+      setSelectedKey(`${first.destination}|${first.supplierLocation}`);
     }
-    if (statusFilter === "increase") {
-      return data.summary.filter((item) => item.estimatedOpportunity <= 0);
-    }
-    return data.summary;
-  }, [data, statusFilter]);
+  }, [filteredSummary, selectedKey]);
 
   const componentRows = selectedBreakdown.filter((item) => !isTotalComponent(item.component));
   const maxContribution = Math.max(
@@ -182,6 +204,20 @@ const OpportunityPage: React.FC = () => {
   const selectedStageItem = workflowStages[selectedStage];
   const perMtOpportunity = selectedSummary.supplierTlc - selectedSummary.marketTlc;
   const downloadUrl = createApiUrl("/opportunities/download").toString();
+  const driverFilterLabel =
+    driverFilters.length === 0
+      ? "All primary drivers"
+      : driverFilters.length === 1
+        ? driverFilters[0]
+        : `${driverFilters.length} drivers selected`;
+
+  const toggleDriverFilter = (driver: string) => {
+    setDriverFilters((current) =>
+      current.includes(driver)
+        ? current.filter((item) => item !== driver)
+        : [...current, driver]
+    );
+  };
 
   return (
     <main className="pet-page-bg min-h-screen">
@@ -290,21 +326,65 @@ const OpportunityPage: React.FC = () => {
               <p className="pet-section-kicker">Prioritized pipeline</p>
               <h2 className="mt-2 text-2xl font-semibold tracking-[-0.025em]">Opportunity by supplier and destination</h2>
             </div>
-            <div className="inline-flex rounded-full border border-border bg-[#F7F7F3] p-1">
-              {([
-                ["all", "All"],
-                ["savings", "Savings"],
-                ["increase", "Cost increase"],
-              ] as const).map(([value, label]) => (
-                <button
-                  type="button"
-                  key={value}
-                  onClick={() => setStatusFilter(value)}
-                  className={`rounded-full px-4 py-2 text-xs font-semibold transition ${statusFilter === value ? "bg-[#111] text-white" : "text-muted-foreground hover:text-foreground"}`}
-                >
-                  {label}
-                </button>
-              ))}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">Primary driver</span>
+                <details className="group relative">
+                  <summary
+                    aria-label="Filter opportunities by primary cost driver"
+                    className="flex h-10 min-w-[220px] cursor-pointer list-none items-center justify-between gap-3 rounded-full border border-border bg-white px-4 text-xs font-semibold text-foreground outline-none transition marker:hidden focus:border-foreground"
+                  >
+                    <span className="max-w-[190px] truncate">{driverFilterLabel}</span>
+                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition group-open:rotate-180" />
+                  </summary>
+                  <div className="absolute right-0 z-30 mt-2 w-72 rounded-xl border border-border bg-white p-2 shadow-xl">
+                    <div className="flex items-center justify-between gap-3 border-b border-border px-2 pb-2">
+                      <span className="text-xs font-semibold">Select primary drivers</span>
+                      {driverFilters.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setDriverFilters([])}
+                          className="text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                    <div className="mt-1 max-h-64 overflow-y-auto">
+                      {driverOptions.map((driver) => (
+                        <label
+                          key={driver}
+                          className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 text-xs font-medium transition hover:bg-[#F7F7F3]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={driverFilters.includes(driver)}
+                            onChange={() => toggleDriverFilter(driver)}
+                            className="h-4 w-4 accent-[#111]"
+                          />
+                          <span>{driver}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </details>
+              </div>
+              <div className="inline-flex rounded-full border border-border bg-[#F7F7F3] p-1">
+                {([
+                  ["all", "All"],
+                  ["savings", "Savings"],
+                  ["increase", "Cost increase"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    type="button"
+                    key={value}
+                    onClick={() => setStatusFilter(value)}
+                    className={`rounded-full px-4 py-2 text-xs font-semibold transition ${statusFilter === value ? "bg-[#111] text-white" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -323,7 +403,13 @@ const OpportunityPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredSummary.map((item) => {
+                {filteredSummary.length === 0 ? (
+                  <tr className="border-t border-border bg-white">
+                    <td colSpan={8} className="px-5 py-10 text-center text-sm text-muted-foreground">
+                      No opportunities match the selected filters.
+                    </td>
+                  </tr>
+                ) : filteredSummary.map((item) => {
                   const key = `${item.destination}|${item.supplierLocation}`;
                   const selected = key === selectedKey;
                   const isSaving = item.estimatedOpportunity > 0;

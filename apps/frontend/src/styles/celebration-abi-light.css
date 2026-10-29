@@ -1,0 +1,53 @@
+/**
+ * Do not edit directly
+ * Generated on Tue, 28 Apr 2026 16:50:57 GMT
+ */
+
+:root {
+  --color-action-default: #0E0E0E;
+  --color-action-hover: #BFBFBF;
+  --color-brand-100: #BFBFBF;
+  --color-brand-200: #D9D9D9;
+  --color-brand-300: #0E0E0E;
+  --color-brand-400: #666666;
+  --color-brand-500: #292929;
+  --color-brand-600: #0E0E0E;
+  --color-contrast-brand: #FFFFFF;
+  --color-contrast-white: #FFFFFF;
+  --color-contrast-black: #0E0E0E;
+  --color-contrast-focused: #490C97;
+  --color-feedback-danger-100: #FFEAEA;
+  --color-feedback-danger-200: #F3C0BE;
+  --color-feedback-danger-300: #C92323;
+  --color-feedback-danger-400: #AE1E1E;
+  --color-feedback-danger-500: #8E1818;
+  --color-feedback-danger-600: #7A130A;
+  --color-feedback-positive-100: #E1FCE9;
+  --color-feedback-positive-200: #D0EFBD;
+  --color-feedback-positive-300: #00B261;
+  --color-feedback-positive-400: #08663B;
+  --color-feedback-positive-500: #053821;
+  --color-feedback-positive-600: #273F32;
+  --color-feedback-warning-100: #FFF0DE;
+  --color-feedback-warning-200: #FFD0AD;
+  --color-feedback-warning-300: #FF9040;
+  --color-feedback-warning-400: #DB5C00;
+  --color-feedback-warning-500: #943E00;
+  --color-feedback-warning-600: #853E00;
+  --color-neutral-100: #FFFFFF;
+  --color-neutral-200: #D9D9D9;
+  --color-neutral-300: #BFBFBF;
+  --color-neutral-400: #666666;
+  --color-neutral-500: #292929;
+  --color-neutral-600: #0E0E0E;
+  --color-neutral-background: #F2F2F2;
+  --color-opacity-default: none;
+  --color-opacity-hover: rgba(29, 29, 29, 0.32);
+  --color-opacity-disabled: rgba(191, 191, 191, 0.32);
+  --color-opacity-error: rgba(255, 234, 234, 0.32);
+  --color-opacity-positive: rgba(225, 252, 233, 0.32);
+  --font-family-base: 'IBM Plex Sans', sans-serif;
+  --font-weight-semibold: 600;
+  --font-weight-medium: 500;
+  --font-weight-regular: 400;
+}

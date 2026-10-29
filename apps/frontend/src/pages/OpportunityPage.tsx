@@ -222,33 +222,33 @@ const OpportunityPage: React.FC = () => {
   return (
     <main className="pet-page-bg min-h-screen">
       <div className="mx-auto w-full max-w-[1380px] px-5 py-8 sm:px-8 sm:py-10">
-        <section className="relative overflow-hidden rounded-2xl bg-[#111] text-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
-          <div className="absolute -right-24 -top-32 h-80 w-80 rounded-full bg-[#F5E003]/25 blur-3xl" aria-hidden />
+        <section className="relative overflow-hidden rounded-lg border border-border bg-white shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+          <div className="absolute -right-24 -top-32 h-80 w-80 rounded-full bg-[#FFC629]/20 blur-3xl" aria-hidden />
           <div className="relative grid gap-8 px-6 py-8 sm:px-9 sm:py-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80">
-                <Lightbulb className="h-3.5 w-3.5 text-[#F5E003]" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-border bg-[#F7F7F7] px-3 py-1.5 text-xs font-semibold text-muted-foreground">
+                <Lightbulb className="h-3.5 w-3.5 text-[#806000]" />
                 Opportunity intelligence · {data.metrics.period}
               </div>
               <h1 className="mt-5 max-w-3xl text-3xl font-semibold leading-tight tracking-[-0.035em] sm:text-4xl lg:text-5xl">
                 Turn TLC gaps into an actionable value pipeline.
               </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/65 sm:text-base">
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
                 Prioritize the largest sourcing gaps, understand which cost component is driving them, and move each opportunity from validation to realized value.
               </p>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-5 backdrop-blur">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#F5E003]">Directional net opportunity</p>
+            <div className="rounded-lg border border-border bg-[#F7F7F7] p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Directional net opportunity</p>
               <p className="mt-2 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">
                 {opportunityRange(data.metrics.opportunityLow, data.metrics.opportunityHigh)}
               </p>
-              <p className="mt-3 text-xs leading-5 text-white/55">
+              <p className="mt-3 text-xs leading-5 text-muted-foreground">
                 Range reflects the Brazil Amcor Suape versus Manaus scenario. It is a benchmark value pool, not committed savings.
               </p>
               <a
                 href={downloadUrl}
                 download="PET_Quantification_Breakdown_By_Destination.xlsx"
-                className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-full bg-[#F5E003] px-4 text-xs font-bold text-black no-underline transition hover:-translate-y-0.5 hover:bg-[#E8D200]"
+                className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-md bg-[#FFC629] px-4 text-xs font-bold text-black no-underline transition hover:bg-[#F2B900]"
               >
                 <Download className="h-4 w-4" />
                 Download calculations
@@ -267,7 +267,7 @@ const OpportunityPage: React.FC = () => {
             <article key={label} className="rounded-2xl border border-border bg-white p-5 shadow-[0_5px_24px_rgba(0,0,0,0.035)]">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#F5E003]/70"><Icon className="h-4 w-4" /></span>
+                <span className="grid h-9 w-9 place-items-center rounded-md bg-[#FFC629]/70"><Icon className="h-4 w-4" /></span>
               </div>
               <p className="mt-4 text-2xl font-semibold tracking-[-0.025em]">{value}</p>
             </article>
@@ -294,16 +294,16 @@ const OpportunityPage: React.FC = () => {
                   onClick={() => setSelectedStage(index)}
                   className={`group relative min-h-[178px] rounded-xl border p-4 text-left transition ${
                     active
-                      ? "border-foreground bg-[#111] text-white shadow-lg"
-                      : "border-border bg-[#F7F7F3] hover:-translate-y-0.5 hover:border-foreground/30 hover:bg-white"
+                      ? "border-[#FFC629] bg-[#FFF8DF] shadow-sm"
+                      : "border-border bg-[#F7F7F7] hover:-translate-y-0.5 hover:border-foreground/30 hover:bg-white"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`text-xs font-bold tracking-[0.12em] ${active ? "text-[#F5E003]" : "text-muted-foreground"}`}>{stage.number}</span>
-                    <Icon className={`h-4 w-4 ${active ? "text-[#F5E003]" : "text-muted-foreground"}`} />
+                    <span className={`text-xs font-bold tracking-[0.12em] ${active ? "text-[#806000]" : "text-muted-foreground"}`}>{stage.number}</span>
+                    <Icon className={`h-4 w-4 ${active ? "text-[#806000]" : "text-muted-foreground"}`} />
                   </div>
                   <p className="mt-8 text-sm font-semibold leading-5">{stage.title}</p>
-                  <p className={`mt-2 text-xs leading-5 ${active ? "text-white/60" : "text-muted-foreground"}`}>{stage.description}</p>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">{stage.description}</p>
                   {index < workflowStages.length - 1 && (
                     <ArrowRight className="absolute -right-[11px] top-1/2 z-10 hidden h-5 w-5 rounded-full bg-white text-muted-foreground xl:block" />
                   )}
@@ -312,7 +312,7 @@ const OpportunityPage: React.FC = () => {
             })}
           </div>
           <div className="mt-4 flex items-start gap-3 rounded-xl border border-[#E6D500] bg-[#FEFAC4]/55 px-4 py-3">
-            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#F5E003] text-xs font-bold">{selectedStageItem.number}</span>
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#FFC629] text-xs font-bold">{selectedStageItem.number}</span>
             <div>
               <p className="text-sm font-semibold">{selectedStageItem.title}</p>
               <p className="mt-0.5 text-sm leading-6 text-muted-foreground">{selectedStageItem.detail}</p>
@@ -360,7 +360,7 @@ const OpportunityPage: React.FC = () => {
                             type="checkbox"
                             checked={driverFilters.includes(driver)}
                             onChange={() => toggleDriverFilter(driver)}
-                            className="h-4 w-4 accent-[#111]"
+                            className="h-4 w-4 accent-[#806000]"
                           />
                           <span>{driver}</span>
                         </label>
@@ -379,7 +379,7 @@ const OpportunityPage: React.FC = () => {
                     type="button"
                     key={value}
                     onClick={() => setStatusFilter(value)}
-                    className={`rounded-full px-4 py-2 text-xs font-semibold transition ${statusFilter === value ? "bg-[#111] text-white" : "text-muted-foreground hover:text-foreground"}`}
+                    className={`rounded-full px-4 py-2 text-xs font-semibold transition ${statusFilter === value ? "bg-[#FFC629] text-black" : "text-muted-foreground hover:text-foreground"}`}
                   >
                     {label}
                   </button>
@@ -460,27 +460,27 @@ const OpportunityPage: React.FC = () => {
               </span>
             </div>
 
-            <div className="mt-6 rounded-2xl bg-[#111] p-5 text-white">
+            <div className="mt-6 rounded-lg border border-border bg-[#F7F7F7] p-5">
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
                 <div>
-                  <p className="text-xs text-white/50">Supplier TLC</p>
+                  <p className="text-xs text-muted-foreground">Supplier TLC</p>
                   <p className="mt-1 text-xl font-semibold">{currency(selectedSummary.supplierTlc, 2)}</p>
                 </div>
-                <span className="text-white/35">−</span>
+                <span className="text-muted-foreground">−</span>
                 <div className="text-right">
-                  <p className="text-xs text-white/50">Market TLC</p>
+                  <p className="text-xs text-muted-foreground">Market TLC</p>
                   <p className="mt-1 text-xl font-semibold">{currency(selectedSummary.marketTlc, 2)}</p>
                 </div>
               </div>
-              <div className="my-4 h-px bg-white/10" />
+              <div className="my-4 h-px bg-border" />
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <p className="text-xs text-white/50">Gap × {number(selectedSummary.volume)} MT</p>
-                  <p className="mt-1 text-lg font-semibold text-[#F5E003]">{currency(perMtOpportunity, 2)}/MT</p>
+                  <p className="text-xs text-muted-foreground">Gap × {number(selectedSummary.volume)} MT</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">{currency(perMtOpportunity, 2)}/MT</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-white/50">Directional potential</p>
-                  <p className={`mt-1 text-2xl font-semibold ${selectedSummary.estimatedOpportunity > 0 ? "text-[#69D38A]" : "text-[#FF8B7C]"}`}>
+                  <p className="text-xs text-muted-foreground">Directional potential</p>
+                  <p className={`mt-1 text-2xl font-semibold ${selectedSummary.estimatedOpportunity > 0 ? "text-success" : "text-destructive"}`}>
                     {compactCurrency(selectedSummary.estimatedOpportunity)}
                   </p>
                 </div>

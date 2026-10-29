@@ -7,10 +7,9 @@ import TrendsPage from "../pages/TrendsPage";
 import CostComponentsPage from "../pages/CostComponentsPage";
 import SimulationPage from "../pages/SimulationPage";
 import OpportunityPage from "../pages/OpportunityPage";
-import AppHeader from "../components/AppHeader";
-import { ScrollProgressBar } from "../components/ScrollProgressBar";
 import { createApiUrl } from "../lib/api";
 import { LEGACY_OVERVIEW_PATH, VIEW_TLCS_PATH } from "../lib/navigation";
+import AppShell from "./AppShell";
 
 const DataLayout: React.FC = () => {
   const [data, setData] = useState<ApiResponse | null>(null);
@@ -30,26 +29,22 @@ const DataLayout: React.FC = () => {
     url.searchParams.set("includeVendorBreakdowns", "true");
 
     fetch(url.toString())
-      .then((res) => res.json())
-      .then((payload: ApiResponse) => {
-        setData(payload);
-      });
+      .then((response) => response.json())
+      .then((payload: ApiResponse) => setData(payload));
   }, [requiresCountryData, searchParams.toString()]);
 
   if (requiresCountryData && !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-5 bg-background">
-        <ScrollProgressBar />
-        <div className="w-10 h-10 border-[3px] border-border border-t-primary rounded-full animate-spin-slow" />
-        <p className="text-muted-foreground text-sm animate-pulse">
-          Loading PET resin cost data…
-        </p>
-      </div>
+      <AppShell>
+        <div className="buyers-loading-state" role="status" aria-live="polite">
+          <div className="buyers-spinner" aria-hidden="true" />
+          <p>Loading PET resin cost data…</p>
+        </div>
+      </AppShell>
     );
   }
 
   const countryData = data as ApiResponse;
-
   const routeSearch = searchParams.toString();
   const viewTlcsRoute = {
     pathname: VIEW_TLCS_PATH,
@@ -57,9 +52,7 @@ const DataLayout: React.FC = () => {
   };
 
   return (
-    <>
-      <ScrollProgressBar />
-      <AppHeader />
+    <AppShell>
       <Routes>
         <Route path={VIEW_TLCS_PATH} element={<HomePage data={countryData} />} />
         <Route
@@ -73,15 +66,7 @@ const DataLayout: React.FC = () => {
         <Route path="/opportunity" element={<OpportunityPage />} />
         <Route path="*" element={<Navigate to={viewTlcsRoute} replace />} />
       </Routes>
-      <footer className="border-t border-border bg-white">
-        <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4 px-8 py-2.5 max-sm:flex-col max-sm:items-start max-sm:px-5">
-          <img src="/connect_one_color.svg" alt="AB InBev" className="h-8 w-auto" />
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Anheuser-Busch InBev. Internal use only.
-          </p>
-        </div>
-      </footer>
-    </>
+    </AppShell>
   );
 };
 

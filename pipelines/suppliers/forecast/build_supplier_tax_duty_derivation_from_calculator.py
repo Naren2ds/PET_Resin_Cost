@@ -8,7 +8,13 @@ from openpyxl import load_workbook
 from openpyxl.utils.cell import get_column_letter
 
 BASE = Path(__file__).resolve().parents[3]
-SRC_XLSX = Path(r"C:/Users/C772391/Downloads/PET Resin Total landed cost calculator.xlsx")
+SRC_XLSX = (
+    BASE
+    / "data"
+    / "raw"
+    / "market_research"
+    / "PET Resin Total landed cost calculator.xlsx"
+)
 OUT_XLSX = (
     BASE
     / "data"

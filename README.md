@@ -413,10 +413,12 @@ Actual series must be solid and forecast series must be dotted.
 
 ```powershell
 cd apps\frontend
-npm run lint
 npm run build
+npm run lint
 cd ..\..
 ```
+
+`npm run build` is the required compilation check. At handover, the production build passes. The repository still has a pre-existing ESLint backlog in legacy chart, simulation, trends and insight components, so `npm run lint` is currently diagnostic and does not have a clean baseline. New changes should not add lint errors, and the existing backlog should be resolved separately before making lint a blocking release gate.
 
 ### I. Backend health validation
 

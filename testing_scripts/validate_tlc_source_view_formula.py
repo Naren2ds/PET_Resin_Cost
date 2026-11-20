@@ -139,7 +139,14 @@ def cristalpet_formula(rows: list[dict[str, Any]]) -> tuple[float | None, str, d
 
 def bolivia_formula(rows: list[dict[str, Any]]) -> tuple[float | None, str, dict[str, float]]:
     by_label = {raw_key(row): number(row.get("amount")) for row in rows}
-    resin = by_label.get("icis n-1")
+    resin = next(
+        (
+            by_label.get(label)
+            for label in ("ihs m-1", "icis n-1", "icis m-1")
+            if by_label.get(label) is not None
+        ),
+        None,
+    )
     freight = by_label.get("flete maritimo")
     internalization = by_label.get("internalization cost")
     cdp_rate = by_label.get("other cost ( cdp)")
@@ -160,6 +167,66 @@ def bolivia_formula(rows: list[dict[str, Any]]) -> tuple[float | None, str, dict
         "Freight": freight,
         "Duty & Import Taxes": rate_impact,
         "Logistics & Other Costs": internalization,
+    }
+    return result, expression, components
+
+
+def engepack_formula(
+    rows: list[dict[str, Any]], previous_freight: float | None = None
+) -> tuple[float | None, str, dict[str, float]]:
+    """Calculate Engepack's USD TLC without the reference-only Maxiquim row."""
+    resin_row = next(
+        (
+            row
+            for row in rows
+            if str(row.get("commonComponent", "")).strip().casefold() == "resin index"
+        ),
+        None,
+    )
+    freight_row = next(
+        (
+            row
+            for row in rows
+            if str(row.get("commonComponent", "")).strip().casefold() == "freight"
+        ),
+        None,
+    )
+    resin = number(resin_row.get("amount")) if resin_row else None
+    current_freight = number(freight_row.get("amount")) if freight_row else None
+    if resin is None or current_freight is None:
+        return None, "Missing Engepack resin or freight input", {}
+
+    source, _ = source_tlc(rows)
+    freight_candidates = [current_freight]
+    if previous_freight is not None:
+        freight_candidates.append(previous_freight)
+
+    def calculated_total(freight_value: float) -> float:
+        return (
+            ((resin + 100.0 + freight_value) * 1.20)
+            + 125.0
+            + (freight_value * 0.08)
+        )
+
+    freight = min(
+        freight_candidates,
+        key=lambda value: abs(calculated_total(value) - source)
+        if source is not None
+        else 0.0,
+    )
+
+    tax_impact = (resin + 100.0 + freight) * 0.20
+    other_impact = 100.0 + 125.0 + (freight * 0.08)
+    result = resin + freight + tax_impact + other_impact
+    expression = (
+        f"(({resin:.6f} + 100.000000 + {freight:.6f}) * (1 + 0.200000)) "
+        f"+ 125.000000 + (0.080000 * {freight:.6f}) = {result:.6f}"
+    )
+    components = {
+        "Resin Index": resin,
+        "Freight": freight,
+        "Duty & Import Taxes": tax_impact,
+        "Logistics & Other Costs": other_impact,
     }
     return result, expression, components
 
@@ -239,7 +306,7 @@ def result_row(metadata: dict[str, Any], source: float | None, view: float | Non
     }
 
 
-def supplier_rows(entries: list[dict[str, Any]], destination_filter: str | None, year_filter: int | None, mapper, tolerance_percent: float = 5.0) -> list[dict[str, Any]]:
+def supplier_rows(entries: list[dict[str, Any]], destination_filter: str | None, year_filter: int | None, mapper, complete_rows, previous_component, tolerance_percent: float = 5.0) -> list[dict[str, Any]]:
     output = []
     seen = set()
     for entry in entries:
@@ -258,13 +325,17 @@ def supplier_rows(entries: list[dict[str, Any]], destination_filter: str | None,
         if key in seen:
             continue
         seen.add(key)
-        rows = entry.get("rows", [])
+        rows = complete_rows(entry)
         source, formula_reference = source_tlc(rows)
         if source is None:
             continue
         normalized_supplier = supplier.strip().casefold()
         if normalized_supplier == "valgroup":
             formula, calculation, components = valgroup_formula(rows)
+        elif normalized_supplier == "engepack" and destination.casefold() == "brazil":
+            formula, calculation, components = engepack_formula(
+                rows, previous_component(entry, {"freight"})
+            )
         elif normalized_supplier == "cristalpet" and destination.casefold() == "brazil":
             formula, calculation, components = cristalpet_formula(rows)
         elif destination.casefold() == "bolivia":
@@ -379,8 +450,21 @@ def main() -> int:
     sys.path.insert(0, str(BACKEND_DIR)); sys.path.insert(0, str(TEST_DIR))
     try:
         from supplier_data_model import build_vendor_breakdowns
-        from validate_tlc_breakdown import map_market_row, map_supplier_row
-        rows = supplier_rows(build_vendor_breakdowns(("China",)), args.destination, args.year, map_supplier_row, args.tolerance_percent)
+        from validate_tlc_breakdown import (
+            complete_supplier_entry_rows,
+            map_market_row,
+            map_supplier_row,
+            previous_supplier_component_amount,
+        )
+        rows = supplier_rows(
+            build_vendor_breakdowns(("China",)),
+            args.destination,
+            args.year,
+            map_supplier_row,
+            complete_supplier_entry_rows,
+            previous_supplier_component_amount,
+            args.tolerance_percent,
+        )
         rows.extend(market_rows(args.destination, args.year, map_market_row, args.tolerance_percent))
         if not rows:
             print("ERROR: No TLC rows matched the filters.", file=sys.stderr); return 2

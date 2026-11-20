@@ -40,4 +40,11 @@ pipelines/market_research/tlc_model/update_argentina_m2_indices.py
 pipelines/market_research/tlc_model/update_colombia_m2_indices.py
 pipelines/suppliers/update_argentina_forecast_china_m2.py
 pipelines/suppliers/update_colombia_forecast_china_m2.py
-pipelines/market_research/tlc_model/build_market_research_front_end_data_model.py
+
+# Buyers UI uses only these four IBM Plex Sans font files. Keep other copied
+# font variants local so they do not accidentally enter a handover commit.
+apps/frontend/public/buyers/fonts/*.woff2
+!apps/frontend/public/buyers/fonts/zYX9KVElMYYaJe8bpLHnCwDKjXr8AIFsdA.woff2
+!apps/frontend/public/buyers/fonts/zYXgKVElMYYaJe8bpLHnCwDKhdHeFQ.woff2
+!apps/frontend/public/buyers/fonts/zYX9KVElMYYaJe8bpLHnCwDKjSL9AIFsdA.woff2
+!apps/frontend/public/buyers/fonts/zYX9KVElMYYaJe8bpLHnCwDKjWr7AIFsdA.woff2

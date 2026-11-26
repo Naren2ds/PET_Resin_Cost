@@ -161,7 +161,7 @@ Expected response:
 The primary refresh utility is:
 
 ```text
-testing_scripts/refresh_september_october_2026.py
+testing_scripts/refresh_monthly_resin_tlc.py
 ```
 
 It performs the following actions together:
@@ -171,12 +171,12 @@ It performs the following actions together:
 3. applies destination-specific resin-index lags;
 4. replaces refreshed forecast rows with actual rows for the configured actual months;
 5. carries supplier non-resin components from the latest previous actual month;
-6. keeps Market freight and local transportation unchanged;
+6. reads the approved Market freight database when it is present in the month folder, otherwise keeps existing Market freight unchanged;
 7. recalculates all affected Supplier and Market TLC values;
 8. updates XLSX and CSV together; and
 9. creates an audit workbook with old/new resin and TLC values.
 
-Important: this script is currently configured for the September/October 2026 refresh. Before using it for a later cycle, review the year/month loops, actual-month set, required forecast periods and default input paths in the script. Do not assume that changing only the input filename will move the refresh window.
+`refresh_september_october_2026.py` is retained as the historical September/October 2026 implementation and calculation engine. New refreshes should use the monthly entry point above.
 
 ### Approved destination lags
 
@@ -235,26 +235,26 @@ Global ICIS is the arithmetic average of Asia SE Low, China, India, Mexico, Sout
 
 ## 7. Refresh Inputs and Command
 
-For a resin-based monthly refresh, collect:
+For a resin-based monthly refresh, create `PET_Files_DB/<Month>` and place the approved inputs in that folder:
 
 - ICIS actual history for China, India, Mexico, South Korea and Taiwan;
 - ICIS Asia SE Low actual history;
 - approved China forecast values for future periods;
+- the approved Market freight workbook with a `Consolidated Values` sheet when the quarterly freight basis changes;
 - approved IHS values for Uruguay when they change;
 - the current Supplier standardized workbook;
 - the current Market Research standardized workbook; and
 - the raw Market Research TLC calculator used for tax/reference rates.
 
-The current script accepts explicit paths, so a developer does not need to use the original author's local folders:
+Run the refresh by passing the latest TLC month that should be marked Actual:
 
 ```powershell
-python testing_scripts\refresh_september_october_2026.py `
-  --history "C:\path\ICIS_History.xls" `
-  --asia-se-history "C:\path\ICIS_Asia_SE_Low.xls" `
-  --china-forecast "C:\path\ICIS_China_Forecast.xls" `
-  --raw-market-model "data\raw\market_research\PET Resin Total landed cost calculator.xlsx" `
-  --audit "C:\path\Resin_Refresh_Audit.xlsx"
+python testing_scripts\refresh_monthly_resin_tlc.py --month November --year 2026
 ```
+
+The script automatically discovers the newest compatible direct ICIS history, Asia SE Low history, China forecast and Market freight workbook in the month folder. It refreshes the selected Actual month and all later months available in both frontend models. Future months remain Forecast. Supplier freight and other non-resin inputs are copied from the latest Actual month.
+
+If the input folder has a different name or a file cannot be discovered automatically, pass an override such as `--input-folder`, `--history`, `--asia-se-history`, `--china-forecast` or `--freight`. Run `python testing_scripts\refresh_monthly_resin_tlc.py --help` for the complete syntax.
 
 The script creates backups by default. Do not use `--no-backup` for a production refresh.
 
@@ -522,7 +522,8 @@ Review the summary, destination sheets, selected market source, supplier TLC, ma
 | `apps/frontend/src/App.tsx` | Frontend routes |
 | `apps/frontend/src/lib/api.ts` | Backend API client |
 | `apps/frontend/src/pages/` | Application pages |
-| `testing_scripts/refresh_september_october_2026.py` | Current resin-index/TLC refresh utility |
+| `testing_scripts/refresh_monthly_resin_tlc.py` | Primary monthly resin-index, freight and TLC refresh entry point |
+| `testing_scripts/refresh_september_october_2026.py` | Historical refresh and shared calculation engine |
 | `testing_scripts/update_uruguay_ihs_sep_dec.py` | Approved Uruguay IHS companion refresh |
 | `testing_scripts/validate_resin_index_lags.py` | Supplier/Market resin-index and lag validation |
 | `testing_scripts/validate_tlc_breakdown.py` | Component sum versus TLC validation |

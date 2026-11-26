@@ -190,7 +190,11 @@ def parse_period(value: Any) -> tuple[int, int] | None:
     return parsed.year, parsed.month
 
 
-def parse_actual_curves(history: Path, asia_se_history: Path) -> dict[str, dict[tuple[int, int], float]]:
+def parse_actual_curves(
+    history: Path,
+    asia_se_history: Path,
+    required_period: tuple[int, int] | None = (2026, 9),
+) -> dict[str, dict[tuple[int, int], float]]:
     frame = pd.read_excel(history, header=None)
     header_row = next(
         row
@@ -238,13 +242,19 @@ def parse_actual_curves(history: Path, asia_se_history: Path) -> dict[str, dict[
     missing = required - set(curves)
     if missing:
         raise ValueError(f"Missing actual series in ICIS files: {sorted(missing)}")
-    for series in required:
-        if (2026, 9) not in curves[series]:
-            raise ValueError(f"{series} does not contain September 2026 actual")
+    if required_period is not None:
+        for series in required:
+            if required_period not in curves[series]:
+                raise ValueError(
+                    f"{series} does not contain {period_text(required_period)} actual"
+                )
     return dict(curves)
 
 
-def parse_china_forecast(path: Path) -> dict[tuple[int, int], float]:
+def parse_china_forecast(
+    path: Path,
+    required_periods: set[tuple[int, int]] | None = None,
+) -> dict[tuple[int, int], float]:
     frame = pd.read_excel(path, header=None)
     curve: dict[tuple[int, int], float] = {}
     for row in range(len(frame)):
@@ -256,7 +266,11 @@ def parse_china_forecast(path: Path) -> dict[tuple[int, int], float]:
         timestamp = parsed_date.to_pydatetime()
         if timestamp.day == 1:
             curve[(timestamp.year, timestamp.month)] = amount
-    required = {(2026, 10), (2026, 11), (2026, 12)}
+    required = (
+        {(2026, 10), (2026, 11), (2026, 12)}
+        if required_periods is None
+        else required_periods
+    )
     if missing := required - set(curve):
         raise ValueError(f"China forecast is missing periods: {sorted(missing)}")
     return curve
@@ -267,16 +281,20 @@ def export_csv(sheet: Any, output: Path) -> None:
         csv.writer(handle).writerows(sheet.iter_rows(values_only=True))
 
 
-def backup_model(path: Path, timestamp: str) -> tuple[Path, Path | None]:
+def backup_model(
+    path: Path,
+    timestamp: str,
+    label: str = "sep_oct_actual",
+) -> tuple[Path, Path | None]:
     backup = path.with_name(
-        f"{path.stem}.backup_before_sep_oct_actual_{timestamp}{path.suffix}"
+        f"{path.stem}.backup_before_{label}_{timestamp}{path.suffix}"
     )
     shutil.copy2(path, backup)
     csv_path = path.with_suffix(".csv")
     csv_backup: Path | None = None
     if csv_path.exists():
         csv_backup = csv_path.with_name(
-            f"{csv_path.stem}.backup_before_sep_oct_actual_{timestamp}{csv_path.suffix}"
+            f"{csv_path.stem}.backup_before_{label}_{timestamp}{csv_path.suffix}"
         )
         shutil.copy2(csv_path, csv_backup)
     return backup, csv_backup
@@ -570,6 +588,8 @@ def refresh_supplier(
     history_path: Path,
     asia_path: Path,
     forecast_path: Path,
+    output_periods: tuple[tuple[int, int], ...] | None = None,
+    latest_actual_period: tuple[int, int] = (2026, 10),
 ) -> list[dict[str, Any]]:
     workbook = load_workbook(model_path)
     sheet = workbook[SHEET_NAME]
@@ -585,10 +605,11 @@ def refresh_supplier(
         location = clean(value(row, "Location"))
         groups[(destination, supplier, location, year, month)].append(row)
 
+    periods = output_periods or tuple((2026, month) for month in (9, 10, 11, 12))
     audit: list[dict[str, Any]] = []
-    for month in (9, 10, 11, 12):
+    for output_year, month in periods:
         for (destination, supplier, location, year, group_month), rows in sorted(groups.items()):
-            if year != 2026 or group_month != month:
+            if year != output_year or group_month != month:
                 continue
             series, formula = SUPPLIER_RULES[(destination, supplier)]
             old_type = clean(value(rows[0], "Data Type"))
@@ -608,7 +629,7 @@ def refresh_supplier(
             old_resin = number(value(old_resin_rows[0], "Value"), 0.0) or 0.0
             old_tlc = number(value(total_rows[-1], "Value"), 0.0) or 0.0
 
-            new_type = "Actual" if month in {9, 10} else "Forecast"
+            new_type = "Actual" if (year, month) <= latest_actual_period else "Forecast"
             for row in rows:
                 sheet.cell(row, headers["Data Type"], new_type)
 
@@ -619,11 +640,11 @@ def refresh_supplier(
                         "Destination": destination,
                         "Supplier / Source": supplier,
                         "Location": location,
-                        "Output Period": f"{MONTHS[month]} 2026",
+                        "Output Period": f"{MONTHS[month]} {year}",
                         "Old Data Type": old_type,
                         "New Data Type": new_type,
                         "Lag": "M-1",
-                        "Index Period": period_text(lagged_period(2026, month, 1)),
+                        "Index Period": period_text(lagged_period(year, month, 1)),
                         "Index Series": "IHS",
                         "Index Basis": "Existing Uruguay values retained",
                         "Old Resin Index": old_resin,
@@ -635,16 +656,24 @@ def refresh_supplier(
                 )
                 continue
 
-            template_month = month - 1 if month in {9, 10} else 10
-            template_rows = groups.get((destination, supplier, location, 2026, template_month))
+            template_period = (
+                lagged_period(year, month, 1)
+                if (year, month) <= latest_actual_period
+                else latest_actual_period
+            )
+            template_year, template_month = template_period
+            template_rows = groups.get(
+                (destination, supplier, location, template_year, template_month)
+            )
             if not template_rows:
                 raise ValueError(
-                    f"Missing supplier template for {destination} / {supplier} / {template_month}"
+                    f"Missing supplier template for {destination} / {supplier} / "
+                    f"{period_text(template_period)}"
                 )
             copy_non_resin_values(sheet, headers, value, template_rows, rows)
             labels = rows_by_label(sheet, headers, rows)
             lag = DESTINATION_LAGS[destination]
-            index_period = lagged_period(2026, month, lag)
+            index_period = lagged_period(year, month, lag)
             new_resin, basis = direct_index_value(
                 series, index_period, actual_curves, china_forecast, old_resin
             )
@@ -657,7 +686,7 @@ def refresh_supplier(
             if basis == "China ICIS forecast":
                 provenance_files = forecast_path
             provenance = (
-                f"{provenance_files}; {MONTHS[template_month]} 2026 latest Actual "
+                f"{provenance_files}; {period_text(template_period)} latest Actual "
                 f"non-resin components carried forward; {lag}-month lag applied"
             )
             for row in rows:
@@ -669,7 +698,7 @@ def refresh_supplier(
                     "Destination": destination,
                     "Supplier / Source": supplier,
                     "Location": location,
-                    "Output Period": f"{MONTHS[month]} 2026",
+                    "Output Period": f"{MONTHS[month]} {year}",
                     "Old Data Type": old_type,
                     "New Data Type": new_type,
                     "Lag": f"M-{lag}",
@@ -681,7 +710,7 @@ def refresh_supplier(
                     "Old TLC": old_tlc,
                     "New TLC": new_tlc,
                     "Status": "UPDATED" if abs(new_tlc - old_tlc) > 1e-9 or old_type != new_type else "UNCHANGED",
-                    "Non-resin Basis": f"{MONTHS[template_month]} 2026 latest Actual",
+                    "Non-resin Basis": f"{period_text(template_period)} latest Actual",
                     "Provenance": provenance,
                 }
             )
@@ -773,6 +802,10 @@ def refresh_market(
     history_path: Path,
     asia_path: Path,
     forecast_path: Path,
+    output_periods: tuple[tuple[int, int], ...] | None = None,
+    latest_actual_period: tuple[int, int] = (2026, 10),
+    freight_rates: dict[tuple[str, str], float] | None = None,
+    freight_source: str | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     workbook = load_workbook(model_path)
     sheet = workbook[SHEET_NAME]
@@ -795,10 +828,32 @@ def refresh_market(
     }
     audit: list[dict[str, Any]] = []
     global_audit: list[dict[str, Any]] = []
+    explicit_periods = output_periods is not None
+    periods = output_periods or tuple((2026, month) for month in (9, 10, 11, 12))
+    period_set = set(periods)
+
+    def apply_market_freight(
+        rows: list[int], source: str, destination: str
+    ) -> tuple[float, float, str]:
+        freight_row = next(
+            row
+            for row in rows
+            if normalized(value(row, "Raw Cost Breakdown")) == "freight cost"
+        )
+        old_freight = number(value(freight_row, "Value"), 0.0) or 0.0
+        if freight_rates is None:
+            return old_freight, old_freight, "Existing Market freight retained"
+        route = (normalized(source), normalized(destination))
+        if route not in freight_rates:
+            return old_freight, old_freight, "Route absent; existing Market freight retained"
+        new_freight = freight_rates[route]
+        sheet.cell(freight_row, headers["Value"], new_freight)
+        return old_freight, new_freight, freight_source or "Monthly freight workbook"
+
     try:
-        for month in (9, 10, 11, 12):
+        for output_year, month in periods:
             for (destination, source, year, group_month), rows in sorted(groups.items()):
-                if year != 2026 or group_month != month or source in GLOBAL_SOURCES:
+                if year != output_year or group_month != month or source in GLOBAL_SOURCES:
                     continue
                 series = MARKET_SOURCE_SERIES[source]
                 lag = DESTINATION_LAGS[destination]
@@ -811,12 +866,15 @@ def refresh_market(
                 ]
                 old_tlc = number(value(total_rows[0], "Value"), 0.0) if total_rows else 0.0
                 old_type = clean(value(rows[0], "Data Type"))
-                new_type = "Actual" if month in {9, 10} else "Forecast"
+                new_type = "Actual" if (year, month) <= latest_actual_period else "Forecast"
                 new_resin, basis = direct_index_value(
                     series, index_period, actual_curves, china_forecast, old_resin
                 )
                 for row in rows:
                     sheet.cell(row, headers["Data Type"], new_type)
+                old_freight, new_freight, freight_rule = apply_market_freight(
+                    rows, source, destination
+                )
                 new_tlc = recalculate_market_group(
                     sheet,
                     headers,
@@ -848,7 +906,7 @@ def refresh_market(
                         "Destination": destination,
                         "Supplier / Source": source,
                         "Location": source,
-                        "Output Period": f"{MONTHS[month]} 2026",
+                        "Output Period": f"{MONTHS[month]} {year}",
                         "Old Data Type": old_type,
                         "New Data Type": new_type,
                         "Lag": f"M-{lag}",
@@ -859,7 +917,9 @@ def refresh_market(
                         "New Resin Index": new_resin,
                         "Old TLC": old_tlc,
                         "New TLC": new_tlc,
-                        "Freight Rule": "Existing Market freight retained",
+                        "Old Freight": old_freight,
+                        "New Freight": new_freight,
+                        "Freight Rule": freight_rule,
                         "Status": "UPDATED" if abs(new_tlc - old_tlc) > 1e-9 or old_type != new_type else "UNCHANGED",
                     }
                 )
@@ -896,7 +956,11 @@ def refresh_market(
             return originals[selected]
 
         for (destination, source, year, month), rows in sorted(groups.items()):
-            if year != 2026 or source not in GLOBAL_SOURCES:
+            if source not in GLOBAL_SOURCES:
+                continue
+            if explicit_periods and (year, month) not in period_set:
+                continue
+            if not explicit_periods and year != 2026:
                 continue
             resin_rows, old_global = market_group_resin(sheet, headers, value, rows)
             inputs: dict[str, float] = {}
@@ -911,7 +975,7 @@ def refresh_market(
             ]
             old_tlc = number(value(total_rows[0], "Value"), 0.0) if total_rows else 0.0
             old_type = clean(value(rows[0], "Data Type"))
-            new_type = "Actual" if month in {9, 10} else old_type
+            new_type = "Actual" if (year, month) <= latest_actual_period else "Forecast"
             for row in rows:
                 sheet.cell(row, headers["Data Type"], new_type)
                 sheet.cell(
@@ -919,6 +983,9 @@ def refresh_market(
                     headers["Source File"],
                     "Global ICIS average of Asia SE Low, China, India, Mexico, South Korea and Taiwan",
                 )
+            old_freight, new_freight, freight_rule = apply_market_freight(
+                rows, source, destination
+            )
             new_tlc = recalculate_market_group(
                 sheet,
                 headers,
@@ -945,6 +1012,9 @@ def refresh_market(
                     "Old TLC": old_tlc,
                     "New TLC": new_tlc,
                     "TLC Delta": new_tlc - old_tlc,
+                    "Old Freight": old_freight,
+                    "New Freight": new_freight,
+                    "Freight Rule": freight_rule,
                     "Status": "UPDATED" if abs(new_global - old_global) > 1e-9 or old_type != new_type else "UNCHANGED",
                 }
             )
@@ -1000,6 +1070,9 @@ def write_audit(
     market_rows: list[dict[str, Any]],
     global_rows: list[dict[str, Any]],
     backups: list[Path],
+    output_periods: tuple[tuple[int, int], ...] | None = None,
+    latest_actual_period: tuple[int, int] = (2026, 10),
+    market_freight_basis: str = "Existing Market value retained",
 ) -> None:
     workbook = Workbook()
     summary = workbook.active
@@ -1008,10 +1081,18 @@ def write_audit(
         {"Metric": "Supplier scenarios refreshed", "Value": len(supplier_rows)},
         {"Metric": "Market direct scenarios refreshed", "Value": len(market_rows)},
         {"Metric": "Global ICIS scenarios recalculated", "Value": len(global_rows)},
-        {"Metric": "September/October rows", "Value": "Actual"},
-        {"Metric": "November/December rows", "Value": "Forecast"},
+        {
+            "Metric": "Latest Actual output period",
+            "Value": period_text(latest_actual_period),
+        },
+        {
+            "Metric": "Output periods refreshed",
+            "Value": ", ".join(period_text(period) for period in output_periods)
+            if output_periods
+            else "September-December 2026 plus historical Global ICIS",
+        },
         {"Metric": "Supplier non-resin basis", "Value": "Latest previous Actual"},
-        {"Metric": "Market freight basis", "Value": "Existing Market value retained"},
+        {"Metric": "Market freight basis", "Value": market_freight_basis},
         {
             "Metric": "Global ICIS formula",
             "Value": "Average of Asia SE Low, China, India, Mexico, South Korea and Taiwan",
@@ -1031,9 +1112,14 @@ def write_audit(
     summary.freeze_panes = "A2"
 
     input_rows = []
+    selected_years = (
+        {year for year, _ in output_periods}
+        if output_periods
+        else {2026}
+    )
     for series, values in sorted(actual_curves.items()):
         for (year, month), amount in sorted(values.items()):
-            if year == 2026:
+            if year in selected_years:
                 input_rows.append(
                     {
                         "Series": series,
@@ -1043,7 +1129,7 @@ def write_audit(
                     }
                 )
     for (year, month), amount in sorted(china_forecast.items()):
-        if year == 2026:
+        if year in selected_years:
             input_rows.append(
                 {
                     "Series": "China",
